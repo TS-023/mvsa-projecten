@@ -118,3 +118,99 @@ const EmployeeImages = {
     return u.publicUrl;
   }
 };
+
+// ============================================================
+//  AUTH — inloggen, registreren, sessie beheren
+// ============================================================
+const Auth = {
+  // Huidige ingelogde gebruiker
+  async getUser() {
+    const { data: { user } } = await db.auth.getUser();
+    return user;
+  },
+
+  // Profiel ophalen (inclusief status)
+  async getProfile(userId) {
+    const { data } = await db.from('profiles').select('*').eq('id', userId).maybeSingle();
+    return data;
+  },
+
+  // Registreren
+  async register(email, password, naam, team) {
+    const { data, error } = await db.auth.signUp({ email, password });
+    if (error) throw error;
+    // Maak profiel aan met status 'pending'
+    if (data.user) {
+      await db.from('profiles').insert([{
+        id: data.user.id,
+        naam, email, team,
+        status: 'pending',
+      }]);
+    }
+    return data;
+  },
+
+  // Inloggen
+  async login(email, password) {
+    const { data, error } = await db.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return data;
+  },
+
+  // Uitloggen
+  async logout() {
+    await db.auth.signOut();
+  },
+
+  // Sessie bewaken
+  onAuthChange(callback) {
+    return db.auth.onAuthStateChange(callback);
+  },
+
+  // Check of gebruiker approved is
+  async isApproved() {
+    const user = await this.getUser();
+    if (!user) return false;
+    const profile = await this.getProfile(user.id);
+    return profile?.status === 'approved';
+  },
+};
+
+// ============================================================
+//  BEHEER — aanmeldingen goedkeuren/afkeuren
+// ============================================================
+const AdminAuth = {
+  // Alle aanmeldingen ophalen
+  async getPending() {
+    const { data } = await db.from('profiles')
+      .select('*').eq('status', 'pending')
+      .order('created_at', { ascending: true });
+    return data || [];
+  },
+
+  async getAll() {
+    const { data } = await db.from('profiles')
+      .select('*').order('created_at', { ascending: false });
+    return data || [];
+  },
+
+  // Goedkeuren
+  async approve(profileId) {
+    await db.from('profiles').update({
+      status: 'approved',
+      approved_at: new Date().toISOString(),
+    }).eq('id', profileId);
+  },
+
+  // Afkeuren
+  async reject(profileId) {
+    await db.from('profiles').update({
+      status: 'rejected',
+    }).eq('id', profileId);
+  },
+
+  // Verwijderen
+  async remove(profileId) {
+    await db.from('profiles').delete().eq('id', profileId);
+  },
+};

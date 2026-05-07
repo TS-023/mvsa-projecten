@@ -100,3 +100,53 @@ on conflict (projectnummer) do nothing;
 
 -- Opleverdatum toevoegen (voer dit uit als je de tabel al hebt aangemaakt)
 alter table public.projects add column if not exists opleverdatum date;
+
+-- ============================================================
+--  AUTHENTICATIE & GEBRUIKERS
+--  Voer dit uit in Supabase SQL Editor
+-- ============================================================
+
+-- Gebruikersprofiel tabel (gekoppeld aan Supabase Auth)
+create table if not exists public.profiles (
+  id          uuid references auth.users(id) on delete cascade primary key,
+  created_at  timestamptz default now(),
+  naam        text not null,
+  email       text not null,
+  rol         text default 'medewerker',
+  team        text default 'Ontwerp',
+  status      text default 'pending', -- pending | approved | rejected
+  employee_id uuid references public.employees(id) on delete set null,
+  approved_at timestamptz,
+  approved_by text
+);
+
+-- RLS voor profiles
+alter table public.profiles enable row level security;
+
+-- Iedereen mag zijn eigen profiel lezen
+create policy "Eigen profiel lezen"
+  on public.profiles for select
+  using (auth.uid() = id);
+
+-- Beheerder mag alles lezen
+create policy "Beheerder leest alles"
+  on public.profiles for select
+  using (true);
+
+-- Gebruiker mag eigen profiel aanmaken bij registratie
+create policy "Profiel aanmaken bij registratie"
+  on public.profiles for insert
+  with check (auth.uid() = id);
+
+-- Beheerder mag profielen updaten (goedkeuren/afkeuren)
+create policy "Beheerder mag updaten"
+  on public.profiles for update
+  using (true);
+
+-- Voeg created_by toe aan projects tabel
+alter table public.projects
+  add column if not exists created_by uuid references auth.users(id) on delete set null;
+
+-- Index voor snelle lookup
+create index if not exists profiles_status_idx on public.profiles(status);
+create index if not exists projects_created_by_idx on public.projects(created_by);

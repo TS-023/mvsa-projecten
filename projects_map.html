@@ -50,6 +50,55 @@
   .legend .dot.user{ background: var(--ink); }
 
   .proj-list{ display: flex; flex-direction: column; gap: 8px; }
+
+  /* ── Detail paneel (bij klik op pin) ── */
+  .detail-panel{
+    display: none; flex-direction: column; gap: 0;
+    animation: slideDetail .25s cubic-bezier(.22,1,.36,1);
+  }
+  @keyframes slideDetail{ from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:translateX(0)} }
+  .detail-panel.visible{ display: flex; }
+  .detail-hero{
+    width: 100%; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden;
+    background: linear-gradient(135deg, #1a2030, #2a3548);
+    margin-bottom: 14px; position: relative; flex: none;
+  }
+  .detail-hero img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .detail-hero .no-img{
+    width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,255,255,.4);
+  }
+  .detail-tag{
+    font-size: 9px; letter-spacing: .16em; text-transform: uppercase; font-weight: 700;
+    color: var(--accent); margin-bottom: 6px;
+  }
+  .detail-name{
+    font-size: 20px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 4px; line-height: 1.1;
+  }
+  .detail-loc{ font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+  .detail-stats{
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;
+  }
+  .detail-stat{
+    background: var(--card); border-radius: 10px; padding: 10px 12px;
+    box-shadow: var(--shadow);
+  }
+  .detail-stat .lbl{ font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 3px; }
+  .detail-stat .val{ font-size: 14px; font-weight: 800; letter-spacing: -.01em; }
+  .detail-open{
+    display: block; text-align: center; background: var(--ink); color: #fff;
+    text-decoration: none; padding: 12px; border-radius: 999px;
+    font-size: 11px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700;
+    transition: background .15s, transform .15s; margin-bottom: 12px;
+  }
+  .detail-open:hover{ background: var(--accent); transform: translateY(-1px); }
+  .detail-back{
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600;
+    color: var(--muted); cursor: pointer; background: none; border: none;
+    font-family: inherit; padding: 6px 0; transition: color .15s;
+  }
+  .detail-back:hover{ color: var(--ink); }
   .proj-card{
     background: var(--card); border-radius: 12px; padding: 12px 14px; cursor: pointer;
     box-shadow: var(--shadow);
@@ -164,6 +213,17 @@
         <span class="item"><span class="dot"></span>Projecten</span>
     </div>
     <div id="proj-list" class="proj-list"></div>
+    <div id="detail-panel" class="detail-panel">
+      <button class="detail-back" onclick="closeDetail()">← Alle projecten</button>
+      <div class="detail-hero" id="detail-hero">
+        <div class="no-img">Geen afbeelding</div>
+      </div>
+      <div class="detail-tag" id="detail-tag"></div>
+      <div class="detail-name" id="detail-name"></div>
+      <div class="detail-loc" id="detail-loc"></div>
+      <div class="detail-stats" id="detail-stats"></div>
+      <a class="detail-open" id="detail-open" href="#">Open project →</a>
+    </div>
   </aside>
   <div class="map-wrap"><div id="map"></div></div>
 </div>
@@ -251,6 +311,12 @@ async function resolveUserCoords(userProjects){
    Build map
 ---------------------------------------------------------------------------- */
 const map = L.map('map', { zoomControl: true }).setView([52.2, 5.3], 7);
+map.on('click', function(e) {
+  // Sluit detail als er op de kaart geklikt wordt (niet op een pin)
+  if (!e.originalEvent.target.closest('.marker-pin')) {
+    closeDetail();
+  }
+});
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   attribution: '© OpenStreetMap contributors © CARTO',
   subdomains: 'abcd', maxZoom: 19,
@@ -315,6 +381,7 @@ function addProject(p){
     return `${thumb}<div class="pop-title">${p.name}</div><div class="pop-meta">${p.address || p.city || ''}</div><a class="pop-link" href="${link}">Open project →</a>`;
   };
   m.bindPopup(makePopup(p.thumbUrl || null));
+  m.on('click', () => showDetail(p));
 
   // Tooltip (bij hover)
   const makeTooltip = (imgUrl) => {
@@ -349,6 +416,57 @@ function addProject(p){
   allProjects.push(p);
 }
 
+function showDetail(p) {
+  // Verberg lijst, toon detail
+  document.getElementById('proj-list').style.display = 'none';
+  document.getElementById('search').style.display = 'none';
+  document.querySelector('.legend') && (document.querySelector('.legend').style.display = 'none');
+
+  const panel = document.getElementById('detail-panel');
+  panel.classList.add('visible');
+
+  // Hero afbeelding
+  const hero = document.getElementById('detail-hero');
+  if (p.thumbUrl) {
+    hero.innerHTML = `<img src="${p.thumbUrl}" alt="${p.name}">`;
+  } else {
+    hero.innerHTML = '<div class="no-img">Geen afbeelding</div>';
+  }
+
+  // Info
+  document.getElementById('detail-tag').textContent = p.project_type || p.opgave || 'Project';
+  document.getElementById('detail-name').textContent = p.name;
+  document.getElementById('detail-loc').textContent = [p.city, p.raw?.provincie, p.raw?.land].filter(Boolean).join(' · ') || '—';
+
+  // Stats
+  const stats = [];
+  if (p.raw?.fase)        stats.push({ lbl: 'Fase',      val: p.raw.fase });
+  if (p.raw?.totaal_bvo)  stats.push({ lbl: 'Totaal BVO', val: Number(p.raw.totaal_bvo).toLocaleString('nl-NL') + ' m²' });
+  if (p.raw?.opdrachtgever) stats.push({ lbl: 'Opdrachtgever', val: p.raw.opdrachtgever });
+  if (p.raw?.project_type)  stats.push({ lbl: 'Type', val: p.raw.project_type });
+  if (p.raw?.projectnummer)  stats.push({ lbl: 'Nummer', val: p.raw.projectnummer });
+  if (p.raw?.opleverdatum)   stats.push({ lbl: 'Oplevering', val: p.raw.opleverdatum.slice(0,4) });
+
+  document.getElementById('detail-stats').innerHTML = stats.slice(0,4).map(s =>
+    `<div class="detail-stat"><div class="lbl">${s.lbl}</div><div class="val">${s.val}</div></div>`
+  ).join('');
+
+  // Open link
+  const nr = p.raw?.projectnummer || '';
+  document.getElementById('detail-open').href =
+    `project_page.html?nr=${encodeURIComponent(nr)}&p=${encodeURIComponent(p.name)}`;
+}
+
+function closeDetail() {
+  document.getElementById('proj-list').style.display = '';
+  document.getElementById('search').style.display = '';
+  document.querySelector('.legend') && (document.querySelector('.legend').style.display = '');
+  document.getElementById('detail-panel').classList.remove('visible');
+  // Deactiveer actieve kaart
+  document.querySelectorAll('.proj-card.active').forEach(c => c.classList.remove('active'));
+  map.closePopup();
+}
+
 function renderList(filter = ''){
   const list = document.getElementById('proj-list');
   const q = filter.toLowerCase();
@@ -375,6 +493,7 @@ function renderList(filter = ''){
         m.openPopup();
         document.querySelectorAll('.proj-card.active').forEach(c => c.classList.remove('active'));
         card.classList.add('active');
+        showDetail(p);
       }
     });
   });
@@ -492,5 +611,25 @@ document.getElementById('search').addEventListener('input', (e) => renderList(e.
 })();
 </script>
 <script src="transitions.js"></script>
+<script>
+(async function() {
+  try {
+    const { data: { user } } = await db.auth.getUser();
+    const bar = document.getElementById('auth-bar');
+    if (!bar) return;
+    if (!user) {
+      bar.innerHTML = '<a href="login.html" style="background:var(--ink);color:#fff;text-decoration:none;padding:8px 16px;border-radius:999px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;">Inloggen →</a>';
+      return;
+    }
+    const { data: profile } = await db.from('profiles').select('naam,status').eq('id', user.id).maybeSingle();
+    if (profile && profile.status === 'approved') {
+      bar.innerHTML = '<span style="font-weight:700;font-size:12px;">' + profile.naam + '</span><span style="color:var(--line)">|</span><button onclick="Auth.logout().then(()=>location.reload())" style="background:none;border:none;cursor:pointer;font-family:inherit;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--muted);">Uitloggen</button>';
+    } else {
+      bar.innerHTML = '<a href="login.html" style="background:var(--ink);color:#fff;text-decoration:none;padding:8px 16px;border-radius:999px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;">Inloggen →</a>';
+    }
+  } catch(e) {}
+})();
+</script>
+<div id="auth-bar" style="position:fixed;top:24px;right:24px;z-index:200;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.85);backdrop-filter:blur(10px);border:1px solid rgba(17,20,24,.08);border-radius:999px;padding:8px 14px;box-shadow:0 4px 16px -4px rgba(20,30,45,.18);font-size:11px;font-family:inherit;"></div>
 </body>
 </html>
