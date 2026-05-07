@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Beheer · MVSA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+/* ═══════════════════════════════════════════════
+   CSS VARIABELEN & RESET
+   ═══════════════════════════════════════════════ */
+:root{
+  --bg:#DEE7EF; --card:#fff; --ink:#111418; --muted:#6b7480;
+  --line:#e6ecf2; --accent:#3d6e8a; --danger:#b43c3c;
+  --shadow:0 1px 0 rgba(20,30,45,.04),0 8px 24px -12px rgba(20,30,45,.18);
+}
+[data-theme="dark"]{
+  --bg:#0f1114; --card:#1a1d22; --ink:#e8ecf0;
+  --muted:#8a929c; --line:#2a2e35; --accent:#5a9ab8;
+  --shadow:0 1px 0 rgba(0,0,0,.2),0 8px 24px -12px rgba(0,0,0,.4);
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+html,body{ background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif;
+  -webkit-font-smoothing:antialiased; min-height:100vh; }
+
+/* ═══════════════════════════════════════════════
+   LOGIN SCHERM
+   ═══════════════════════════════════════════════ */
+.login-screen{
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  background:var(--bg);
+}
+.login-card{
+  background:var(--card); border-radius:20px; padding:56px 44px;
+  box-shadow:0 24px 64px -12px rgba(20,30,45,.2); width:min(400px,95vw);
+  text-align:center;
+  animation:popIn .35s cubic-bezier(.22,1,.36,1);
+}
+@keyframes popIn{ from{opacity:0;transform:scale(.95) translateY(12px)} to{opacity:1;transform:scale(1) translateY(0)} }
+.login-lock{ font-size:44px; margin-bottom:20px; display:block; }
+.login-card h1{ font-size:26px; font-weight:800; letter-spacing:-.03em; margin-bottom:6px; }
+.login-card p{ font-size:13px; color:var(--muted); margin-bottom:32px; line-height:1.6; }
+.pw-input{
+  width:100%; font-family:inherit; font-size:18px; padding:14px 18px;
+  border:1.5px solid var(--line); border-radius:12px; background:var(--bg);
+  color:var(--ink); outline:none; text-align:center; letter-spacing:.3em;
+  transition:border-color .2s, box-shadow .2s; margin-bottom:12px;
+}
+.pw-input:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(61,110,138,.12); }
+.pw-input.error{ border-color:var(--danger); animation:shake .3s ease; }
+@keyframes shake{ 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+.login-btn{
+  width:100%; background:var(--ink); color:#fff; border:none; padding:14px;
+  border-radius:999px; font-family:inherit; font-size:12px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:700; cursor:pointer; transition:background .2s, transform .15s;
+}
+.login-btn:hover{ background:var(--accent); transform:translateY(-1px); }
+.login-err{ color:var(--danger); font-size:12px; margin-top:10px; min-height:16px; }
+
+/* ═══════════════════════════════════════════════
+   ADMIN LAYOUT
+   ═══════════════════════════════════════════════ */
+.admin-screen{ display:none; }
+.topbar{
+  position:sticky; top:0; z-index:100;
+  background:rgba(222,231,239,.92); backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(17,20,24,.06);
+  display:flex; align-items:center; gap:12px; padding:14px 32px;
+}
+[data-theme="dark"] .topbar{ background:rgba(15,17,20,.92); }
+.topbar .logo{ font-size:13px; font-weight:800; letter-spacing:.04em; flex:1; }
+.topbar .logo span{ color:var(--accent); }
+.tb-link{
+  font-size:11px; letter-spacing:.1em; text-transform:uppercase; font-weight:600;
+  color:var(--muted); text-decoration:none; padding:7px 14px; border-radius:999px;
+  border:1px solid var(--line); background:var(--card); transition:all .15s;
+}
+.tb-link:hover{ color:var(--ink); border-color:rgba(17,20,24,.2); }
+.logout-btn{
+  font-size:11px; letter-spacing:.1em; text-transform:uppercase; font-weight:700;
+  color:var(--danger); background:rgba(180,60,60,.08); border:1px solid rgba(180,60,60,.2);
+  padding:7px 14px; border-radius:999px; cursor:pointer; font-family:inherit; transition:all .15s;
+}
+.logout-btn:hover{ background:rgba(180,60,60,.15); }
+
+.page{ max-width:1300px; margin:0 auto; padding:32px 32px 80px; }
+.page-hero{ margin-bottom:32px; }
+.page-hero h1{ font-size:clamp(36px,5vw,52px); font-weight:800; letter-spacing:-.04em; line-height:1; margin-bottom:6px; }
+.page-hero p{ font-size:13px; color:var(--muted); }
+
+/* ═══════════════════════════════════════════════
+   SECTIE TITELS
+   ═══════════════════════════════════════════════ */
+.section-label{
+  font-size:10px; letter-spacing:.22em; text-transform:uppercase; font-weight:700;
+  color:var(--accent); margin-bottom:14px; display:flex; align-items:center; gap:10px;
+}
+.section-label::after{ content:''; flex:1; height:1px; background:var(--line); }
+
+/* ═══════════════════════════════════════════════
+   WIDGET GRID
+   ═══════════════════════════════════════════════ */
+.grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+.grid-3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:16px; }
+.grid-1{ display:grid; grid-template-columns:1fr; gap:16px; margin-bottom:16px; }
+@media(max-width:900px){ .grid-2,.grid-3{ grid-template-columns:1fr; } }
+
+.widget{
+  background:var(--card); border-radius:16px;
+  box-shadow:var(--shadow); padding:22px 24px; position:relative; overflow:hidden;
+}
+.widget-title{
+  font-size:10px; letter-spacing:.18em; text-transform:uppercase; font-weight:700;
+  color:var(--muted); margin-bottom:16px; display:flex; align-items:center; gap:8px;
+}
+.widget-title .ico{ font-size:14px; }
+
+/* ── Stat widget ── */
+.stat-num{ font-size:42px; font-weight:800; letter-spacing:-.04em; line-height:1; }
+.stat-sub{ font-size:12px; color:var(--muted); margin-top:4px; }
+
+/* ── Lijst widget ── */
+.w-list{ display:flex; flex-direction:column; gap:0; }
+.w-row{
+  display:flex; align-items:center; gap:12px;
+  padding:10px 0; border-bottom:1px solid var(--line);
+}
+.w-row:last-child{ border-bottom:0; }
+.w-ava{
+  width:34px; height:34px; border-radius:50%; flex:none; overflow:hidden;
+  background:radial-gradient(120% 80% at 30% 30%,#3a3f47 0%,#1a1d22 60%,#0c0e11 100%);
+}
+.w-ava img{ width:100%; height:100%; object-fit:cover; display:block; }
+.w-info{ flex:1; min-width:0; }
+.w-name{ font-weight:700; font-size:12px; letter-spacing:.03em; text-transform:uppercase;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.w-sub{ font-size:11px; color:var(--muted); margin-top:1px; }
+.w-pts{
+  font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px; flex:none;
+}
+.pts-adj{
+  width:24px; height:24px; border-radius:50%; border:1px solid var(--line);
+  background:var(--card); font-size:13px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; transition:all .15s;
+  color:var(--ink);
+}
+.pts-adj:hover{ background:var(--ink); color:#fff; border-color:var(--ink); }
+
+/* ── Actie widget ── */
+.action-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.action-btn{
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  padding:18px 12px; border-radius:12px; border:1px solid var(--line);
+  background:var(--bg); cursor:pointer; transition:all .2s; text-decoration:none; color:var(--ink);
+  font-family:inherit;
+}
+.action-btn:hover{ border-color:var(--accent); background:rgba(61,110,138,.06); transform:translateY(-2px); }
+.action-btn .ab-icon{ font-size:24px; }
+.action-btn .ab-label{ font-size:10px; letter-spacing:.12em; text-transform:uppercase; font-weight:700; text-align:center; }
+.action-btn.danger{ border-color:rgba(180,60,60,.2); }
+.action-btn.danger:hover{ border-color:var(--danger); background:rgba(180,60,60,.06); }
+.action-btn.danger .ab-label{ color:var(--danger); }
+
+/* ── Activiteiten log ── */
+.log-row{
+  display:flex; align-items:center; gap:12px;
+  padding:9px 0; border-bottom:1px solid var(--line); font-size:12px;
+}
+.log-row:last-child{ border-bottom:0; }
+.log-icon{ font-size:18px; flex:none; }
+.log-info{ flex:1; }
+.log-action{ font-weight:700; color:var(--ink); }
+.log-proj{ color:var(--muted); }
+.log-time{ font-size:11px; color:var(--muted); flex:none; }
+
+/* ── Onvolledige projecten ── */
+.inc-row{
+  display:flex; align-items:center; gap:12px;
+  padding:10px 0; border-bottom:1px solid var(--line);
+  text-decoration:none; color:inherit; transition:background .1s;
+}
+.inc-row:last-child{ border-bottom:0; }
+.inc-row:hover .inc-name{ color:var(--accent); }
+.inc-name{ font-weight:700; font-size:12px; letter-spacing:.03em; text-transform:uppercase; flex:1; }
+.progress-bar{ height:6px; border-radius:999px; background:var(--line); overflow:hidden; width:80px; }
+.progress-fill{ height:100%; border-radius:999px; background:var(--accent); transition:width .3s; }
+.progress-fill.low{ background:#e0a030; }
+.progress-fill.vlow{ background:var(--danger); }
+.inc-pct{ font-size:11px; font-weight:700; color:var(--muted); min-width:32px; text-align:right; }
+
+/* ── Database widget ── */
+.db-row{ display:flex; justify-content:space-between; align-items:center;
+  padding:8px 0; border-bottom:1px solid var(--line); font-size:12px; }
+.db-row:last-child{ border-bottom:0; }
+.db-lbl{ color:var(--muted); }
+.db-val{ font-weight:700; }
+
+/* ── Wachtwoord widget ── */
+.pw-form{ display:flex; flex-direction:column; gap:10px; }
+.pw-form input{
+  font-family:inherit; font-size:13px; padding:10px 14px;
+  border:1px solid var(--line); border-radius:10px; background:var(--bg);
+  color:var(--ink); outline:none; transition:border-color .15s;
+}
+.pw-form input:focus{ border-color:var(--accent); }
+.pw-submit{
+  background:var(--ink); color:#fff; border:none; padding:10px;
+  border-radius:999px; font-family:inherit; font-size:11px; letter-spacing:.14em;
+  text-transform:uppercase; font-weight:700; cursor:pointer; transition:background .15s;
+}
+.pw-submit:hover{ background:var(--accent); }
+.pw-msg{ font-size:12px; color:var(--accent); margin-top:4px; min-height:16px; }
+
+/* ── Panel (slide-in) ── */
+.panel-backdrop{
+  position:fixed; inset:0; background:rgba(10,12,18,.5);
+  backdrop-filter:blur(6px); z-index:200; animation:fadeIn .2s ease;
+}
+@keyframes fadeIn{ from{opacity:0} to{opacity:1} }
+@keyframes slideInR{ from{transform:translateX(100%)} to{transform:translateX(0)} }
+.panel{
+  position:fixed; right:0; top:0; bottom:0; width:360px;
+  background:var(--card); z-index:201; display:flex; flex-direction:column;
+  box-shadow:-8px 0 40px rgba(20,30,45,.2);
+  animation:slideInR .25s cubic-bezier(.22,1,.36,1); overflow-y:auto;
+}
+.panel-top{
+  background:var(--ink); padding:36px 28px 24px;
+  display:flex; flex-direction:column; align-items:center; text-align:center; position:relative;
+}
+.panel-x{
+  position:absolute; top:14px; right:14px; background:rgba(255,255,255,.1);
+  border:none; color:#fff; width:30px; height:30px; border-radius:50%;
+  cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;
+}
+.panel-x:hover{ background:rgba(255,255,255,.2); }
+.panel-photo{
+  width:84px; height:84px; border-radius:50%;
+  border:3px solid rgba(255,255,255,.2);
+  background:radial-gradient(120% 80% at 30% 30%,#3a3f47 0%,#1a1d22 60%,#0c0e11 100%);
+  overflow:hidden; margin-bottom:14px; position:relative; cursor:pointer;
+}
+.panel-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+.panel-photo .pov{
+  position:absolute; inset:0; background:rgba(0,0,0,.5); opacity:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; transition:opacity .2s; border-radius:50%;
+}
+.panel-photo:hover .pov{ opacity:1; }
+.fd{ background:transparent; border:none; border-bottom:1px solid rgba(255,255,255,.2);
+  color:#fff; font-family:inherit; text-align:center; width:100%; outline:none; padding:4px 0; }
+.fd:focus{ border-bottom-color:rgba(255,255,255,.6); }
+.fd::placeholder{ color:rgba(255,255,255,.3); }
+.fd.fn{ font-size:17px; font-weight:800; margin-bottom:6px; }
+.fd.fr{ font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.7); margin-bottom:12px; }
+.fd.pts{ font-size:22px; font-weight:800; width:80px; }
+.team-sel{
+  background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.15); color:#fff;
+  font-family:inherit; font-size:10px; letter-spacing:.14em; text-transform:uppercase;
+  font-weight:700; padding:4px 12px; border-radius:999px; outline:none; cursor:pointer;
+}
+.team-sel option{ background:#1a1d22; }
+.panel-body{ padding:20px 28px 12px; flex:1; }
+.psec{ font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted);
+  font-weight:700; margin:14px 0 10px; padding-bottom:8px; border-bottom:1px solid var(--line); }
+.prow{ display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.picon{ width:32px; height:32px; border-radius:8px; background:rgba(17,20,24,.06);
+  display:flex; align-items:center; justify-content:center; font-size:14px; flex:none; }
+.pfield{ flex:1; }
+.pfield .lbl{ font-size:10px; color:var(--muted); letter-spacing:.08em; text-transform:uppercase; margin-bottom:2px; }
+.pinput{
+  background:transparent; border:none; border-bottom:1px solid var(--line);
+  font-family:inherit; font-size:13px; font-weight:600; color:var(--ink);
+  width:100%; outline:none; padding:2px 0; transition:border-color .15s;
+}
+.pinput:focus{ border-bottom-color:var(--accent); }
+.pinput::placeholder{ color:var(--muted); font-weight:400; }
+.panel-foot{ padding:16px 28px 28px; display:flex; flex-direction:column; gap:8px; border-top:1px solid var(--line); }
+.psave{
+  background:var(--ink); color:#fff; border:none; padding:11px;
+  border-radius:999px; font-family:inherit; font-size:11px; letter-spacing:.14em;
+  text-transform:uppercase; font-weight:700; cursor:pointer; transition:background .15s;
+}
+.psave:hover{ background:var(--accent); }
+.pdel{
+  background:rgba(180,60,60,.08); border:1px solid rgba(180,60,60,.25); color:var(--danger);
+  padding:10px; border-radius:999px; font-family:inherit; font-size:11px;
+  letter-spacing:.14em; text-transform:uppercase; font-weight:700; cursor:pointer;
+}
+.pdel:hover{ background:rgba(180,60,60,.15); }
+
+.toast{
+  position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+  background:var(--ink); color:#fff; padding:10px 20px; border-radius:999px;
+  font-size:12px; letter-spacing:.08em; z-index:999;
+  animation:toastIn .3s ease; white-space:nowrap;
+}
+@keyframes toastIn{ from{opacity:0;transform:translateX(-50%) translateY(8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     LOGIN
+     ══════════════════════════════════════ -->
+<div class="login-screen" id="login-screen">
+  <div class="login-card">
+    <span class="login-lock">🔐</span>
+    <h1>Beheerder login</h1>
+    <p>Alleen toegankelijk voor beheerders van het MVSA projectensysteem.</p>
+    <input class="pw-input" type="password" id="pw-input" placeholder="••••••"
+      onkeydown="if(event.key==='Enter')tryLogin()">
+    <button class="login-btn" onclick="tryLogin()">Inloggen →</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     ADMIN SCHERM
+     ══════════════════════════════════════ -->
+<div class="admin-screen" id="admin-screen">
+
+  <div class="topbar">
+    <div class="logo">MVSA <span>Beheer</span></div>
+    <a class="tb-link" href="projects_dashboard.html">← Dashboard</a>
+    <a class="tb-link" href="employees.html">👥 Werknemers</a>
+    <a class="tb-link" href="projects_list.html">📋 Projecten</a>
+    <button class="logout-btn" onclick="logout()">Uitloggen</button>
+  </div>
+
+  <div class="page">
+    <div class="page-hero">
+      <h1>Beheer</h1>
+      <p>Werknemers, projecten, database en systeeminstellingen.</p>
+    </div>
+
+    <!-- ── WERKNEMERS ── -->
+    <div class="section-label">👥 Werknemers</div>
+
+    <!-- Statistieken + acties balk -->
+    <div class="grid-3" style="margin-bottom:16px;">
+      <div class="widget" style="display:flex;align-items:center;gap:20px;">
+        <div><div class="stat-num" id="emp-count">—</div><div class="stat-sub">Werknemers</div></div>
+        <div><div class="stat-num" id="emp-total-pts">—</div><div class="stat-sub">Totaal punten</div></div>
+      </div>
+      <div class="widget">
+        <div class="action-grid">
+          <button class="action-btn" onclick="openNewEmpPanel()">
+            <span class="ab-icon">➕</span><span class="ab-label">Nieuwe werknemer</span>
+          </button>
+          <button class="action-btn danger" onclick="confirmResetPoints()">
+            <span class="ab-icon">🔄</span><span class="ab-label">Reset maandpunten</span>
+          </button>
+        </div>
+      </div>
+      <div class="widget">
+        <div class="widget-title"><span class="ico">🔍</span> Zoek werknemer</div>
+        <input id="emp-search" type="search" placeholder="Naam of functie…"
+          oninput="filterEmpTable(this.value)"
+          style="width:100%;font-family:inherit;font-size:13px;padding:9px 14px;
+          border:1px solid var(--line);border-radius:999px;background:var(--bg);
+          color:var(--ink);outline:none;transition:border-color .15s;"
+          onfocus="this.style.borderColor='var(--accent)'"
+          onblur="this.style.borderColor='var(--line)'">
+      </div>
+    </div>
+
+    <!-- Volledige werknemerslijst -->
+    <div class="widget" style="padding:0;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px 14px;border-bottom:1px solid var(--line);">
+        <div class="widget-title" style="margin:0;"><span class="ico">👥</span> Alle werknemers</div>
+        <a href="employees.html" style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--accent);text-decoration:none;">Leaderboard →</a>
+      </div>
+      <table style="width:100%;border-collapse:collapse;" id="emp-table">
+        <thead>
+          <tr style="background:#fafbfc;">
+            <th style="text-align:left;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:12px 24px;font-weight:600;border-bottom:1px solid var(--line);">Werknemer</th>
+            <th style="text-align:left;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:12px 16px;font-weight:600;border-bottom:1px solid var(--line);">Team</th>
+            <th style="text-align:center;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:12px 16px;font-weight:600;border-bottom:1px solid var(--line);">Punten</th>
+            <th style="text-align:center;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:12px 16px;font-weight:600;border-bottom:1px solid var(--line);">Projecten</th>
+            <th style="text-align:right;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:12px 24px;font-weight:600;border-bottom:1px solid var(--line);">Acties</th>
+          </tr>
+        </thead>
+        <tbody id="emp-tbody">
+          <tr><td colspan="5" style="padding:40px;text-align:center;color:var(--muted);font-size:13px;">Laden…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="height:20px;"></div>
+
+    <!-- ── PROJECTEN ── -->
+    <div class="section-label" style="margin-top:8px;">📁 Projecten</div>
+    <div class="grid-2">
+
+      <!-- Onvolledige projecten -->
+      <div class="widget">
+        <div class="widget-title"><span class="ico">⚠️</span> Onvolledige projecten <span id="inc-count" style="margin-left:auto;font-size:11px;background:rgba(224,160,48,.15);color:#e0a030;padding:2px 8px;border-radius:999px;">laden…</span></div>
+        <div class="w-list" id="incomplete-list">
+          <div style="color:var(--muted);font-size:13px;padding:20px 0;text-align:center">Laden…</div>
+        </div>
+      </div>
+
+      <!-- Project acties -->
+      <div class="widget">
+        <div class="widget-title"><span class="ico">⚙️</span> Project acties</div>
+        <div class="action-grid">
+          <a class="action-btn" href="new_project.html">
+            <span class="ab-icon">➕</span>
+            <span class="ab-label">Nieuw project</span>
+          </a>
+          <a class="action-btn" href="projects_list.html">
+            <span class="ab-icon">📋</span>
+            <span class="ab-label">Alle projecten</span>
+          </a>
+          <a class="action-btn" href="projects_map.html">
+            <span class="ab-icon">🗺</span>
+            <span class="ab-label">Kaartoverzicht</span>
+          </a>
+          <button class="action-btn" onclick="exportProjectsExcel()">
+            <span class="ab-icon">📊</span>
+            <span class="ab-label">Export projecten</span>
+          </button>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:16px;">
+          <div><div class="stat-num" id="proj-count">—</div><div class="stat-sub">Projecten totaal</div></div>
+          <div><div class="stat-num" id="proj-bvo">—</div><div class="stat-sub">m² BVO totaal</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── EXPORTS ── -->
+    <div class="section-label" style="margin-top:8px;">⬇ Exporteren</div>
+    <div class="grid-2" style="margin-bottom:16px;">
+
+      <!-- Export projecten -->
+      <div class="widget">
+        <div class="widget-title"><span class="ico">📁</span> Projecten exporteren</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6;">
+          Download alle projecten als Excel bestand. Bevat alle velden zoals naam, stad, fase, BVO, opdrachtgever en meer.
+        </p>
+        <div style="display:flex;gap:10px;">
+          <button onclick="exportProjectsExcel()" style="flex:1;background:var(--ink);color:#fff;border:none;
+            padding:12px;border-radius:999px;font-family:inherit;font-size:11px;letter-spacing:.14em;
+            text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .15s;"
+            onmouseover="this.style.background='var(--accent)'"
+            onmouseout="this.style.background='var(--ink)'">
+            📊 Download Excel
+          </button>
+          <button onclick="exportProjectsCSV()" style="background:transparent;border:1px solid var(--line);
+            color:var(--muted);padding:12px 18px;border-radius:999px;font-family:inherit;font-size:11px;
+            letter-spacing:.14em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:all .15s;"
+            onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+            onmouseout="this.style.borderColor='var(--line)';this.style.color='var(--muted)'">
+            CSV
+          </button>
+        </div>
+        <div style="margin-top:12px;font-size:11px;color:var(--muted);" id="proj-export-info">
+          <span id="proj-export-count">—</span> projecten beschikbaar
+        </div>
+      </div>
+
+      <!-- Export werknemers -->
+      <div class="widget">
+        <div class="widget-title"><span class="ico">👥</span> Werknemers exporteren</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6;">
+          Download alle werknemers als Excel bestand. Bevat naam, functie, team, punten en projectenaantal.
+        </p>
+        <div style="display:flex;gap:10px;">
+          <button onclick="exportEmployeesExcel()" style="flex:1;background:var(--ink);color:#fff;border:none;
+            padding:12px;border-radius:999px;font-family:inherit;font-size:11px;letter-spacing:.14em;
+            text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .15s;"
+            onmouseover="this.style.background='var(--accent)'"
+            onmouseout="this.style.background='var(--ink)'">
+            📊 Download Excel
+          </button>
+          <button onclick="exportEmployeesCSV()" style="background:transparent;border:1px solid var(--line);
+            color:var(--muted);padding:12px 18px;border-radius:999px;font-family:inherit;font-size:11px;
+            letter-spacing:.14em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:all .15s;"
+            onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+            onmouseout="this.style.borderColor='var(--line)';this.style.color='var(--muted)'">
+            CSV
+          </button>
+        </div>
+        <div style="margin-top:12px;font-size:11px;color:var(--muted);">
+          <span id="emp-export-count">—</span> werknemers beschikbaar
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DATABASE & ACTIVITEIT ── -->
+    <div class="section-label" style="margin-top:8px;">🗄 Database & activiteit</div>
+    <div class="grid-2">
+
+      <!-- Activiteitenlog -->
+      <div class="widget">
+        <div class="widget-title"><span class="ico">📝</span> Activiteitenlog <span style="margin-left:auto;font-size:10px;color:var(--muted)">Lokaal opgeslagen</span></div>
+        <div id="activity-log">
+          <div style="color:var(--muted);font-size:13px;padding:20px 0;text-align:center">Geen activiteit geregistreerd.</div>
+        </div>
+        <button onclick="clearLog()" style="margin-top:12px;background:none;border:1px solid var(--line);color:var(--muted);padding:6px 14px;border-radius:999px;font-family:inherit;font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;">Log wissen</button>
+      </div>
+
+      <!-- Database info -->
+      <div class="widget">
+        <div class="widget-title"><span class="ico">🗄</span> Database statistieken</div>
+        <div class="db-row"><span class="db-lbl">Projecten</span><span class="db-val" id="db-proj">—</span></div>
+        <div class="db-row"><span class="db-lbl">Werknemers</span><span class="db-val" id="db-emp">—</span></div>
+        <div class="db-row"><span class="db-lbl">Laatste project</span><span class="db-val" id="db-last">—</span></div>
+        <div class="db-row"><span class="db-lbl">Meest gevulde fase</span><span class="db-val" id="db-fase">—</span></div>
+        <div class="db-row"><span class="db-lbl">Gemiddeld BVO</span><span class="db-val" id="db-bvo">—</span></div>
+        <div class="db-row"><span class="db-lbl">Projecten zonder foto</span><span class="db-val" id="db-nofoto">—</span></div>
+      </div>
+    </div>
+
+    <!-- ── SYSTEEM ── -->
+    <div class="section-label" style="margin-top:8px;">🔧 Systeem</div>
+    <div class="grid-3">
+
+      <!-- Wachtwoord wijzigen -->
+      <div class="widget">
+        <div class="widget-title"><span class="ico">🔑</span> Wachtwoord wijzigen</div>
+        <div class="pw-form">
+          <input type="password" id="pw-new" placeholder="Nieuw wachtwoord" />
+          <input type="password" id="pw-confirm" placeholder="Bevestig wachtwoord" />
+          <button class="pw-submit" onclick="changePassword()">Wachtwoord opslaan</button>
+        </div>
+        <div class="pw-msg" id="pw-msg"></div>
+      </div>
+
+      <!-- Donkere modus -->
+      <div class="widget">
+        <div class="widget-title"><span class="ico">🌙</span> Weergave</div>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px;">
+          <button class="action-btn" onclick="toggleDark()" style="flex-direction:row;justify-content:flex-start;gap:12px;padding:14px;">
+            <span id="dark-icon" style="font-size:20px;">🌙</span>
+            <span style="font-size:12px;font-weight:700;" id="dark-label">Donkere modus aan</span>
+          </button>
+          <div style="font-size:12px;color:var(--muted);line-height:1.6;">
+            Instelling geldt voor alle pagina's en wordt onthouden.
+          </div>
+        </div>
+      </div>
+
+      <!-- Snelle links -->
+      <div class="widget">
+        <div class="widget-title"><span class="ico">🔗</span> Snelle links</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <a href="projects_dashboard.html" class="action-btn" style="flex-direction:row;gap:10px;padding:11px 14px;">
+            <span>📊</span><span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Dashboard</span>
+          </a>
+          <a href="employees.html" class="action-btn" style="flex-direction:row;gap:10px;padding:11px 14px;">
+            <span>👥</span><span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Leaderboard</span>
+          </a>
+          <a href="projects_map.html" class="action-btn" style="flex-direction:row;gap:10px;padding:11px 14px;">
+            <span>🗺</span><span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Kaart</span>
+          </a>
+          <a href="projects_list.html" class="action-btn" style="flex-direction:row;gap:10px;padding:11px 14px;">
+            <span>📋</span><span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Projectenlijst</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     WERKNEMER EDIT PANEL
+     ══════════════════════════════════════ -->
+<div id="panel-bd" class="panel-backdrop" style="display:none" onclick="closePanel()"></div>
+<div id="edit-panel" class="panel" style="display:none">
+  <div class="panel-top">
+    <button class="panel-x" onclick="closePanel()">×</button>
+    <label class="panel-photo" id="p-photo">
+      <img id="p-photo-img" src="" style="display:none">
+      <div class="pov">📷</div>
+      <input type="file" accept="image/*" style="display:none" id="p-photo-file" onchange="selectPhoto(this)">
+    </label>
+    <input class="fd fn" id="p-naam" type="text" placeholder="Voor- en achternaam">
+    <input class="fd fr" id="p-rol" type="text" placeholder="Functie">
+    <select class="team-sel" id="p-team">
+      <option>Ontwerp</option><option>Stedenbouw</option><option>Interieur</option>
+      <option>Technisch</option><option>Onderzoek</option><option>Uitvoering</option>
+    </select>
+  </div>
+  <div class="panel-body">
+    <div class="psec">Contact</div>
+    <div class="prow"><div class="picon">✉️</div><div class="pfield">
+      <div class="lbl">E-mail</div><input class="pinput" id="p-email" type="email" placeholder="naam@mvsa-architects.com">
+    </div></div>
+    <div class="prow"><div class="picon">📞</div><div class="pfield">
+      <div class="lbl">Telefoon</div><input class="pinput" id="p-tel" type="tel" placeholder="+31 6 00000000">
+    </div></div>
+    <div class="prow"><div class="picon">🏢</div><div class="pfield">
+      <div class="lbl">Kantoor</div><input class="pinput" id="p-kantoor" type="text" placeholder="Amsterdam">
+    </div></div>
+    <div class="psec">Statistieken</div>
+    <div class="prow"><div class="picon">🏆</div><div class="pfield">
+      <div class="lbl">Punten (score)</div><input class="pinput" id="p-score" type="number" min="0" placeholder="0">
+    </div></div>
+    <div class="prow"><div class="picon">📁</div><div class="pfield">
+      <div class="lbl">Projecten</div><input class="pinput" id="p-projecten" type="number" min="0" placeholder="0">
+    </div></div>
+  </div>
+  <div class="panel-foot">
+    <button class="psave" id="p-save-btn" onclick="savePanel()">Opslaan →</button>
+    <button class="pdel" id="p-del-btn" onclick="deleteFromPanel()" style="display:none">🗑 Verwijder werknemer</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase.js"></script>
+<script>
+/* ═══════════════════════════════════════
+   AUTH
+   ═══════════════════════════════════════ */
+let ADMIN_PW = localStorage.getItem('mvsa.adminpw') || 'MVSA';
+let authed = sessionStorage.getItem('mvsa.admin') === '1';
+
+function tryLogin(){
+  const val = document.getElementById('pw-input').value;
+  if(val === ADMIN_PW){
+    sessionStorage.setItem('mvsa.admin','1');
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-screen').style.display = 'block';
+    initAdmin();
+  } else {
+    const inp = document.getElementById('pw-input');
+    inp.classList.add('error');
+    document.getElementById('login-err').textContent = 'Onjuist wachtwoord.';
+    inp.value = '';
+    setTimeout(()=> inp.classList.remove('error'), 400);
+  }
+}
+
+function logout(){
+  sessionStorage.removeItem('mvsa.admin');
+  location.reload();
+}
+
+function changePassword(){
+  const nw = document.getElementById('pw-new').value;
+  const cf = document.getElementById('pw-confirm').value;
+  const msg = document.getElementById('pw-msg');
+  if(!nw){ msg.textContent = 'Vul een nieuw wachtwoord in.'; msg.style.color='var(--danger)'; return; }
+  if(nw !== cf){ msg.textContent = 'Wachtwoorden komen niet overeen.'; msg.style.color='var(--danger)'; return; }
+  localStorage.setItem('mvsa.adminpw', nw);
+  ADMIN_PW = nw;
+  msg.textContent = '✓ Wachtwoord opgeslagen!'; msg.style.color='var(--accent)';
+  document.getElementById('pw-new').value = '';
+  document.getElementById('pw-confirm').value = '';
+  setTimeout(()=> msg.textContent='', 3000);
+}
+
+/* ═══════════════════════════════════════
+   DATA & WIDGETS
+   ═══════════════════════════════════════ */
+let employees = [];
+let projects = [];
+let photoCache = {};
+
+async function initAdmin(){
+  await Promise.all([ loadEmployees(), loadProjects() ]);
+  renderActivityLog();
+  updateDarkBtn();
+}
+
+/* ── Werknemers ── */
+async function loadEmployees(){
+  employees = await Employees.getAll();
+  renderEmpList();
+  document.getElementById('emp-count').textContent = employees.length;
+  const total = employees.reduce((s,e)=> s+(e.score||0), 0);
+  document.getElementById('emp-total-pts').textContent = total;
+  document.getElementById('db-emp').textContent = employees.length + ' werknemers';
+  document.getElementById('emp-export-count').textContent = employees.length;
+  // Foto's op achtergrond
+  employees.forEach(async e => {
+    const url = await EmployeeImages.getForEmployee(e.id).catch(()=>null);
+    if(url){ photoCache[e.id]=url; updateAva(e.id,url); }
+  });
+}
+
+function renderEmpList(){
+  const tbody = document.getElementById('emp-tbody');
+  if(!employees.length){
+    tbody.innerHTML='<tr><td colspan="5" style="padding:40px;text-align:center;color:var(--muted);font-size:13px;">Geen werknemers gevonden.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = employees.map((e,i)=>`
+    <tr id="row-${e.id}" style="border-bottom:1px solid var(--line);transition:background .1s;"
+      onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">
+      <td style="padding:12px 24px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="w-ava" id="ava-${e.id}" style="flex:none;">
+            ${photoCache[e.id]?`<img src="${photoCache[e.id]}" alt="">`:''}
+          </div>
+          <div>
+            <div style="font-weight:700;font-size:12px;letter-spacing:.03em;text-transform:uppercase;">${e.naam||'—'}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">${e.rol||'—'}</div>
+          </div>
+        </div>
+      </td>
+      <td style="padding:12px 16px;">
+        <span style="font-size:9px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;
+          padding:3px 8px;border-radius:999px;background:rgba(61,110,138,.1);color:var(--accent);">
+          ${e.team||'—'}
+        </span>
+      </td>
+      <td style="padding:12px 16px;text-align:center;">
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+          <button class="pts-adj" onclick="adjPts('${e.id}',-10)">−</button>
+          <span id="pts-${e.id}" style="font-weight:700;font-size:14px;min-width:32px;text-align:center;">${e.score||0}</span>
+          <button class="pts-adj" onclick="adjPts('${e.id}',+10)">+</button>
+        </div>
+      </td>
+      <td style="padding:12px 16px;text-align:center;font-weight:600;font-size:13px;">${e.projecten||0}</td>
+      <td style="padding:12px 24px;text-align:right;">
+        <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;">
+          <button onclick="openEditPanel('${e.id}')"
+            style="background:var(--card);border:1px solid var(--line);color:var(--ink);
+            padding:6px 14px;border-radius:999px;font-size:10px;letter-spacing:.1em;
+            text-transform:uppercase;cursor:pointer;font-family:inherit;font-weight:600;
+            transition:all .15s;"
+            onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+            onmouseout="this.style.borderColor='var(--line)';this.style.color='var(--ink)'">
+            ✏️ Bewerk
+          </button>
+          <button onclick="quickDelete('${e.id}','${(e.naam||'').replace(/'/g,"\'")}')"
+            style="background:rgba(180,60,60,.08);border:1px solid rgba(180,60,60,.2);
+            color:var(--danger);padding:6px 14px;border-radius:999px;font-size:10px;
+            letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:inherit;font-weight:600;
+            transition:all .15s;"
+            onmouseover="this.style.background='rgba(180,60,60,.15)'"
+            onmouseout="this.style.background='rgba(180,60,60,.08)'">
+            🗑
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function filterEmpTable(q){
+  const rows = document.querySelectorAll('#emp-tbody tr[id]');
+  const ql = q.toLowerCase();
+  rows.forEach(row=>{
+    const text = row.textContent.toLowerCase();
+    row.style.display = !ql || text.includes(ql) ? '' : 'none';
+  });
+}
+
+async function quickDelete(id, naam){
+  if(!confirm(`Werknemer "${naam}" definitief verwijderen?`)) return;
+  await db.from('employees').delete().eq('id',id);
+  employees = employees.filter(e=>e.id!==id);
+  renderEmpList();
+  const total = employees.reduce((s,e)=>s+(e.score||0),0);
+  document.getElementById('emp-count').textContent = employees.length;
+  document.getElementById('emp-total-pts').textContent = total;
+  showToast('Werknemer verwijderd');
+}
+
+function updateAva(id, url){
+  const el = document.getElementById(`ava-${id}`);
+  if(el) el.innerHTML=`<img src="${url}" alt="">`;
+}
+
+async function adjPts(id, delta){
+  const e = employees.find(x=>x.id===id);
+  if(!e) return;
+  e.score = Math.max(0,(e.score||0)+delta);
+  document.getElementById(`pts-${id}`).textContent = e.score;
+  await db.from('employees').update({score:e.score}).eq('id',id);
+  const total = employees.reduce((s,x)=>s+(x.score||0),0);
+  document.getElementById('emp-total-pts').textContent = total;
+  showToast('Punten opgeslagen');
+}
+
+async function confirmResetPoints(){
+  if(!confirm('Maandpunten van alle werknemers resetten naar 0?')) return;
+  await Promise.all(employees.map(e => db.from('employees').update({score_month:0}).eq('id',e.id)));
+  showToast('Maandpunten gereset');
+}
+
+/* ── Projecten ── */
+async function loadProjects(){
+  projects = await Projects.getAll();
+  const n = projects.length;
+  const bvo = Math.round(projects.reduce((s,p)=>s+(parseFloat(p.totaal_bvo)||0),0));
+  document.getElementById('proj-count').textContent = n;
+  document.getElementById('proj-bvo').textContent = bvo.toLocaleString('nl-NL');
+  document.getElementById('db-proj').textContent = n + ' projecten';
+  // Laatste project
+  const sorted = [...projects].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  if(sorted[0]) document.getElementById('db-last').textContent = sorted[0].projectnaam || '—';
+  // Meest gevulde fase
+  const fc={};
+  projects.forEach(p=>{ if(p.fase) fc[p.fase]=(fc[p.fase]||0)+1; });
+  const topFase = Object.entries(fc).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('db-fase').textContent = topFase ? `${topFase[0]} (${topFase[1]}x)` : '—';
+  // Gem BVO
+  const withBvo = projects.filter(p=>p.totaal_bvo);
+  document.getElementById('db-bvo').textContent = withBvo.length
+    ? Math.round(withBvo.reduce((s,p)=>s+(parseFloat(p.totaal_bvo)||0),0)/withBvo.length).toLocaleString('nl-NL')+' m²' : '—';
+  // Zonder foto: check via storage list
+  document.getElementById('db-nofoto').textContent = projects.filter(p=>!p.projectnummer).length + ' (geen nummer)';
+  // Onvolledige projecten
+  renderIncomplete();
+  document.getElementById('proj-export-count').textContent = n;
+}
+
+const TOTAL_FIELDS = 20; // globaal aantal invulbare velden
+function completeness(p){
+  const fields = ['projectnaam','stad','fase','opgave','project_type','functie',
+    'opdrachtgever','totaal_bvo','provincie','land','straat','postcode',
+    'opleverdatum','bouwhoogte','npg_score','duurzaamheidslabel','autoparkeren',
+    'fietsparkeren','awards','tevredenheid'];
+  return fields.filter(f=>p[f]!=null && p[f]!=='').length;
+}
+
+function renderIncomplete(){
+  const incomplete = projects
+    .map(p=>({...p, filled: completeness(p)}))
+    .filter(p=>p.filled < TOTAL_FIELDS)
+    .sort((a,b)=>a.filled-b.filled)
+    .slice(0,8);
+  document.getElementById('inc-count').textContent = incomplete.length + ' onvolledig';
+  const el = document.getElementById('incomplete-list');
+  if(!incomplete.length){ el.innerHTML='<div style="color:var(--muted);font-size:13px;padding:20px 0;text-align:center">✓ Alle projecten zijn volledig ingevuld!</div>'; return; }
+  el.innerHTML = incomplete.map(p=>{
+    const pct = Math.round(p.filled/TOTAL_FIELDS*100);
+    const cls = pct < 30 ? 'vlow' : pct < 60 ? 'low' : '';
+    return `<a class="inc-row" href="new_project.html?edit=${encodeURIComponent(p.projectnummer||'')}">
+      <div class="inc-name">${p.projectnaam||'—'}</div>
+      <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${pct}%"></div></div>
+      <div class="inc-pct">${pct}%</div>
+    </a>`;
+  }).join('');
+}
+
+async function exportProjects(){
+  const all = await Projects.getAll();
+  if(!all.length){ alert('Geen projecten.'); return; }
+  const cols = Object.keys(all[0]).filter(k=>k!=='id');
+  const header = cols.join(';');
+  const rows = all.map(p=> cols.map(c=>{ const v=p[c]==null?'':String(p[c]); return v.includes(';')||v.includes('"')?`"${v.replace(/"/g,'""')}"`  :v; }).join(';'));
+  const csv = [header,...rows].join('\n');
+  const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=`mvsa-projecten-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV geëxporteerd');
+}
+
+/* ── Activiteitenlog ── */
+function renderActivityLog(){
+  const log = JSON.parse(localStorage.getItem('mvsa.log')||'[]');
+  const el = document.getElementById('activity-log');
+  if(!log.length){ el.innerHTML='<div style="color:var(--muted);font-size:13px;padding:20px 0;text-align:center">Geen activiteit geregistreerd.</div>'; return; }
+  el.innerHTML = log.slice(0,10).map(entry=>{
+    const when = new Date(entry.time);
+    const diff = Math.floor((Date.now()-when)/60000);
+    const label = diff<1?'Zojuist':diff<60?`${diff}m geleden`:diff<1440?`${Math.floor(diff/60)}u geleden`:`${Math.floor(diff/1440)}d geleden`;
+    return `<div class="log-row">
+      <span class="log-icon">${entry.action==='save'?'💾':entry.action==='delete'?'🗑':'✏️'}</span>
+      <div class="log-info">
+        <div class="log-action">${entry.action==='save'?'Opgeslagen':'Verwijderd'}</div>
+        <div class="log-proj">${entry.project||'—'}</div>
+      </div>
+      <div class="log-time">${label}</div>
+    </div>`;
+  }).join('');
+}
+
+function clearLog(){
+  if(!confirm('Activiteitenlog wissen?')) return;
+  localStorage.removeItem('mvsa.log');
+  renderActivityLog();
+  showToast('Log gewist');
+}
+
+/* ── Donkere modus ── */
+function toggleDark(){
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  document.documentElement.setAttribute('data-theme', isDark?'':'dark');
+  localStorage.setItem('mvsa.dark', isDark?'0':'1');
+  updateDarkBtn();
+}
+function updateDarkBtn(){
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  document.getElementById('dark-icon').textContent = isDark?'☀️':'🌙';
+  document.getElementById('dark-label').textContent = isDark?'Donkere modus uit':'Donkere modus aan';
+}
+
+/* ── Panel (werknemer bewerken / nieuw) ── */
+let panelId = null;
+let panelPhotoFile = null;
+
+function openNewEmpPanel(){
+  panelId = null; panelPhotoFile = null;
+  ['p-naam','p-rol','p-email','p-tel','p-kantoor'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('p-score').value='0';
+  document.getElementById('p-projecten').value='0';
+  document.getElementById('p-team').value='Ontwerp';
+  document.getElementById('p-photo-img').style.display='none';
+  document.getElementById('p-save-btn').textContent='Toevoegen →';
+  document.getElementById('p-del-btn').style.display='none';
+  showPanel();
+}
+
+function openEditPanel(id){
+  const e = employees.find(x=>x.id===id);
+  if(!e) return;
+  panelId=id; panelPhotoFile=null;
+  document.getElementById('p-naam').value=e.naam||'';
+  document.getElementById('p-rol').value=e.rol||'';
+  document.getElementById('p-team').value=e.team||'Ontwerp';
+  document.getElementById('p-email').value=e.email||'';
+  document.getElementById('p-tel').value=e.telefoon||'';
+  document.getElementById('p-kantoor').value=e.kantoor||'';
+  document.getElementById('p-score').value=e.score||0;
+  document.getElementById('p-projecten').value=e.projecten||0;
+  const img=document.getElementById('p-photo-img');
+  if(photoCache[id]){img.src=photoCache[id];img.style.display='block';}else{img.style.display='none';}
+  document.getElementById('p-save-btn').textContent='Opslaan →';
+  document.getElementById('p-del-btn').style.display='block';
+  showPanel();
+}
+
+function showPanel(){
+  document.getElementById('panel-bd').style.display='block';
+  document.getElementById('edit-panel').style.display='flex';
+}
+
+function closePanel(){
+  document.getElementById('panel-bd').style.display='none';
+  document.getElementById('edit-panel').style.display='none';
+}
+
+function selectPhoto(input){
+  const file=input.files[0]; if(!file) return;
+  panelPhotoFile=file;
+  const r=new FileReader();
+  r.onload=e=>{ const img=document.getElementById('p-photo-img'); img.src=e.target.result; img.style.display='block'; };
+  r.readAsDataURL(file);
+}
+
+async function savePanel(){
+  const naam=document.getElementById('p-naam').value.trim();
+  if(!naam){alert('Vul een naam in.');return;}
+  const btn=document.getElementById('p-save-btn');
+  btn.textContent='Opslaan…'; btn.disabled=true;
+  const payload={
+    naam, rol:document.getElementById('p-rol').value,
+    team:document.getElementById('p-team').value,
+    score:parseInt(document.getElementById('p-score').value)||0,
+    projecten:parseInt(document.getElementById('p-projecten').value)||0,
+  };
+  try{
+    let savedId=panelId;
+    if(panelId){ await db.from('employees').update(payload).eq('id',panelId); }
+    else{ const {data,error}=await db.from('employees').insert([payload]).select().single(); if(error)throw error; savedId=data.id; }
+    if(panelPhotoFile&&savedId){
+      const url=await EmployeeImages.upload(savedId,panelPhotoFile);
+      photoCache[savedId]=url;
+    }
+    await loadEmployees();
+    closePanel();
+    showToast(panelId?'Werknemer bijgewerkt':'Werknemer toegevoegd');
+  }catch(e){ alert('Fout: '+e.message); }
+  btn.textContent='Opslaan →'; btn.disabled=false;
+}
+
+async function deleteFromPanel(){
+  if(!panelId) return;
+  const naam=document.getElementById('p-naam').value;
+  if(!confirm(`Werknemer "${naam}" definitief verwijderen?`)) return;
+  await db.from('employees').delete().eq('id',panelId);
+  await loadEmployees();
+  closePanel();
+  showToast('Werknemer verwijderd');
+}
+
+/* ── Toast ── */
+function showToast(msg){
+  const t=document.createElement('div');
+  t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2500);
+}
+
+/* ═══════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════ */
+if(authed){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('admin-screen').style.display='block';
+  initAdmin();
+}
+</script>
+<script>
+(function(){
+  if(localStorage.getItem('mvsa.dark')==='1')
+    document.documentElement.setAttribute('data-theme','dark');
+})();
+</script>
+<script src="transitions.js"></script>
+</body>
+</html>
