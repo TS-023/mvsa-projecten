@@ -112,6 +112,7 @@ html,body{
   <div class="tabs">
     <button class="tab active" onclick="showTab('login')">Inloggen</button>
     <button class="tab" onclick="showTab('register')">Aanmelden</button>
+    <button class="tab" onclick="showTab('reset')">Wachtwoord</button>
   </div>
 
   <!-- INLOGGEN -->
@@ -157,6 +158,20 @@ html,body{
     <button class="submit" id="r-btn" onclick="doRegister()">Aanmelding indienen →</button>
   </div>
 
+  <!-- WACHTWOORD VERGETEN -->
+  <div id="reset-form" class="form" style="display:none">
+    <div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:4px;">
+      Vul je e-mailadres in. Je ontvangt een link om je wachtwoord opnieuw in te stellen.
+    </div>
+    <div class="field">
+      <label>E-mail</label>
+      <input type="email" id="rst-email" placeholder="naam@mvsa-architects.com"
+        onkeydown="if(event.key==='Enter')doReset()">
+    </div>
+    <div class="msg" id="rst-msg"></div>
+    <button class="submit" id="rst-btn" onclick="doReset()">Verstuur resetlink →</button>
+  </div>
+
   <!-- WACHT OP GOEDKEURING -->
   <div class="status-screen" id="pending-screen">
     <div class="status-icon">⏳</div>
@@ -166,6 +181,21 @@ html,body{
       Je ontvangt bericht zodra je toegang hebt.
     </div>
     <button class="status-btn" onclick="Auth.logout().then(()=>location.reload())">Uitloggen</button>
+  </div>
+
+  <!-- NIEUW WACHTWOORD INSTELLEN (na reset link) -->
+  <div class="status-screen" id="update-pw-screen">
+    <div class="status-icon">🔑</div>
+    <div class="status-title">Nieuw wachtwoord</div>
+    <div class="status-text">Kies een nieuw wachtwoord voor je account.</div>
+    <div style="width:100%;display:flex;flex-direction:column;gap:10px;margin-top:8px;">
+      <input type="password" id="new-pw-1" placeholder="Nieuw wachtwoord"
+        style="font-family:inherit;font-size:13px;padding:11px 14px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);outline:none;">
+      <input type="password" id="new-pw-2" placeholder="Bevestig wachtwoord"
+        style="font-family:inherit;font-size:13px;padding:11px 14px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);outline:none;">
+      <div class="msg" id="update-pw-msg"></div>
+      <button class="status-btn" onclick="doUpdatePassword()">Wachtwoord opslaan →</button>
+    </div>
   </div>
 
   <!-- AFGEWEZEN -->
@@ -185,13 +215,20 @@ html,body{
 <script>
 /* ── Tab wisselen ── */
 function showTab(tab) {
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register')));
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active',
+      (i===0&&tab==='login') || (i===1&&tab==='register') || (i===2&&tab==='reset'));
+  });
   document.getElementById('login-form').style.display    = tab==='login'    ? 'flex' : 'none';
   document.getElementById('register-form').style.display = tab==='register' ? 'flex' : 'none';
-  document.getElementById('card-title').textContent = tab==='login' ? 'Welkom terug' : 'Aanmelden';
-  document.getElementById('card-sub').textContent   = tab==='login'
-    ? 'Log in om projecten in te vullen en punten te verdienen.'
-    : 'Dien een aanmelding in. De beheerder keurt je account goed.';
+  document.getElementById('reset-form').style.display    = tab==='reset'    ? 'flex' : 'none';
+  const titles = {
+    login:    ['Welkom terug',        'Log in om projecten in te vullen en punten te verdienen.'],
+    register: ['Aanmelden',           'Dien een aanmelding in. De beheerder keurt je account goed.'],
+    reset:    ['Wachtwoord vergeten', 'Vul je e-mail in en ontvang een resetlink.'],
+  };
+  document.getElementById('card-title').textContent = titles[tab][0];
+  document.getElementById('card-sub').textContent   = titles[tab][1];
 }
 
 function showMsg(id, text, type) {
@@ -213,20 +250,49 @@ async function doLogin() {
   try {
     await Auth.login(email, pw);
     const user = await Auth.getUser();
-    const profile = await Auth.getProfile(user.id);
+    if (!user) throw new Error('Inloggen mislukt.');
+
+    let profile = await Auth.getProfile(user.id);
+
+    // Als profiel niet bestaat, maak het aan (kan voorkomen bij eerste login na registratie)
+    if (!profile) {
+      // Wacht even en probeer opnieuw
+      await new Promise(r => setTimeout(r, 1000));
+      profile = await Auth.getProfile(user.id);
+    }
 
     if (!profile || profile.status === 'pending') {
       showPending();
     } else if (profile.status === 'rejected') {
       showRejected();
     } else {
-      // Goedgekeurd → door naar dashboard
       window.location.href = 'projects_dashboard.html';
     }
   } catch(e) {
     showMsg('l-msg', e.message.includes('Invalid') ? 'Onjuist e-mail of wachtwoord.' : e.message, 'error');
   }
   btn.disabled = false; btn.textContent = 'Inloggen →';
+}
+
+/* ── Wachtwoord resetten ── */
+async function doReset() {
+  const email = document.getElementById('rst-email').value.trim();
+  if (!email) { showMsg('rst-msg', 'Vul je e-mailadres in.', 'error'); return; }
+
+  const btn = document.getElementById('rst-btn');
+  btn.disabled = true; btn.textContent = 'Versturen…';
+
+  try {
+    const { error } = await db.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/login.html',
+    });
+    if (error) throw error;
+    showMsg('rst-msg', '✓ Resetlink verstuurd! Check je inbox.', 'success');
+    document.getElementById('rst-email').value = '';
+  } catch(e) {
+    showMsg('rst-msg', e.message || 'Versturen mislukt.', 'error');
+  }
+  btn.disabled = false; btn.textContent = 'Verstuur resetlink →';
 }
 
 /* ── Registreren ── */
@@ -251,6 +317,31 @@ async function doRegister() {
   }
 }
 
+function showUpdatePassword() {
+  document.querySelectorAll('.form, .tabs').forEach(el => el.style.display = 'none');
+  document.getElementById('update-pw-screen').style.display = 'block';
+  document.getElementById('card-title').textContent = 'Nieuw wachtwoord';
+  document.getElementById('card-sub').textContent = '';
+}
+
+async function doUpdatePassword() {
+  const pw1 = document.getElementById('new-pw-1').value;
+  const pw2 = document.getElementById('new-pw-2').value;
+  const msg = document.getElementById('update-pw-msg');
+  if (!pw1) { msg.textContent='Vul een wachtwoord in.'; msg.className='msg error'; msg.style.display='block'; return; }
+  if (pw1 !== pw2) { msg.textContent='Wachtwoorden komen niet overeen.'; msg.className='msg error'; msg.style.display='block'; return; }
+  if (pw1.length < 6) { msg.textContent='Minimaal 6 tekens.'; msg.className='msg error'; msg.style.display='block'; return; }
+  try {
+    const { error } = await db.auth.updateUser({ password: pw1 });
+    if (error) throw error;
+    msg.textContent = '✓ Wachtwoord opgeslagen! Je wordt ingelogd…';
+    msg.className = 'msg success'; msg.style.display = 'block';
+    setTimeout(() => window.location.href = 'projects_dashboard.html', 1500);
+  } catch(e) {
+    msg.textContent = e.message; msg.className = 'msg error'; msg.style.display = 'block';
+  }
+}
+
 function showPending() {
   document.getElementById('login-form').style.display = 'none';
   document.getElementById('register-form').style.display = 'none';
@@ -268,6 +359,13 @@ function showRejected() {
 
 /* ── Check bestaande sessie ── */
 (async () => {
+  // Check of dit een wachtwoord reset redirect is
+  const hash = window.location.hash;
+  if (hash.includes('type=recovery')) {
+    showUpdatePassword();
+    return;
+  }
+
   const user = await Auth.getUser();
   if (!user) return;
   const profile = await Auth.getProfile(user.id);

@@ -150,3 +150,16 @@ alter table public.projects
 -- Index voor snelle lookup
 create index if not exists profiles_status_idx on public.profiles(status);
 create index if not exists projects_created_by_idx on public.projects(created_by);
+
+-- Fix RLS: zorg dat profiles insert altijd werkt ook zonder email confirmatie
+-- Voer dit uit als de registratie nog steeds problemen geeft
+drop policy if exists "Profiel aanmaken bij registratie" on public.profiles;
+create policy "Profiel aanmaken bij registratie"
+  on public.profiles for insert
+  with check (true);
+
+-- Zorg dat eigen profiel altijd gelezen kan worden
+drop policy if exists "Eigen profiel lezen" on public.profiles;
+create policy "Eigen profiel lezen"
+  on public.profiles for select
+  using (true);

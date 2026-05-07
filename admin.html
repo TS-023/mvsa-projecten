@@ -692,21 +692,30 @@ async function loadRegistrations() {
   countEl.style.display = pending.length ? 'inline' : 'none';
 
   if (!pending.length) {
-    pendingEl.innerHTML = '<div class="reg-empty">✓ Geen openstaande aanmeldingen.</div>';
+    pendingEl.innerHTML = '<div class="reg-empty"><div class="reg-empty-icon">✅</div>Geen openstaande aanmeldingen.</div>';
   } else {
-    pendingEl.innerHTML = pending.map(u => `
+    pendingEl.innerHTML = pending.map(u => {
+      const initials = (u.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+      const when = new Date(u.created_at);
+      const diffMin = Math.floor((Date.now()-when)/60000);
+      const whenLabel = diffMin<1?'Zojuist':diffMin<60?diffMin+'m geleden':diffMin<1440?Math.floor(diffMin/60)+'u geleden':Math.floor(diffMin/1440)+'d geleden';
+      return `
       <div class="reg-row" id="reg-${u.id}">
-        <div class="reg-avatar">${(u.naam||'?')[0].toUpperCase()}</div>
+        <div class="reg-avatar">${initials}</div>
         <div class="reg-info">
           <div class="reg-naam">${u.naam}</div>
-          <div class="reg-meta">${u.email} · ${u.team||'—'}</div>
+          <div class="reg-meta">${u.email} · ${u.team||'—'} · ${whenLabel}</div>
         </div>
         <div class="reg-actions">
-          <button class="reg-approve" onclick="approveUser('${u.id}', '${u.naam}')">✓ Goed</button>
-          <button class="reg-reject"  onclick="rejectUser('${u.id}',  '${u.naam}')">✗ Afwijzen</button>
+          <button class="reg-approve" onclick="approveUser('${u.id}', '${u.naam}')">
+            ✓ Goedkeuren
+          </button>
+          <button class="reg-reject" onclick="rejectUser('${u.id}', '${u.naam}')">
+            ✗ Afwijzen
+          </button>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   }
 
   // Alle gebruikers
@@ -716,23 +725,23 @@ async function loadRegistrations() {
     allEl.innerHTML = '<div class="reg-empty">Geen gebruikers gevonden.</div>';
   } else {
     allEl.innerHTML = all.map(u => {
+      const initials = (u.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
       const when = new Date(u.created_at);
       const diffDays = Math.floor((Date.now()-when)/86400000);
-      const whenLabel = diffDays===0?'Vandaag':diffDays===1?'Gisteren':`${diffDays}d geleden`;
-      const badgeMap = {pending:'⏳', approved:'✓ Actief', rejected:'✗ Afgewezen'};
+      const whenLabel = diffDays===0?'Vandaag':diffDays===1?'Gisteren':diffDays+'d geleden';
+      const badgeMap = {pending:'⏳ Wacht', approved:'✓ Actief', rejected:'✗ Afgewezen'};
       const badge = badgeMap[u.status] || u.status;
       return `<div class="reg-row">
-        <div class="reg-avatar">${(u.naam||'?')[0].toUpperCase()}</div>
+        <div class="reg-avatar">${initials}</div>
         <div class="reg-info">
           <div class="reg-naam">${u.naam}</div>
-          <div class="reg-meta">${u.email} · ${u.team||'—'}</div>
+          <div class="reg-meta">${u.email} · ${u.team||'—'} · ${whenLabel}</div>
         </div>
-        <span class="reg-time">${whenLabel}</span>
         <span class="reg-badge ${u.status}">${badge}</span>
         ${u.status==='pending'
           ? `<div class="reg-actions">
-              <button class="reg-approve" onclick="approveUser('${u.id}','${u.naam}')">✓</button>
-              <button class="reg-reject"  onclick="rejectUser('${u.id}','${u.naam}')">✗</button>
+              <button class="reg-approve" onclick="approveUser('${u.id}','${u.naam}')">✓ Goed</button>
+              <button class="reg-reject"  onclick="rejectUser('${u.id}','${u.naam}')">✗ Af</button>
              </div>`
           : ''}
       </div>`;

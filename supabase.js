@@ -174,33 +174,44 @@ const Auth = {
   async register(email, password, naam, team) {
     const { data, error } = await db.auth.signUp({ email, password });
     if (error) throw error;
-    if (data.user) {
-      // Zoek bestaande werknemer op naam (case-insensitive)
-      let { data: existing } = await db.from('employees')
+
+    // Haal user op — bij uitgeschakelde email confirmatie is die direct beschikbaar
+    const user = data.user || (await db.auth.getUser()).data.user;
+    if (!user) throw new Error('Registratie mislukt. Probeer opnieuw.');
+
+    // Check of profiel al bestaat (voorkom dubbele insert)
+    const { data: existing_profile } = await db.from('profiles')
+      .select('id').eq('id', user.id).maybeSingle();
+
+    if (!existing_profile) {
+      // Zoek bestaande werknemer op naam
+      let { data: existing_emp } = await db.from('employees')
         .select('id').ilike('naam', naam.trim()).maybeSingle();
 
-      // Als geen bestaande werknemer → maak nieuwe aan
-      if (!existing) {
+      // Maak nieuwe werknemer aan als die niet bestaat
+      if (!existing_emp) {
         const { data: newEmp } = await db.from('employees').insert([{
-          naam: naam.trim(),
-          rol: '',
-          team: team,
-          score: 0,
-          projecten: 0,
+          naam: naam.trim(), rol: '', team: team, score: 0, projecten: 0,
         }]).select('id').single();
-        existing = newEmp;
+        existing_emp = newEmp;
       }
 
-      // Maak profiel aan gekoppeld aan werknemer
-      await db.from('profiles').insert([{
-        id: data.user.id,
+      // Maak profiel aan
+      const { error: profileError } = await db.from('profiles').insert([{
+        id: user.id,
         naam: naam.trim(),
         email,
         team,
         status: 'pending',
-        employee_id: existing?.id || null,
+        employee_id: existing_emp?.id || null,
       }]);
+
+      if (profileError) {
+        console.error('Profiel aanmaken mislukt:', profileError);
+        throw new Error('Account aangemaakt maar profiel kon niet worden opgeslagen. Neem contact op met de beheerder.');
+      }
     }
+
     return data;
   },
 
