@@ -235,8 +235,8 @@ async function render() {
       <td>${p.stad||'—'}</td><td>${p.fase||'—'}</td>
       <td class="right"><div class="actions">
         <a class="btn" href="project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}">Bekijk</a>
-        <a class="btn" href="new_project.html?edit=${encodeURIComponent(p.projectnummer||'')}">Bewerk</a>
-        <button class="btn del" data-id="${p.id}" data-naam="${p.projectnaam||p.projectnummer}">Verwijder</button>
+        ${isApproved ? `<a class="btn" href="new_project.html?edit=${encodeURIComponent(p.projectnummer||'')}">Bewerk</a>` : ''}
+        ${isApproved ? `<button class="btn del" data-id="${p.id}" data-naam="${p.projectnaam||p.projectnummer}">Verwijder</button>` : ''}
       </div></td></tr>`).join('') + '</tbody></table></div>';
   root.querySelectorAll('.btn.del').forEach(b => {
     b.addEventListener('click', async () => {
