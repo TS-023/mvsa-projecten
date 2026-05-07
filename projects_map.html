@@ -374,13 +374,9 @@ function addProject(p){
   const link = `project_page.html?p=${encodeURIComponent(p.name)}`;
 
   // Popup (bij klik)
-  const makePopup = (imgUrl) => {
-    const thumb = imgUrl
-      ? `<div class="pop-thumb"><img src="${imgUrl}" alt="${p.name}" /></div>`
-      : `<div class="pop-thumb"><div class="no-img">${'Geen afbeelding'}</div></div>`;
-    return `${thumb}<div class="pop-title">${p.name}</div><div class="pop-meta">${p.address || p.city || ''}</div><a class="pop-link" href="${link}">Open project →</a>`;
-  };
-  m.bindPopup(makePopup(p.thumbUrl || null));
+  m.bindPopup(`<div style="font-family:'Inter',sans-serif;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:4px 2px;white-space:nowrap;">${p.name}</div>`, {
+    closeButton: false, className: 'minimal-popup', maxWidth: 200,
+  });
   m.on('click', () => showDetail(p));
 
   // Tooltip (bij hover)
