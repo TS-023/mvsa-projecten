@@ -1,0 +1,785 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Werknemers · Leaderboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg: #DEE7EF;
+    --card: #ffffff;
+    --ink: #111418;
+    --ink-2: #2a2f36;
+    --muted: #6b7480;
+    --line: #e6ecf2;
+    --shadow: 0 1px 0 rgba(20,30,45,.04), 0 8px 24px -12px rgba(20,30,45,.18);
+    --radius: 16px;
+    --accent: #3d6e8a;
+  }
+  *{ box-sizing: border-box; }
+  html, body{ margin:0; padding:0; background: var(--bg); color: var(--ink); font-family: 'Inter', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  .page{ max-width: 1280px; margin: 0 auto; padding: 32px 32px 80px; }
+
+  .topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 20px; }
+  .crumbs{ font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+  .crumbs a{ color: var(--muted); text-decoration: none; }
+  .crumbs a:hover{ color: var(--ink); }
+  .crumbs strong{ color: var(--ink); font-weight:600; }
+  .topbar .meta{ font-size:12px; color:var(--muted); }
+
+  .back{
+    position: fixed; top: 24px; left: 24px; z-index: 100;
+    display:inline-flex; align-items:center; gap:8px; color: var(--ink); text-decoration:none;
+    font-size: 12px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600;
+    padding: 10px 16px; border-radius: 999px;
+    background: rgba(255,255,255,.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border:1px solid rgba(17,20,24,.08);
+    box-shadow: 0 4px 16px -4px rgba(20,30,45,.18);
+    transition: background .15s ease, transform .15s ease, box-shadow .15s ease;
+  }
+  .back:hover{ background: #fff; transform: translateY(-1px); box-shadow: 0 8px 20px -4px rgba(20,30,45,.24); }
+
+  /* HERO */
+  .hero{
+    background: var(--card); border-radius: 22px; box-shadow: var(--shadow);
+    padding: 36px 36px 32px; margin-bottom: 18px;
+    display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end;
+  }
+  .hero h1{
+    font-size: clamp(40px, 6vw, 72px); margin: 0;
+    letter-spacing: -.04em; line-height: .95; font-weight: 800;
+  }
+  .hero .sub{ font-size: 13px; color: var(--muted); margin-top: 8px; max-width: 540px; line-height: 1.6; }
+  .hero .summary{ display:flex; gap: 28px; }
+  .hero .summary .stat{ text-align: right; }
+  .hero .summary .num{ font-size: 32px; font-weight: 700; letter-spacing: -.02em; line-height: 1; }
+  .hero .summary .lbl{ font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+
+  /* TOOLBAR */
+  .toolbar{
+    display:flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px;
+  }
+  .toolbar .search{
+    flex: 1; min-width: 240px;
+    background: #fff; border: 1px solid rgba(17,20,24,.08); border-radius: 999px;
+    padding: 10px 16px; font-size: 13px; font-family: inherit;
+    box-shadow: var(--shadow);
+  }
+  .toolbar .search:focus{ outline: 2px solid var(--accent); outline-offset: -1px; }
+  .chip{
+    font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 600;
+    padding: 8px 14px; border-radius: 999px; background: #fff; border: 1px solid rgba(17,20,24,.08);
+    cursor: pointer; transition: all .15s ease;
+  }
+  .chip:hover{ background: #f6f8fa; }
+  .chip.active{ background: var(--ink); color: #fff; border-color: var(--ink); }
+
+  /* PODIUM */
+  .podium{
+    display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 14px; margin-bottom: 14px;
+    align-items: end;
+  }
+  .podium-card{
+    background: var(--card); border-radius: 18px; box-shadow: var(--shadow);
+    padding: 22px 22px 24px; text-align: center; position: relative;
+    border: 1px solid rgba(255,255,255,.6);
+  }
+  .podium-card .rank{
+    position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: #fff;
+    width: 36px; height: 36px; border-radius: 50%;
+    display:flex; align-items:center; justify-content:center;
+    font-weight: 700; font-size: 14px;
+  }
+  .podium-card.gold .rank{ background: #c9a64a; }
+  .podium-card.silver .rank{ background: #8a929c; }
+  .podium-card.bronze .rank{ background: #a87348; }
+  .podium-card .avatar{
+    width: 84px; height: 84px; border-radius: 50%; margin: 6px auto 12px;
+    background: radial-gradient(120% 80% at 30% 30%, #3a3f47 0%, #1a1d22 60%, #0c0e11 100%);
+    position: relative; overflow: hidden; cursor: pointer;
+  }
+  .podium-card .avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .podium-card .avatar .upload-overlay{
+    position:absolute; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center;
+    justify-content:center; opacity:0; transition:opacity .2s; border-radius:50%;
+    font-size:10px; color:#fff; letter-spacing:.08em; text-transform:uppercase; font-weight:600;
+  }
+  .podium-card .avatar:hover .upload-overlay{ opacity:1; }
+  .emp-table .ava{ width:32px; height:32px; border-radius:50%; flex:none; overflow:hidden;
+    background:radial-gradient(120% 80% at 30% 30%, #3a3f47 0%, #1a1d22 60%, #0c0e11 100%); cursor:pointer; position:relative; }
+  .emp-table .ava img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .podium-card.gold .avatar{ width: 104px; height: 104px; }
+  .podium-card .avatar::after{
+    content:""; position:absolute; inset:0;
+    background-image:
+      linear-gradient(transparent 0 50%, rgba(255,255,255,.04) 50% 51%, transparent 51%);
+    background-size: 16px 16px;
+  }
+  .podium-card .name{ font-size: 14px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+  .podium-card .role{ font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .podium-card .score{
+    font-size: 32px; font-weight: 800; letter-spacing: -.02em; margin-top: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .podium-card.gold .score{ font-size: 44px; }
+  .podium-card .score-lbl{ font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+
+  /* TABLE */
+  .table-card{
+    background: var(--card); border-radius: 18px; box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .emp-table{ width: 100%; border-collapse: collapse; }
+  .emp-table thead th{
+    text-align: left; font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--muted); padding: 16px 22px; font-weight: 600;
+    border-bottom: 1px solid var(--line); background: #fafbfc;
+  }
+  .emp-table thead th.right, .emp-table tbody td.right{ text-align: right; }
+  .emp-table tbody td{
+    padding: 14px 22px; font-size: 13px; border-bottom: 1px solid var(--line);
+  }
+  .emp-table tbody tr:last-child td{ border-bottom: 0; }
+  .emp-table tbody tr{ transition: background .15s ease; cursor: pointer; }
+  .emp-table tbody tr:hover{ background: #f6f8fa; }
+  .emp-table .rk{ color: var(--muted); font-variant-numeric: tabular-nums; width: 40px; }
+  .emp-table .who{ display:flex; align-items: center; gap: 12px; }
+
+  .emp-table .nm{ font-weight: 600; letter-spacing: .03em; text-transform: uppercase; font-size: 12px; }
+  .emp-table .role{ font-size: 12px; color: var(--muted); }
+  .emp-table .score{ font-variant-numeric: tabular-nums; font-weight: 700; font-size: 14px; }
+
+  /* progress bar */
+  .progress{
+    height: 6px; width: 140px; background: rgba(17,20,24,.06); border-radius: 3px; overflow: hidden;
+    display: inline-block; vertical-align: middle;
+  }
+  .progress > span{ display: block; height: 100%; background: var(--ink); border-radius: 3px; }
+
+  .points-pill{
+    display:inline-block; padding: 3px 10px; border-radius: 999px; background: rgba(61,110,138,.1); color: var(--accent);
+    font-size: 11px; letter-spacing: .04em; font-weight: 600;
+  }
+  .points-pill.up{ background: rgba(28,140,80,.1); color: #1c8c50; }
+  .points-pill.down{ background: rgba(180,60,60,.1); color: #b43c3c; }
+
+  @media (max-width: 820px){
+    .hero{ grid-template-columns: 1fr; }
+    .hero .summary{ justify-content: flex-start; }
+    .hero .summary .stat{ text-align: left; }
+    .podium{ grid-template-columns: 1fr; }
+    .podium-card.gold .avatar{ width: 84px; height: 84px; }
+    .emp-table thead th.hide-sm, .emp-table tbody td.hide-sm{ display: none; }
+  }
+
+  /* VISITEKAARTJE */
+  .vcard-backdrop{
+    position: fixed; inset: 0; background: rgba(17,20,24,.3);
+    backdrop-filter: blur(4px); z-index: 200;
+    animation: fadeIn .2s ease;
+  }
+  @keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
+  .vcard{
+    position: fixed; right: 0; top: 0; bottom: 0; width: 360px;
+    background: #fff; z-index: 201; overflow-y: auto;
+    box-shadow: -8px 0 40px rgba(20,30,45,.18);
+    animation: slideIn .25s cubic-bezier(.22,1,.36,1);
+    display: flex; flex-direction: column;
+  }
+  @keyframes slideIn{ from{ transform: translateX(100%); } to{ transform: translateX(0); } }
+  .vcard-top{
+    background: var(--ink); padding: 40px 28px 28px; position: relative;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+  }
+  .vcard-close{
+    position: absolute; top: 16px; right: 16px;
+    background: rgba(255,255,255,.1); border: none; color: #fff;
+    width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+    font-size: 16px; display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+  }
+  .vcard-close:hover{ background: rgba(255,255,255,.2); }
+  .vcard-photo{
+    width: 96px; height: 96px; border-radius: 50%; border: 3px solid rgba(255,255,255,.2);
+    background: radial-gradient(120% 80% at 30% 30%, #3a3f47 0%, #1a1d22 60%, #0c0e11 100%);
+    overflow: hidden; margin-bottom: 16px; position: relative; cursor: pointer;
+  }
+  .vcard-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .vcard-photo .upload-overlay{
+    position:absolute; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center;
+    justify-content:center; opacity:0; transition:opacity .2s; border-radius:50%;
+    font-size:10px; color:#fff; letter-spacing:.06em; text-transform:uppercase; font-weight:600;
+  }
+  .vcard-photo:hover .upload-overlay{ opacity:1; }
+  .vcard-name{ font-size: 20px; font-weight: 800; letter-spacing: -.01em; color: #fff; margin-bottom: 4px; }
+  .vcard-role{ font-size: 12px; color: rgba(255,255,255,.6); letter-spacing: .08em; text-transform: uppercase; }
+  .vcard-team-badge{
+    margin-top: 12px; background: rgba(255,255,255,.1); color: rgba(255,255,255,.8);
+    font-size: 10px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700;
+    padding: 4px 12px; border-radius: 999px;
+  }
+  .vcard-body{ padding: 24px 28px; flex: 1; }
+  .vcard-section{ margin-bottom: 24px; }
+  .vcard-section-title{
+    font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted);
+    font-weight: 700; margin-bottom: 12px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .vcard-row{ display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .vcard-icon{ width: 32px; height: 32px; border-radius: 8px; background: #f3f7fa;
+    display: flex; align-items: center; justify-content: center; font-size: 14px; flex: none; }
+  .vcard-info .label{ font-size: 10px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+  .vcard-info .val{ font-size: 13px; font-weight: 600; color: var(--ink); margin-top: 1px; }
+  .vcard-stats{ display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .vcard-stat{
+    background: #f3f7fa; border-radius: 10px; padding: 12px 10px; text-align: center;
+  }
+  .vcard-stat .n{ font-size: 22px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .vcard-stat .l{ font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+  @media (max-width: 400px){ .vcard{ width: 100%; } }
+</style>
+</head>
+<body>
+<div class="page" id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase.js"></script>
+<script type="text/babel" data-presets="env,react">
+/* ---------------------------------------------------------------------------
+   EMPLOYEES — geladen vanuit Supabase (employees tabel).
+   Fallback naar mock-data als de database leeg is.
+--------------------------------------------------------------------------- */
+/* ═══════════════════════════════════════
+   WERKNEMERS — employees.html
+   ═══════════════════════════════════════ */
+
+/* ── EMPLOYEES: fallback mock-data als Supabase leeg is ── */
+const EMPLOYEES = [
+  { id: 'mock-gil-louwerens', name: 'Gil Louwerens',     role: 'Architect',          team: 'Ontwerp',     points: 500, month: 86, year: 412, fields: 412, projects: 8, weekDelta: +24, lastActive: 'vandaag' },
+  { id: 'mock-cornee-louwerens', name: 'Cornee Louwerens',  role: 'Architect',          team: 'Ontwerp',     points: 432, month: 72, year: 358, fields: 358, projects: 7, weekDelta: +18, lastActive: 'vandaag' },
+  { id: 'mock-tom-stut', name: 'Tom Stut',          role: 'Sr. Architect',      team: 'Ontwerp',     points: 321, month: 48, year: 268, fields: 268, projects: 6, weekDelta: +12, lastActive: '1 dag' },
+  { id: 'mock-pascal-wesdijk', name: 'Pascal Wesdijk',    role: 'Projectarchitect',   team: 'Uitvoering',  points: 203, month: 28, year: 164, fields: 164, projects: 4, weekDelta: +6,  lastActive: '2 dagen' },
+  { id: 'mock-wessel-knolpower', name: 'Wessel Knolpower',  role: 'Stagiair',           team: 'Onderzoek',   points: 1,   month: 1,  year: 1,   fields: 1,   projects: 1, weekDelta: +1,  lastActive: '5 dagen' },
+  { id: 'mock-anne-van-dijk', name: 'Anne van Dijk',     role: 'Sr. Architect',      team: 'Ontwerp',     points: 278, month: 56, year: 220, fields: 220, projects: 5, weekDelta: +14, lastActive: 'vandaag' },
+  { id: 'mock-marijn-bakker', name: 'Marijn Bakker',     role: 'Stedenbouwkundige',  team: 'Stedenbouw',  points: 246, month: 38, year: 198, fields: 198, projects: 5, weekDelta: +9,  lastActive: 'vandaag' },
+  { id: 'mock-sven-van-houten', name: 'Sven van Houten',   role: 'Architect',          team: 'Ontwerp',     points: 188, month: 26, year: 152, fields: 152, projects: 4, weekDelta: +7,  lastActive: '1 dag' },
+  { id: 'mock-lotte-verhagen', name: 'Lotte Verhagen',    role: 'Interieurarchitect', team: 'Interieur',   points: 162, month: 18, year: 132, fields: 132, projects: 3, weekDelta: +4,  lastActive: '3 dagen' },
+  { id: 'mock-daan-smit', name: 'Daan Smit',         role: 'BIM-coördinator',    team: 'Technisch',   points: 138, month: 8,  year: 118, fields: 118, projects: 4, weekDelta: -2,  lastActive: '1 dag' },
+  { id: 'mock-eva-de-wit', name: 'Eva de Wit',        role: 'Onderzoeker',        team: 'Onderzoek',   points: 96,  month: 14, year: 84,  fields: 84,  projects: 2, weekDelta: +3,  lastActive: '4 dagen' },
+  { id: 'mock-rik-janssen', name: 'Rik Janssen',       role: 'Architect',          team: 'Ontwerp',     points: 74,  month: 22, year: 62,  fields: 62,  projects: 2, weekDelta: +5,  lastActive: '2 dagen' },
+  { id: 'mock-sara-el-amrani', name: 'Sara El Amrani',    role: 'Stedenbouwkundige',  team: 'Stedenbouw',  points: 58,  month: 9,  year: 48,  fields: 48,  projects: 2, weekDelta: +2,  lastActive: 'vandaag' },
+  { id: 'mock-tobias-vink', name: 'Tobias Vink',       role: 'Stagiair',           team: 'Ontwerp',     points: 42,  month: 24, year: 36,  fields: 36,  projects: 1, weekDelta: +6,  lastActive: 'vandaag' },
+  { id: 'mock-iris-mulder', name: 'Iris Mulder',       role: 'Architect',          team: 'Uitvoering',  points: 38,  month: 0,  year: 32,  fields: 32,  projects: 1, weekDelta: 0,   lastActive: '6 dagen' },
+];
+
+/* ── TEAMS: beschikbare teamfilters ── */
+const TEAMS = ['Alle', 'Ontwerp', 'Stedenbouw', 'Interieur', 'Technisch', 'Onderzoek', 'Uitvoering'];
+/* ── PERIODS: beschikbare periodefilters (altijd/jaar/maand) ── */
+const PERIODS = [
+  { id: 'all',   label: 'Altijd', key: 'points' },
+  { id: 'year',  label: 'Jaar',   key: 'year' },
+  { id: 'month', label: 'Maand',  key: 'month' },
+];
+
+/* ── App: hoofdcomponent
+   - laadt werknemers en foto's uit Supabase
+   - beheert filters, zoekbalk, geselecteerde werknemer
+   - rendert podium, tabel en visitekaartje ── */
+function App(){
+  const [employees, setEmployees] = React.useState([]); // leeg totdat Supabase laadt
+  const [selectedEmp, setSelectedEmp] = React.useState(null);
+  const [showNewEmp, setShowNewEmp] = React.useState(false);
+  const [newEmpData, setNewEmpData] = React.useState({ naam:'', rol:'', team:'Ontwerp', score:0, projecten:0 });
+  const [savingEmp, setSavingEmp] = React.useState(false);
+
+  const saveNewEmployee = async () => {
+    if (!newEmpData.naam.trim()) { alert('Vul minimaal een naam in.'); return; }
+    setSavingEmp(true);
+    try {
+      // Sla werknemer op in database
+      const { data: saved, error } = await db.from('employees').insert([{
+        naam:     newEmpData.naam,
+        rol:      newEmpData.rol,
+        team:     newEmpData.team,
+        score:    parseInt(newEmpData.score)    || 0,
+        projecten:parseInt(newEmpData.projecten)|| 0,
+      }]).select().single();
+      if (error) throw error;
+
+      // Upload foto als die is geselecteerd
+      if (newEmpData._photoFile && saved.id) {
+        try {
+          const url = await EmployeeImages.upload(saved.id, newEmpData._photoFile);
+          setEmpPhotos(prev => ({ ...prev, [saved.id]: url }));
+        } catch(e) { console.warn('Foto upload mislukt:', e); }
+      }
+
+      // Herlaad leaderboard
+      const rows = await Employees.getAll();
+      if (rows && rows.length > 0) {
+        const mapped = rows.map(e => ({
+          id: e.id, name: e.naam, role: e.rol, team: e.team || 'Ontwerp',
+          points: e.score || 0, month: e.score_month || 0, year: e.score_year || e.score || 0,
+          fields: e.score || 0, projects: e.projecten || 0,
+          weekDelta: e.week_delta || 0, lastActive: e.last_active || '—',
+        }));
+        setEmployees(mapped);
+        loadPhotos(mapped);
+      }
+      setNewEmpData({ naam:'', rol:'', team:'Ontwerp', score:0, projecten:0 });
+      setShowNewEmp(false);
+    } catch(e) {
+      alert('Opslaan mislukt: ' + e.message);
+    }
+    setSavingEmp(false);
+  };
+  const [empPhotos, setEmpPhotos] = React.useState({}); // { employeeId: url }
+
+  // Laad foto's voor alle werknemers
+  const empKey = (e) => e.id || ('mock-' + (e.name||'').toLowerCase().replace(/\s+/g,'-').replace(/\./g,''));
+
+  const loadPhotos = async (emps) => {
+    const photos = {};
+    await Promise.all(emps.map(async e => {
+      const key = empKey(e);
+      if (!key) return;
+      try {
+        const url = await EmployeeImages.getForEmployee(key);
+        if (url) photos[key] = url;
+      } catch(err) {}
+    }));
+    setEmpPhotos(photos);
+  };
+
+  const handleAvatarUpload = async (e, emp) => {
+    const file = e.target.files[0];
+    const key = empKey(emp);
+    if (!file || !key) return;
+    try {
+      const url = await EmployeeImages.upload(key, file);
+      setEmpPhotos(prev => ({ ...prev, [key]: url + '?t=' + Date.now() }));
+    } catch(err) { alert('Upload mislukt: ' + err.message); }
+    e.target.value = '';
+  };
+  const [empLoading, setEmpLoading] = React.useState(true);
+  React.useEffect(() => {
+    Employees.getAll().then(rows => {
+      if (rows && rows.length > 0) {
+        const mapped = rows.map(e => ({
+          id: e.id || ('mock-' + (e.naam||'').toLowerCase().replace(/[\s]+/g,'-')),
+          name: e.naam, role: e.rol, team: e.team || 'Ontwerp',
+          points: e.score || 0, month: e.score_month || 0,
+          year: e.score_year || e.score || 0,
+          fields: e.score || 0, projects: e.projecten || 0,
+          weekDelta: e.week_delta || 0, lastActive: e.last_active || '—',
+        }));
+        setEmployees(mapped);
+        loadPhotos(mapped);
+      } else {
+        // Fallback naar mock als Supabase leeg is
+        setEmployees(EMPLOYEES);
+      }
+      setEmpLoading(false);
+    }).catch(() => {
+      setEmployees(EMPLOYEES);
+      setEmpLoading(false);
+    });
+  }, []);
+  const [team, setTeam] = React.useState('Alle');
+  const [q, setQ] = React.useState('');
+  const [period, setPeriod] = React.useState('all');
+  const periodKey = PERIODS.find(p => p.id === period).key;
+  const periodLabel = PERIODS.find(p => p.id === period).label;
+
+  const filtered = React.useMemo(() => {
+    return employees
+      .filter(e => team === 'Alle' || e.team === team)
+      .filter(e => e.name.toLowerCase().includes(q.toLowerCase()) || e.role.toLowerCase().includes(q.toLowerCase()))
+      .sort((a, b) => b[periodKey] - a[periodKey]);
+  }, [team, q, periodKey]);
+
+  const total = employees.reduce((s, e) => s + e[periodKey], 0);
+  const totalFields = employees.reduce((s, e) => s + e.fields, 0);
+  const max = Math.max(...employees.map(e => e[periodKey])) || 1;
+  const podium = [...employees].sort((a,b) => b[periodKey] - a[periodKey]).slice(0, 3);
+
+  return (
+    <>
+      <header className="topbar">
+        <a className="back" href="projects_dashboard.html">← Dashboard</a>
+        <div className="crumbs">
+          <a href="projects_dashboard.html">Projecten</a> · <strong>Werknemers</strong>
+        </div>
+        <div className="meta" style={{display:'flex', gap:'10px', alignItems:'center'}}>
+          <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
+            <a href="admin.html" style={{
+              background:'transparent', color:'var(--muted)', textDecoration:'none',
+              border:'1px solid rgba(17,20,24,.12)', padding:'8px 14px', borderRadius:'999px',
+              fontSize:'11px', letterSpacing:'.1em', textTransform:'uppercase', fontWeight:600,
+            }}>🛠 Beheer</a>
+            <button onClick={() => setShowNewEmp(true)} style={{
+              background:'#111418', color:'#fff', border:'none', padding:'8px 16px',
+              borderRadius:'999px', fontSize:'11px', letterSpacing:'.14em',
+              textTransform:'uppercase', fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+              transition:'background .15s'
+            }}
+            onMouseOver={e=>e.currentTarget.style.background='#3d6e8a'}
+            onMouseOut={e=>e.currentTarget.style.background='#111418'}>
+              + Nieuwe werknemer
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* HERO */}
+      <section className="hero">
+        <div>
+          <h1>Leaderboard</h1>
+          <div className="sub">
+            Werknemers verdienen punten door projectvelden in te vullen. Per ingevuld veld een punt; bonus voor compleet ingevulde projecten. Ranking ververst dagelijks.
+          </div>
+        </div>
+        <div className="summary">
+          <div className="stat">
+            <div className="num">{employees.length}</div>
+            <div className="lbl">Werknemers</div>
+          </div>
+          <div className="stat">
+            <div className="num">{totalFields.toLocaleString('nl-NL')}</div>
+            <div className="lbl">Velden ingevuld</div>
+          </div>
+          <div className="stat">
+            <div className="num">{total.toLocaleString('nl-NL')}</div>
+            <div className="lbl">Punten · {periodLabel}</div>
+          </div>
+        </div>
+      </section>
+
+      {/* PODIUM */}
+      <section className="podium">
+        {[podium[1], podium[0], podium[2]].map((p, i) => {
+          const place = [2, 1, 3][i];
+          const cls = ['silver', 'gold', 'bronze'][i];
+          return p ? (
+            <div key={p.name} className={`podium-card ${cls}`} onClick={() => setSelectedEmp(p)} style={{cursor:"pointer"}}>
+              <div className="rank">{place}</div>
+              <div className="avatar">
+                {empPhotos[p.id] && <img src={empPhotos[p.id]} alt={p.name} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}} />}
+              </div>
+              <div className="name">{p.name}</div>
+              <div className="role">{p.role}</div>
+              <div className="score">{p[periodKey].toLocaleString('nl-NL')}</div>
+              <div className="score-lbl">Punten · {periodLabel}</div>
+            </div>
+          ) : <div key={i}></div>;
+        })}
+      </section>
+
+      {/* PERIOD SWITCH */}
+      <div className="toolbar" style={{marginBottom: 8}}>
+        <div style={{display:'inline-flex', gap: 4, padding: 4, background:'#fff', borderRadius: 999, boxShadow:'var(--shadow)', border:'1px solid rgba(17,20,24,.08)'}}>
+          {PERIODS.map(p => (
+            <button key={p.id}
+              onClick={() => setPeriod(p.id)}
+              className={`chip ${period === p.id ? 'active' : ''}`}
+              style={{border:'none', background: period === p.id ? 'var(--ink)' : 'transparent', color: period === p.id ? '#fff' : 'var(--ink)'}}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* TOOLBAR */}
+      <div className="toolbar">
+        <input className="search" type="search" placeholder="Zoek werknemer of rol…"
+               value={q} onChange={(e) => setQ(e.target.value)} />
+        {TEAMS.map(t => (
+          <button key={t} className={`chip ${t === team ? 'active' : ''}`} onClick={() => setTeam(t)}>{t}</button>
+        ))}
+      </div>
+
+      {/* TABLE */}
+      <section className="table-card">
+        <table className="emp-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Werknemer</th>
+              <th className="hide-sm">Team</th>
+              <th className="hide-sm">Voortgang</th>
+              <th className="right hide-sm">Velden</th>
+              <th className="right hide-sm">Projecten</th>
+              <th className="right hide-sm">Δ Week</th>
+              <th className="right">Punten</th>
+            </tr>
+          </thead>
+          <tbody>
+            {empLoading ? (
+              <tr><td colSpan="8" style={{padding:'32px', textAlign:'center', color:'var(--muted)', fontSize:'13px'}}>Laden…</td></tr>
+            ) : filtered.map((e, i) => (
+              <tr key={e.name} onClick={() => setSelectedEmp(e)} style={{cursor:'pointer'}}>
+                <td className="rk">{i + 1}.</td>
+                <td>
+                  <div className="who">
+                    <div className="ava">
+                      {empPhotos[e.id] && <img src={empPhotos[e.id]} alt={e.name} />}
+                    </div>
+                    <div>
+                      <div className="nm">{e.name}</div>
+                      <div className="role">{e.role}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="hide-sm">{e.team}</td>
+                <td className="hide-sm">
+                  <span className="progress"><span style={{ width: `${(e[periodKey]/max)*100}%` }}></span></span>
+                </td>
+                <td className="right hide-sm">{e.fields}</td>
+                <td className="right hide-sm">{e.projects}</td>
+                <td className="right hide-sm">
+                  <span className={`points-pill ${e.weekDelta > 0 ? 'up' : e.weekDelta < 0 ? 'down' : ''}`}>
+                    {e.weekDelta > 0 ? '+' : ''}{e.weekDelta}
+                  </span>
+                </td>
+                <td className="right score">{e[periodKey].toLocaleString('nl-NL')}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      {/* VISITEKAARTJE */}
+      {selectedEmp && (
+        <>
+          <div className="vcard-backdrop" onClick={() => setSelectedEmp(null)} />
+          <aside className="vcard">
+            <div className="vcard-top">
+              <button className="vcard-close" onClick={() => setSelectedEmp(null)}>×</button>
+              <label className="vcard-photo" title="Klik om foto te uploaden">
+                {empPhotos[selectedEmp.id]
+                  ? <img src={empPhotos[selectedEmp.id]} alt={selectedEmp.name} />
+                  : null}
+                <div className="upload-overlay">📷 Foto</div>
+                <input type="file" accept="image/*" style={{display:'none'}}
+                  onChange={(e) => handleAvatarUpload(e, selectedEmp)} />
+              </label>
+              <div className="vcard-name">{selectedEmp.name}</div>
+              <div className="vcard-role">{selectedEmp.role}</div>
+              <div className="vcard-team-badge">{selectedEmp.team}</div>
+            </div>
+
+            <div className="vcard-body">
+              <div className="vcard-section">
+                <div className="vcard-section-title">Contact</div>
+                <div className="vcard-row">
+                  <div className="vcard-icon">✉️</div>
+                  <div className="vcard-info">
+                    <div className="label">E-mail</div>
+                    <div className="val">{(selectedEmp.name.split(' ')[0] + '.' + selectedEmp.name.split(' ').slice(-1)[0]).toLowerCase()}@mvsa-architects.com</div>
+                  </div>
+                </div>
+                <div className="vcard-row">
+                  <div className="vcard-icon">🏢</div>
+                  <div className="vcard-info">
+                    <div className="label">Kantoor</div>
+                    <div className="val">Amsterdam</div>
+                  </div>
+                </div>
+                <div className="vcard-row">
+                  <div className="vcard-icon">👥</div>
+                  <div className="vcard-info">
+                    <div className="label">Team</div>
+                    <div className="val">{selectedEmp.team}</div>
+                  </div>
+                </div>
+                <div className="vcard-row">
+                  <div className="vcard-icon">🕐</div>
+                  <div className="vcard-info">
+                    <div className="label">Laatst actief</div>
+                    <div className="val">{selectedEmp.lastActive || '—'}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="vcard-section">
+                <div className="vcard-section-title">Statistieken</div>
+                <div className="vcard-stats">
+                  <div className="vcard-stat">
+                    <div className="n">{selectedEmp.points}</div>
+                    <div className="l">Punten</div>
+                  </div>
+                  <div className="vcard-stat">
+                    <div className="n">{selectedEmp.projects}</div>
+                    <div className="l">Projecten</div>
+                  </div>
+                  <div className="vcard-stat">
+                    <div className="n">{selectedEmp.fields}</div>
+                    <div className="l">Velden</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="vcard-section">
+                <div className="vcard-section-title">Deze week</div>
+                <div className="vcard-row">
+                  <div className="vcard-icon">{selectedEmp.weekDelta > 0 ? '📈' : selectedEmp.weekDelta < 0 ? '📉' : '➡️'}</div>
+                  <div className="vcard-info">
+                    <div className="label">Δ Punten deze week</div>
+                    <div className="val" style={{color: selectedEmp.weekDelta > 0 ? '#1c8c50' : selectedEmp.weekDelta < 0 ? '#b43c3c' : 'inherit'}}>
+                      {selectedEmp.weekDelta > 0 ? '+' : ''}{selectedEmp.weekDelta} punten
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </>
+      )}
+
+      {/* NIEUWE WERKNEMER — VCARD FORMULIER */}
+      {showNewEmp && (
+        <>
+          <div className="emp-modal-backdrop" onClick={() => setShowNewEmp(false)} />
+          <aside className="emp-modal">
+
+            {/* Donker bovenblok — foto, naam, functie, team */}
+            <div className="emp-modal-top">
+              <button className="emp-modal-close" onClick={() => setShowNewEmp(false)}>×</button>
+
+              {/* Foto upload */}
+              <label className="emp-photo-edit" title="Foto toevoegen">
+                {newEmpData._photoUrl
+                  ? <img src={newEmpData._photoUrl} alt="" />
+                  : <span style={{fontSize:32}}>👤</span>}
+                <div className="photo-overlay">
+                  <span>📷</span>
+                  <span>Foto</span>
+                </div>
+                <input type="file" accept="image/*" style={{display:'none'}}
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    // Preview lokaal
+                    const url = URL.createObjectURL(file);
+                    setNewEmpData(d => ({...d, _photoFile: file, _photoUrl: url}));
+                  }} />
+              </label>
+
+              {/* Naam */}
+              <input className="emp-name-input" type="text"
+                placeholder="Voor- en achternaam"
+                value={newEmpData.naam}
+                onChange={e => setNewEmpData(d => ({...d, naam: e.target.value}))} />
+
+              {/* Functie */}
+              <input className="emp-role-input" type="text"
+                placeholder="Functie bijv. Architect"
+                value={newEmpData.rol}
+                onChange={e => setNewEmpData(d => ({...d, rol: e.target.value}))} />
+
+              {/* Team */}
+              <select className="emp-team-select"
+                value={newEmpData.team}
+                onChange={e => setNewEmpData(d => ({...d, team: e.target.value}))}>
+                {['Ontwerp','Stedenbouw','Interieur','Technisch','Onderzoek','Uitvoering'].map(t =>
+                  <option key={t}>{t}</option>
+                )}
+              </select>
+            </div>
+
+            {/* Contactgegevens */}
+            <div className="emp-modal-body">
+              <div className="emp-section-title">Contact</div>
+
+              <div className="emp-row">
+                <div className="emp-icon">✉️</div>
+                <div className="emp-field-wrap">
+                  <div className="lbl">E-mail</div>
+                  <input className="emp-inline-input" type="email"
+                    placeholder="naam@mvsa-architects.com"
+                    value={newEmpData.email || ''}
+                    onChange={e => setNewEmpData(d => ({...d, email: e.target.value}))} />
+                </div>
+              </div>
+
+              <div className="emp-row">
+                <div className="emp-icon">📞</div>
+                <div className="emp-field-wrap">
+                  <div className="lbl">Telefoon</div>
+                  <input className="emp-inline-input" type="tel"
+                    placeholder="+31 6 00000000"
+                    value={newEmpData.telefoon || ''}
+                    onChange={e => setNewEmpData(d => ({...d, telefoon: e.target.value}))} />
+                </div>
+              </div>
+
+              <div className="emp-row">
+                <div className="emp-icon">🏢</div>
+                <div className="emp-field-wrap">
+                  <div className="lbl">Kantoor</div>
+                  <input className="emp-inline-input" type="text"
+                    placeholder="Amsterdam"
+                    value={newEmpData.kantoor || ''}
+                    onChange={e => setNewEmpData(d => ({...d, kantoor: e.target.value}))} />
+                </div>
+              </div>
+
+              <div className="emp-section-title" style={{marginTop:16}}>Statistieken</div>
+
+              <div className="emp-row">
+                <div className="emp-icon">🏆</div>
+                <div className="emp-field-wrap">
+                  <div className="lbl">Startpunten</div>
+                  <input className="emp-inline-input" type="number" min="0"
+                    placeholder="0"
+                    value={newEmpData.score || ''}
+                    onChange={e => setNewEmpData(d => ({...d, score: e.target.value}))} />
+                </div>
+              </div>
+
+              <div className="emp-row">
+                <div className="emp-icon">📁</div>
+                <div className="emp-field-wrap">
+                  <div className="lbl">Projecten</div>
+                  <input className="emp-inline-input" type="number" min="0"
+                    placeholder="0"
+                    value={newEmpData.projecten || ''}
+                    onChange={e => setNewEmpData(d => ({...d, projecten: e.target.value}))} />
+                </div>
+              </div>
+            </div>
+
+            <div className="emp-modal-foot">
+              <button className="emp-cancel" onClick={() => setShowNewEmp(false)}>Annuleer</button>
+              <button className="emp-save" onClick={saveNewEmployee} disabled={savingEmp}>
+                {savingEmp ? 'Opslaan…' : 'Toevoegen →'}
+              </button>
+            </div>
+          </aside>
+        </>
+      )}
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+<script>
+(function(){
+  if(localStorage.getItem('mvsa.dark')==='1')
+    document.documentElement.setAttribute('data-theme','dark');
+})();
+</script>
+<script src="transitions.js"></script>
+</body>
+</html>

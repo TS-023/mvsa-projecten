@@ -1,0 +1,1646 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Projecten · Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg: #DEE7EF;
+    --card: #ffffff;
+    --ink: #111418;
+    --ink-2: #2a2f36;
+    --muted: #6b7480;
+    --line: #e6ecf2;
+    --shadow: 0 1px 0 rgba(20,30,45,.04), 0 8px 24px -12px rgba(20,30,45,.18);
+    --radius: 16px;
+  }
+  *{ box-sizing: border-box; }
+  html, body{ margin:0; padding:0; background: var(--bg); color: var(--ink); font-family: 'Inter', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+
+
+  /* ═══════════════════════════════════════════════
+     LAYOUT
+     ═══════════════════════════════════════════════ */
+  .page{
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+
+  /* ── Topbar ── */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom: 28px;
+  }
+  .crumbs{ font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+  .crumbs strong{ color: var(--ink); font-weight:600; }
+  .topbar .meta{ font-size:12px; color:var(--muted); display:flex; gap:18px; align-items:center; }
+  .dot{ width:6px; height:6px; border-radius:50%; background:#16a34a; display:inline-block; margin-right:6px; vertical-align:middle; }
+
+
+  /* ── Sectietitels ── */
+  .section-title{
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin: 28px 0 12px 4px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .section-title .rule{ flex:1; height:1px; background: rgba(17,20,24,.12); }
+
+
+  /* ── Grid systeem ── */
+  .grid{ display:grid; gap: 14px; }
+
+
+  /* ═══════════════════════════════════════════════
+     WIDGET STIJLEN
+     ═══════════════════════════════════════════════ */
+
+  /* ── Data sectie (grote nummers bovenaan) ── */
+  .grid-data{
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: repeat(6, 1fr);
+    grid-auto-flow: column;
+  }
+  .grid-data .left-1, .grid-data .left-2, .grid-data .left-3{ grid-column: 1; grid-row: span 2; }
+  .grid-data .left-1{ grid-row: 1 / span 2; }
+  .grid-data .left-2{ grid-row: 3 / span 2; }
+  .grid-data .left-3{ grid-row: 5 / span 2; }
+  .grid-data .middle{ grid-column: 2; grid-row: 1 / -1; }
+  .card.middle{ transition: transform .15s ease, box-shadow .15s ease; }
+  .card.middle:hover{ transform: translateY(-2px); box-shadow: 0 1px 0 rgba(20,30,45,.04), 0 16px 32px -12px rgba(20,30,45,.28); }
+  .card.middle:hover h3::after{ content: " →"; color: #3d6e8a; }  .grid-data .right-1{ grid-column: 3; grid-row: 1 / span 3; }
+  .grid-data .right-2{ grid-column: 3; grid-row: 4 / span 3; }
+  .grid-data > .card{ display:flex; flex-direction: column; min-height: 0; }
+
+  .card{
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px 20px;
+    border: 1px solid rgba(255,255,255,.6);
+  }
+  .card h3{
+    margin:0 0 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-2);
+    letter-spacing: .02em;
+  }
+
+  .stat .num{
+    font-size: 56px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .stat .delta{
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: .04em;
+  }
+  .stat .delta b{ color: var(--ink); font-weight:600; }
+
+  .random-project{
+    text-align: center;
+    padding: 16px 18px 18px;
+  }
+  .random-project h3{ text-align:center; margin-bottom:10px; }
+  .random-project .rp-img{
+    width: 100%; flex: 1; min-height: 0; border-radius: 12px; overflow:hidden; position:relative;
+    background:#b9a584;
+    margin-bottom: 12px;
+  }
+  .random-project .rp-img::before{
+    content:""; position:absolute; inset:0;
+    background-image: repeating-linear-gradient(180deg, rgba(0,0,0,.18) 0 1px, transparent 1px 8px);
+  }
+  .random-project .rp-img::after{
+    content:""; position:absolute; inset:0;
+    background-image: repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 1px, transparent 1px 24px);
+  }
+  .random-project .rp-img .label{
+    position:absolute; left:14px; top:14px; font-family:'JetBrains Mono', ui-monospace, monospace;
+    font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:#fff; mix-blend-mode: difference;
+  }
+  .random-project .name{ font-size:18px; font-weight:600; letter-spacing:-.01em; }
+  .random-project .meta{ font-size:13px; color: var(--muted); margin-top:4px; }
+  .rp-tags{ display:flex; gap:6px; justify-content:center; margin-top: auto; padding-top: 14px; flex-wrap:wrap; }
+  .tag{ font-size:10px; letter-spacing:.1em; text-transform:uppercase; padding: 4px 8px; border:1px solid rgba(17,20,24,.12); border-radius: 999px; color: var(--ink-2); }
+
+
+  /* ── Leaderboard / RankList ── */
+  .lead-photo{
+    width:100%; aspect-ratio: 16/10; background: #111; border-radius: 12px; overflow:hidden; position:relative;
+    display:flex; align-items:flex-end; padding: 14px;
+  }
+  .lead-photo .ph{
+    position:absolute; inset:0;
+    background:
+      radial-gradient(120% 80% at 30% 30%, #3a3f47 0%, #1a1d22 60%, #0c0e11 100%);
+  }
+  .lead-photo .ph::after{
+    content:""; position:absolute; inset:0;
+    background-image:
+      linear-gradient(transparent 0 50%, rgba(255,255,255,.04) 50% 51%, transparent 51%),
+      linear-gradient(90deg, transparent 0 50%, rgba(255,255,255,.04) 50% 51%, transparent 51%);
+    background-size: 24px 24px;
+    mix-blend-mode: overlay;
+  }
+  .lead-photo .cap{
+    position:relative; color:#fff; font-size:11px; letter-spacing:.14em; text-transform:uppercase; opacity:.85;
+  }
+
+  .ranklist{ list-style:none; padding:0; margin: 14px 0 0; }
+  .ranklist li{
+    display:grid; grid-template-columns: 18px 1fr auto; align-items:center; gap: 10px;
+    padding: 9px 0; border-top: 1px solid var(--line); font-size: 13px;
+  }
+  .ranklist li:first-child{ border-top: 0; }
+  .ranklist .rk{ color: var(--muted); font-variant-numeric: tabular-nums; }
+  .ranklist .nm{ font-weight:600; letter-spacing:.02em; text-transform:uppercase; font-size: 12px; }
+  .ranklist .nm a, .ranklist .nm.link{ color: var(--ink); text-decoration: none; cursor: pointer; transition: color .15s ease; }
+  .ranklist .nm a:hover, .ranklist .nm.link:hover{ color: #3d6e8a; text-decoration: underline; text-underline-offset: 3px; }
+  .ranklist .sc{ color: var(--ink); font-variant-numeric: tabular-nums; font-weight:600; }
+
+
+  /* ── Breakdown balk (hover) ── */
+  .ranklist.with-breakdown li{ grid-template-columns: 18px 1fr auto; row-gap: 0; }
+  .ranklist.with-breakdown li .sc{ cursor: help; position: relative; padding: 2px 4px; border-radius: 4px; transition: background .15s ease; }
+  .ranklist.with-breakdown li .sc:hover{ background: rgba(17,20,24,.06); }
+  .ranklist.with-breakdown li .breakdown{
+    grid-column: 1 / -1;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height .25s ease, opacity .2s ease, margin .25s ease, padding .25s ease;
+  }
+  .ranklist.with-breakdown li.open .breakdown{
+    max-height: 120px; opacity: 1;
+    margin: 6px 0 4px; padding-top: 4px;
+  }
+  .breakdown-bar{
+    width: 100%; height: 8px; border-radius: 4px; overflow: hidden;
+    display: flex; background: rgba(17,20,24,.06);
+  }
+  .breakdown-bar .seg{ height: 100%; transition: opacity .15s ease; }
+  .breakdown-bar .seg:hover{ opacity: .8; }
+  .breakdown-legend{
+    display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px;
+    font-size: 10px; color: var(--muted); letter-spacing: .04em;
+  }
+  .breakdown-legend .item{ display: inline-flex; align-items: center; gap: 5px; }
+  .breakdown-legend .sw{ width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+  .breakdown-legend .lb{ text-transform: capitalize; color: var(--ink-2); font-weight: 500; }
+  .breakdown-legend .vl{ font-variant-numeric: tabular-nums; }
+
+
+  /* ── Recente kaarten / thumbnails ── */
+  .recent-card{ padding: 0; overflow:hidden; }
+  .recent-card .img{
+    flex: 1; min-height: 0; background:#cbb59a; position:relative; overflow:hidden;
+    display: block;
+  }
+  a.img{ cursor: pointer; transition: filter .15s ease; }
+  a.img:hover{ filter: brightness(1.05); }
+  .rp-img{ display: block; }
+  a.rp-img{ cursor: pointer; transition: transform .2s ease, box-shadow .2s ease; }
+  a.rp-img:hover{ transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(20,30,45,.3); }
+  .recent-card .img.alt{ background:#9aa3ad; }
+  .recent-card .img::before{
+    content:""; position:absolute; inset:0;
+    background-image: repeating-linear-gradient(180deg, rgba(0,0,0,.18) 0 1px, transparent 1px 8px);
+  }
+  .recent-card .img::after{
+    content:""; position:absolute; inset:0;
+    background-image: repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 1px, transparent 1px 24px);
+  }
+  .recent-card .img .label{
+    position:absolute; left:14px; top:14px; font-family:'JetBrains Mono', ui-monospace, monospace;
+    font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:#fff; mix-blend-mode: difference;
+  }
+  .recent-card .meta{
+    padding: 12px 16px 14px;
+    display:flex; align-items:baseline; justify-content:space-between;
+  }
+  .recent-card .meta .ttl{ font-weight:600; font-size: 13px; letter-spacing:-.005em; }
+  .recent-card .meta .dt{ font-size: 11px; color: var(--muted); letter-spacing:.06em; text-transform:uppercase; }
+
+
+  /* ── Algemeen sectie ── */
+  .grid-alg-1{
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .grid-alg-2{
+    grid-template-columns: 1fr 2fr;
+  }
+  .chart-card .chart-title{
+    text-align:center; font-size:12px; font-weight:600; color:var(--ink-2); margin-bottom: 10px;
+  }
+  .chart-svg{ width: 100%; height: 180px; display:block; }
+  .axis-label{ font-size: 10px; fill: var(--muted); letter-spacing:.04em; font-family:'Inter', Helvetica, Arial, sans-serif; font-weight: 500; }
+  .bar{ fill: #111418; transition: fill .15s ease; }
+  .bar:hover{ fill: #9aa3ad; }
+  .bar-bg{ fill: #f1f4f7; }
+
+  .duo-stat{ display:flex; flex-direction: column; gap: 6px; }
+  .duo-stat .row{
+    display:flex; align-items:baseline; justify-content:space-between;
+    padding: 14px 4px; border-top: 1px solid var(--line);
+  }
+  .duo-stat .row:first-of-type{ border-top: 0; padding-top: 6px; }
+  .duo-stat .row .lbl{ font-size: 11px; letter-spacing:.16em; text-transform:uppercase; color: var(--muted); }
+  .duo-stat .row .num{ font-size: 48px; font-weight: 700; letter-spacing:-.03em; }
+
+  .phase-legend{
+    list-style: none; padding: 0; margin: 12px 0 0;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px 14px;
+    border-top: 1px solid var(--line); padding-top: 10px;
+  }
+  .phase-legend li{
+    display:flex; align-items: baseline; gap: 8px; font-size: 11px; color: var(--muted);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .phase-legend li b{
+    font-family: 'Inter', sans-serif; font-weight: 700; color: var(--ink);
+    font-size: 10px; letter-spacing: .08em; min-width: 22px;
+  }
+  .phase-legend li span{ font-family: 'Inter', sans-serif; letter-spacing: 0; }
+
+
+  /* ── Locatie sectie ── */
+  .grid-loc{ grid-template-columns: 1fr 1fr 1fr; }
+
+  .loc-split{ display:grid; grid-template-rows: 1fr 1fr; gap: 6px; }
+  .loc-split .cell{ padding: 10px 4px; }
+  .loc-split .cell + .cell{ border-top: 1px solid var(--line); }
+  .loc-split .lbl{ font-size: 11px; letter-spacing:.16em; text-transform:uppercase; color: var(--muted); }
+  .loc-split .num{ font-size: 56px; font-weight:700; letter-spacing:-.03em; line-height:1.05; }
+
+  .footer{ margin-top: 36px; display:flex; justify-content:space-between; align-items:center; font-size:11px; color: var(--muted); letter-spacing:.06em; }
+
+
+  /* ── Metrage sectie ── */
+  .grid-metrage{
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto auto;
+  }
+  .grid-metrage .type-prog{ grid-column: 1; grid-row: 1 / span 2; display:flex; flex-direction:column; }
+  .grid-metrage .stat{ padding: 18px 22px; }
+  .grid-metrage .stat .num{ font-size: 40px; line-height: 1.05; letter-spacing: -.02em; }
+  .type-prog .chart-title{ text-align:center; font-size:12px; font-weight:600; color:var(--ink-2); margin-bottom: 6px; }
+  .type-prog .chart-svg{ flex:1; min-height: 200px; }
+
+
+  /* ── Grootste gebouw + BVO lijst ── */
+  .grid-bvo{
+    grid-template-columns: 1fr 2fr;
+  }
+  .bvo-list{
+    display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  }
+  .bvo-card{
+    background: var(--card); border-radius: 14px; box-shadow: var(--shadow);
+    border: 1px solid rgba(255,255,255,.6);
+    padding: 14px 14px 12px;
+    display: flex; flex-direction: column;
+  }
+  .bvo-card .ftn{ font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .bvo-card .ttl{ font-size: 14px; font-weight: 600; margin-top: 2px; }
+  .bvo-card .tot{
+    font-size: 22px; font-weight: 700; letter-spacing: -.02em; margin-top: 8px;
+    border-bottom: 1px solid var(--line); padding-bottom: 10px;
+  }
+  .bvo-card .top3{
+    list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 4px;
+  }
+  .bvo-card .top3 li{
+    display: grid; grid-template-columns: 16px 1fr auto; align-items: baseline; gap: 6px;
+    font-size: 11px;
+  }
+  .bvo-card .top3 .rk{ color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bvo-card .top3 .nm{ font-weight: 600; letter-spacing: .03em; text-transform: uppercase; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bvo-card .top3 .nm a{ color: var(--ink); text-decoration: none; transition: color .15s ease; }
+  .bvo-card .top3 .nm a:hover{ color: #3d6e8a; text-decoration: underline; text-underline-offset: 2px; }
+  .recent-card .meta .ttl a{ color: inherit; text-decoration: none; transition: color .15s ease; }
+  .recent-card .meta .ttl a:hover{ color: #3d6e8a; }
+  .bvo-card .top3 .v{ font-variant-numeric: tabular-nums; font-size: 10px; color: var(--ink); }
+
+  .grootste-gebouw .bg-img{
+    width:100%; aspect-ratio: 16/10; border-radius: 12px; overflow:hidden; position:relative;
+    background:#b9a584; margin-bottom: 12px;
+    display: block; cursor: pointer;
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .grootste-gebouw a.bg-img:hover{ transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(20,30,45,.3); }
+  .grootste-gebouw .bg-img::before{
+    content:""; position:absolute; inset:0;
+    background-image: repeating-linear-gradient(180deg, rgba(0,0,0,.18) 0 1px, transparent 1px 8px);
+  }
+  .grootste-gebouw .bg-img::after{
+    content:""; position:absolute; inset:0;
+    background-image: repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 1px, transparent 1px 24px);
+  }
+  .grootste-gebouw .bg-img .label{
+    position:absolute; left:14px; top:14px; font-family:'JetBrains Mono', ui-monospace, monospace;
+    font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:#fff; mix-blend-mode: difference;
+  }
+
+
+  /* ── Mobiliteit & ratio ── */
+  .grid-mob-ratio{
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .grid-mob-ratio .mob-col{ display:grid; gap: 14px; grid-auto-rows: 1fr; }
+
+  @media (max-width: 980px){
+    .grid-data, .grid-alg-1, .grid-loc, .grid-metrage, .grid-mob-ratio{ grid-template-columns: 1fr 1fr; }
+    .grid-alg-2, .grid-bvo{ grid-template-columns: 1fr; }
+    .grid-metrage .type-prog{ grid-column: 1 / -1; grid-row: auto; }
+  }
+  @media (max-width: 620px){
+    .grid-data, .grid-alg-1, .grid-loc, .grid-metrage, .grid-mob-ratio{ grid-template-columns: 1fr; }
+    .page{ padding: 24px 16px 64px; }
+    .stat .num, .loc-split .num{ font-size: 44px; }
+    .bvo-list{ grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="page" id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase.js"></script>
+<script type="text/babel" data-presets="env,react">
+/* ---------------------------------------------------------------------------
+   MOCK DATA — replace with API data later.
+--------------------------------------------------------------------------- */
+const MOCK = {
+  data: {
+    projectsFilled: 64,
+    fieldsFilled: 872,
+    randomProject: {
+      name: 'Stadion Galgenwaard',
+      city: 'Utrecht',
+      tags: ['Mixed Use', 'Renovatie', '2024'],
+    },
+    leaderboard: [
+      { name: 'Gil Louwerens',     score: 500 },
+      { name: 'Cornee Louwerens',  score: 432 },
+      { name: 'Tom Stut',          score: 321 },
+      { name: 'Pascal Wesdijk',    score: 203 },
+      { name: 'Wessel Knolpower',  score:   1 },
+    ],
+    recent: [
+      { title: 'Kade Noord 21',   date: '06 mei',  tone: 'warm' },
+      { title: 'Bloktoren Zuid',  date: '04 mei',  tone: 'cool' },
+    ],
+  },
+  algemeen: {
+    projecttype: [
+      { label: 'Won',  v: 12 },
+      { label: 'Util', v: 22 },
+      { label: 'Mix',  v: 28 },
+      { label: 'Zorg', v: 14 },
+      { label: 'Onw',  v: 9  },
+      { label: 'Ovr',  v: 6  },
+    ],
+    functie: [
+      { label: 'Architect',   v: 58 },
+      { label: 'Stedenbouw',  v: 14 },
+      { label: 'Interieur',   v: 18 },
+      { label: 'Onderzoek',   v: 10 },
+    ],
+    verkregen: [
+      { label: 'Aq', v: 18 },
+      { label: '1v1', v: 28 },
+      { label: 'Tnd', v: 24 },
+      { label: 'Pit', v: 16 },
+      { label: 'Ovr', v: 8 },
+    ],
+    ontwerp: 32,
+    opgeleverd: 200,
+    fases: [
+      { label: 'AQ', full: 'Acquisitie',          v: 6  },
+      { label: 'SO', full: 'Schets Ontwerp',      v: 22 },
+      { label: 'VO', full: 'Voorlopig Ontwerp',   v: 28 },
+      { label: 'DO', full: 'Definitief Ontwerp', v: 34 },
+      { label: 'TO', full: 'Technisch Ontwerp',   v: 24 },
+      { label: 'UO', full: 'Uitvoerings Ontwerp', v: 16 },
+      { label: 'UV', full: 'Uitvoering',          v: 12 },
+      { label: 'OP', full: 'Opgeleverd',          v: 8  },
+    ],
+  },
+  locatie: {
+    binnenland: 832,
+    buitenland: 40,
+    provincies: [
+      { name: 'Noord-Holland', v: 286 },
+      { name: 'Zuid-Holland',  v: 211 },
+      { name: 'Utrecht',       v: 142 },
+      { name: 'Noord-Brabant', v: 98  },
+      { name: 'Gelderland',    v: 64  },
+    ],
+    steden: [
+      { name: 'Amsterdam',  v: 198 },
+      { name: 'Rotterdam',  v: 132 },
+      { name: 'Utrecht',    v: 96  },
+      { name: 'Den Haag',   v: 74  },
+      { name: 'Eindhoven',  v: 44  },
+    ],
+  },
+  metrage: {
+    typeProgramma: [
+      { label: 'Wonen',    v: 42 },
+      { label: 'Kantoor',  v: 28 },
+      { label: 'Publiek',  v: 14 },
+      { label: 'Mixed',    v: 16 },
+    ],
+    totaalGerealiseerd: 2000001,
+    gerenoveerd: 123456,
+    nieuw: 999888,
+    gesloopt: 872,
+    grootsteGebouw: {
+      title: 'Grootste gebouw',
+      ranks: [
+        { name: 'Gil Louwerens',    score: 80000, breakdown: { wonen: 40000, kantoor: 22000, commercieel: 12000, shortstay: 6000 } },
+        { name: 'Cornee Louwerens', score: 64000, breakdown: { wonen: 38000, kantoor: 18000, commercieel: 8000 } },
+        { name: 'Tom Stut',         score: 52000, breakdown: { wonen: 30000, kantoor: 22000 } },
+        { name: 'Pascal Wesdijk',   score: 41000, breakdown: { wonen: 21000, shortstay: 12000, commercieel: 8000 } },
+        { name: 'Wessel Knolpower', score: 12000, breakdown: { kantoor: 12000 } },
+      ],
+    },
+    bvoLijst: [
+      { type: 'Wonen',       totaal: '420.000 m²', ranks: [{ name: 'Toorop', v: '100.000 m²' }, { name: 'Galgenwaard', v: '80.000 m²' }, { name: 'Margriet', v: '60.000 m²' }] },
+      { type: 'Kantoor',     totaal: '310.000 m²', ranks: [{ name: 'Toorop', v: '100.000 m²' }, { name: 'Galgenwaard', v: '80.000 m²' }, { name: 'Margriet', v: '60.000 m²' }] },
+      { type: 'Shortstay',   totaal: '142.000 m²', ranks: [{ name: 'Toorop', v: '60.000 m²' },  { name: 'Galgenwaard', v: '50.000 m²' }, { name: 'Margriet', v: '32.000 m²' }] },
+      { type: 'Commercieel', totaal: '128.000 m²', ranks: [{ name: 'Toorop', v: '52.000 m²' },  { name: 'Galgenwaard', v: '44.000 m²' }, { name: 'Margriet', v: '32.000 m²' }] },
+      { type: 'Publiek',     totaal: '98.000 m²',  ranks: [{ name: 'Toorop', v: '40.000 m²' },  { name: 'Galgenwaard', v: '34.000 m²' }, { name: 'Margriet', v: '24.000 m²' }] },
+      { type: 'Onderwijs',   totaal: '76.000 m²',  ranks: [{ name: 'Toorop', v: '32.000 m²' },  { name: 'Galgenwaard', v: '26.000 m²' }, { name: 'Margriet', v: '18.000 m²' }] },
+    ],
+  },
+  mobiliteit: {
+    auto: [
+      { name: 'Gil Louwerens',    score: 500 },
+      { name: 'Cornee Louwerens', score: 432 },
+      { name: 'Tom Stut',         score: 321 },
+    ],
+    fiets: [
+      { name: 'Gil Louwerens',    score: 500 },
+      { name: 'Cornee Louwerens', score: 432 },
+      { name: 'Tom Stut',         score: 321 },
+    ],
+  },
+  ratio: {
+    wonen: [
+      { name: 'Gil Louwerens',    score: 500 },
+      { name: 'Cornee Louwerens', score: 432 },
+      { name: 'Tom Stut',         score: 321 },
+      { name: 'Pascal Wesdijk',   score: 203 },
+      { name: 'Wessel Knolpower', score: 1   },
+    ],
+    kantoor: [
+      { name: 'Gil Louwerens',    score: 500 },
+      { name: 'Cornee Louwerens', score: 432 },
+      { name: 'Tom Stut',         score: 321 },
+      { name: 'Pascal Wesdijk',   score: 203 },
+      { name: 'Wessel Knolpower', score: 1   },
+    ],
+  },
+  duurzaamheid: {
+    score: [
+      { name: 'Gil Louwerens',    score: 500 },
+      { name: 'Cornee Louwerens', score: 432 },
+      { name: 'Tom Stut',         score: 321 },
+    ],
+    daktuin: [
+      { name: 'Gil Louwerens',    score: 500 },
+      { name: 'Cornee Louwerens', score: 432 },
+      { name: 'Tom Stut',         score: 321 },
+    ],
+    zonnepanelen: [
+      { name: 'Gil Louwerens',    score: 500 },
+      { name: 'Cornee Louwerens', score: 432 },
+      { name: 'Tom Stut',         score: 321 },
+    ],
+  },
+  bouwOverig: {
+    hoogsteGebouw: [
+      { name: 'Gil Louwerens',    score: 500 },
+      { name: 'Cornee Louwerens', score: 432 },
+      { name: 'Tom Stut',         score: 321 },
+      { name: 'Pascal Wesdijk',   score: 203 },
+      { name: 'Wessel Knolpower', score: 1   },
+      { name: 'Wessel Knolpower', score: 1   },
+      { name: 'Wessel Knolpower', score: 1   },
+      { name: 'Wessel Knolpower', score: 1   },
+      { name: 'Wessel Knolpower', score: 1   },
+      { name: 'Wessel Knolpower', score: 1   },
+    ],
+    tevredenheid: 49,
+    totaalAwards: 872,
+    labels: [
+      { name: 'Breeam Excellent', score: 500 },
+      { name: 'Breeam Outstanding', score: 500 },
+      { name: 'Paris Proof',      score: 500 },
+      { name: 'WELL',             score: 500 },
+      { name: 'Breeam Excellent', score: 500 },
+      { name: 'Breeam Excellent', score: 500 },
+      { name: 'Cornee Louwerens', score: 432 },
+      { name: 'Tom Stut',         score: 321 },
+      { name: 'Pascal Wesdijk',   score: 203 },
+      { name: 'Wessel Knolpower', score: 1   },
+    ],
+    awards: [
+      { name: 'Gil Louwerens',    score: 500 },
+      { name: 'Cornee Louwerens', score: 432 },
+      { name: 'Tom Stut',         score: 321 },
+      { name: 'Pascal Wesdijk',   score: 203 },
+      { name: 'Wessel Knolpower', score: 1   },
+    ],
+  },
+};
+
+/* ---------------------------------------------------------------------------
+   Chart primitives — pure SVG, monochrome.
+--------------------------------------------------------------------------- */
+
+/* ═══════════════════════════════════════════════
+   CHART COMPONENTEN
+   ═══════════════════════════════════════════════ */
+
+/* ── BarChart: staafdiagram voor fases, functies etc. ── */
+function BarChart({ data, height = 180, gap = 10, showLabels = true, padTop = 14, hoverPalette, onBarClick }){
+  const w = 320;
+  const h = height;
+  const padBottom = showLabels ? 24 : 8;
+  const innerW = w - 16;
+  const max = Math.max(...data.map(d => d.v));
+  const bw = (innerW - gap * (data.length - 1)) / data.length;
+  const chartH = h - padBottom - padTop;
+  const [hov, setHov] = React.useState(null);
+  return (
+    <svg className="chart-svg" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none"
+         onMouseLeave={() => setHov(null)}>
+      {data.map((d, i) => {
+        const bh = (d.v / max) * chartH;
+        const x = 8 + i * (bw + gap);
+        const y = padTop + (chartH - bh);
+        const baseY = padTop + chartH;
+        const valY = baseY - 6;
+        const isHov = hov === i;
+        const hoverFill = hoverPalette ? hoverPalette[i % hoverPalette.length] : '#9aa3ad';
+        const fill = isHov ? hoverFill : '#111418';
+        return (
+          <g key={i} onMouseEnter={() => setHov(i)} onClick={() => onBarClick && onBarClick(d)} style={{cursor: onBarClick ? 'pointer' : 'default'}}>
+            <rect className="bar-bg" x={x} y={padTop} width={bw} height={chartH} rx="2" />
+            <rect x={x} y={y} width={bw} height={bh} rx="2"
+                  style={{ fill, transition: 'fill .15s ease' }} />
+            {isHov && (
+              <text x={x + bw/2} y={valY} textAnchor="middle"
+                    style={{fontSize: 11, fontWeight: 700, fill: '#fff', fontFamily: "'Inter',sans-serif", pointerEvents: 'none'}}>
+                {d.v}
+              </text>
+            )}
+            {showLabels && (
+              <text className="axis-label" x={x + bw/2} y={h - 8} textAnchor="middle">{d.label}</text>
+            )}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+
+/* ── Donut: taartdiagram voor verdeling ── */
+function Donut({ data, height = 180 }){
+  const w = 320, h = height;
+  const cx = w/2, cy = h/2;
+  const baseR = Math.min(w, h)/2 - 22;
+  const hoverR = baseR + 8;
+  const total = data.reduce((s,d)=> s+d.v, 0);
+  const [hovered, setHovered] = React.useState(null);
+  // Monochrome shades
+  const shades = ['#111418', '#2f343b', '#535a63', '#8a929c', '#c1c8d0'];
+
+  // Pre-compute slices
+  let acc = 0;
+  const slices = data.map((d, i) => {
+    const start = (acc/total) * Math.PI * 2 - Math.PI/2;
+    acc += d.v;
+    const end = (acc/total) * Math.PI * 2 - Math.PI/2;
+    const mid = (start + end) / 2;
+    const pct = Math.round((d.v / total) * 100);
+    return { d, i, start, end, mid, pct };
+  });
+
+  const arcPath = (start, end, r) => {
+    const large = (end - start) > Math.PI ? 1 : 0;
+    const x1 = cx + Math.cos(start) * r;
+    const y1 = cy + Math.sin(start) * r;
+    const x2 = cx + Math.cos(end) * r;
+    const y2 = cy + Math.sin(end) * r;
+    return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
+  };
+
+  const hov = hovered != null ? slices[hovered] : null;
+  const labelR = baseR * 0.78;
+  const labelX = hov ? cx + Math.cos(hov.mid) * labelR : cx;
+  const labelY = hov ? cy + Math.sin(hov.mid) * labelR : cy;
+
+  return (
+    <svg className="chart-svg" viewBox={`0 0 ${w} ${h}`}
+         onMouseLeave={() => setHovered(null)}>
+      {slices.map((s) => {
+        const r = hovered === s.i ? hoverR : baseR;
+        return (
+          <path
+            key={s.i}
+            d={arcPath(s.start, s.end, r)}
+            fill={shades[s.i % shades.length]}
+            style={{ transition: 'd .18s ease', cursor: 'pointer' }}
+            onMouseEnter={() => setHovered(s.i)}
+          />
+        );
+      })}
+      <circle cx={cx} cy={cy} r={baseR * 0.55} fill="#ffffff" pointerEvents="none" />
+      {!hov && (
+        <g pointerEvents="none">
+          <text x={cx} y={cy - 2} textAnchor="middle" className="axis-label" style={{fontSize:9, fill:'#6b7480'}}>TOTAAL</text>
+          <text x={cx} y={cy + 16} textAnchor="middle" style={{fontSize:18, fontWeight:700, fill:'#111418'}}>{total}</text>
+        </g>
+      )}
+      {hov && (
+        <g pointerEvents="none">
+          <text x={cx} y={cy - 4} textAnchor="middle" style={{fontSize:11, fontWeight:600, fill:'#2a2f36'}}>
+            {hov.d.label}
+          </text>
+          <text x={cx} y={cy + 18} textAnchor="middle" style={{fontSize:22, fontWeight:700, fill:'#111418', letterSpacing:'-0.02em'}}>
+            {hov.pct}%
+          </text>
+        </g>
+      )}
+    </svg>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+   Leaderboard / list components
+--------------------------------------------------------------------------- */
+
+/* ═══════════════════════════════════════════════
+   HULPFUNCTIES
+   ═══════════════════════════════════════════════ */
+
+/* ── projectHref: bouw URL op naar projectpagina ── */
+function projectHref(name){
+  const p = (window._allProjects||[]).find(x => x.projectnaam === name);
+  const nr = p ? p.projectnummer || '' : '';
+  return `project_page.html?nr=${encodeURIComponent(nr)}&p=${encodeURIComponent(name)}`;
+}
+
+
+/* ── RankList: genummerde ranglijst met optionele breakdown ── */
+function RankList({ items, suffix, breakdown, scoreFormatter, linkProjects = false, linkEmployees = false, onItemClick }){
+  const [open, setOpen] = React.useState(null);
+  const FUNC_COLORS = {
+    wonen:       '#111418',
+    kantoor:     '#3d6e8a',
+    shortstay:   '#8a7a3d',
+    commercieel: '#3d8a6e',
+    publiek:     '#6e3d8a',
+    zorg:        '#8a4a4a',
+    onderwijs:   '#5a4a8a',
+  };
+  const fmt = scoreFormatter || ((v) => v);
+  return (
+    <ol className={`ranklist ${breakdown ? 'with-breakdown' : ''}`}>
+      {items.map((it, i) => {
+        const score = it.score ?? it.v;
+        const bd = breakdown && it.breakdown
+          ? Object.entries(it.breakdown).filter(([_, v]) => v && v > 0)
+          : null;
+        const total = bd ? bd.reduce((s,[,v]) => s+v, 0) : 0;
+        const isOpen = open === i;
+        return (
+          <li key={i} className={isOpen ? 'open' : ''}
+              onMouseEnter={() => { bd && setOpen(i); }}
+              onMouseLeave={() => bd && setOpen(null)}
+              onClick={() => onItemClick && onItemClick(it.name)}
+              style={onItemClick ? {cursor:'pointer'} : {}}>
+            <span className="rk">{i+1}.</span>
+            <span className="nm" style={onItemClick ? {color:'var(--accent)', textDecoration:'underline', textDecorationStyle:'dotted'} : {}}>
+              {linkProjects
+                ? <a href={projectHref(it.name)}>{it.name}</a>
+                : linkEmployees
+                  ? <a href={`employees.html?e=${encodeURIComponent(it.name)}`}>{it.name}</a>
+                  : it.name}
+            </span>
+            <span className="sc">
+              {fmt(score)}{suffix || ''}
+            </span>
+            {bd && (
+              <div className="breakdown">
+                <div className="breakdown-bar">
+                  {bd.map(([k, v]) => (
+                    <div key={k} className="seg"
+                         style={{ width: `${(v/total)*100}%`, background: FUNC_COLORS[k] || '#535a63' }} />
+                  ))}
+                </div>
+                <div className="breakdown-legend">
+                  {bd.map(([k, v]) => (
+                    <span key={k} className="item">
+                      <span className="sw" style={{ background: FUNC_COLORS[k] || '#535a63' }}></span>
+                      <span className="lb">{k}</span>
+                      <span className="vl">{fmt(v)}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+   Sections
+--------------------------------------------------------------------------- */
+
+/* ═══════════════════════════════════════════════
+   SECTIE COMPONENTEN
+   (elk blok op het dashboard is een eigen component)
+   ═══════════════════════════════════════════════ */
+
+/* ── SectionTitle: blauwe koptitel met lijn ── */
+function SectionTitle({ children }){
+  return (
+    <div className="section-title">
+      <span>{children}</span>
+      <span className="rule"></span>
+    </div>
+  );
+}
+
+
+/* ── DataSection: grote statistieken bovenaan (projecten, BVO etc.) ── */
+function DataSection({ d, leaderPhoto }){
+  return (
+    <>
+      <SectionTitle>Data</SectionTitle>
+      <div className="grid grid-data">
+        {/* Left column */}
+        <div className="card stat left-1">
+          <h3>Aantal projecten ingevuld</h3>
+          <div className="num">{d.projectsFilled}</div>
+          <div className="delta">van <b>104</b> totaal · <b>+6</b> deze week</div>
+        </div>
+        <div className="card stat left-2">
+          <h3>Totaal aantal velden ingevuld</h3>
+          <div className="num">{d.fieldsFilled.toLocaleString('nl-NL')}</div>
+          <div className="delta"><b>72%</b> van mogelijke velden</div>
+        </div>
+        <div className="card random-project left-3">
+          <h3>Random project uitgelicht</h3>
+          <a className="rp-img" href={projectHref(d.randomProject.name)}>
+            <span className="label">PLACE IMAGE HERE</span>
+          </a>
+          <div className="name"><a href={projectHref(d.randomProject.name)} style={{color:'inherit', textDecoration:'none'}} onMouseOver={(e)=>e.target.style.color='#3d6e8a'} onMouseOut={(e)=>e.target.style.color='inherit'}>{d.randomProject.name}</a></div>
+          <div className="meta">{d.randomProject.city}</div>
+          <div className="rp-tags">
+            {d.randomProject.tags.map((t,i)=> <span key={i} className="tag">{t}</span>)}
+          </div>
+        </div>
+
+        {/* Middle: leaderboard */}
+        <div className="card middle" onClick={() => window.location.href = 'employees.html'} style={{cursor:'pointer'}}>
+          <h3 style={{textAlign:'center', marginBottom:12}}>Meeste velden ingevuld</h3>
+          <div className="lead-photo" style={leaderPhoto ? {backgroundImage:`url(${leaderPhoto})`, backgroundSize:'cover', backgroundPosition:'center'} : {}}>
+            {!leaderPhoto && <div className="ph"></div>}
+            <div className="cap">{d.leaderboard && d.leaderboard[0] ? d.leaderboard[0].name + ' · #1' : 'Leader · Mei 2026'}</div>
+          </div>
+          <RankList items={d.leaderboard} linkEmployees />
+        </div>
+
+        {/* Right column: two recent */}
+        {d.recent.map((r, i) => (
+          <div key={i} className={`card recent-card ${i === 0 ? 'right-1' : 'right-2'}`}>
+            <a className={`img ${r.tone === 'cool' ? 'alt' : ''}`} href={`project_page.html?nr=${encodeURIComponent(r.projectnummer||'')}&p=${encodeURIComponent(r.title||'')}`}>
+              <span className="label">PLACE IMAGE HERE</span>
+            </a>
+            <div className="meta">
+              <span className="ttl"><a href={`project_page.html?nr=${encodeURIComponent(r.projectnummer||'')}&p=${encodeURIComponent(r.title||'')}`}>{r.title}</a></span>
+              <span className="dt">Meest recent · {r.date}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+
+/* ── AlgemeenSection: fases, functies, opgave ── */
+function AlgemeenSection({ a, onBarClick }){
+  return (
+    <>
+      <SectionTitle>Algemeen</SectionTitle>
+      <div className="grid grid-alg-1" style={{marginBottom: 14}}>
+        <div className="card chart-card">
+          <div className="chart-title">Projecttype</div>
+          <BarChart data={a.projecttype} />
+        </div>
+        <div className="card chart-card">
+          <div className="chart-title">Functie</div>
+          <Donut data={a.functie} />
+        </div>
+        <div className="card chart-card">
+          <div className="chart-title">Verkregen d.m.v.</div>
+          <BarChart data={a.verkregen} />
+        </div>
+      </div>
+
+      <div className="grid grid-alg-2">
+        <div className="card duo-stat">
+          <h3>Ontwerp / Opgeleverd</h3>
+          <div className="row">
+            <span className="lbl">Ontwerp</span>
+            <span className="num">{a.ontwerp}</span>
+          </div>
+          <div className="row">
+            <span className="lbl">Opgeleverd</span>
+            <span className="num">{a.opgeleverd}</span>
+          </div>
+        </div>
+        <div className="card chart-card">
+          <div className="chart-title">Fases</div>
+          <BarChart data={a.fases} height={200} hoverPalette={['#5a4a8a','#3d6e8a','#3d8a6e','#8a7a3d','#8a4a4a','#6e3d8a','#3d8a8a','#8a6e3d']}
+            onBarClick={onBarClick}
+          />
+          <ul className="phase-legend">
+            {a.fases.map((f, i) => (
+              <li key={i}><b>{f.label}</b><span>{f.full}</span></li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </>
+  );
+}
+
+
+/* ── MetrageSection: BVO verdeling en grootste projecten ── */
+function MetrageSection({ m }){
+  const fmt = (n) => n.toLocaleString('nl-NL');
+  return (
+    <>
+      <SectionTitle>Metrage</SectionTitle>
+      <div className="grid grid-metrage" style={{marginBottom: 14}}>
+        <div className="card chart-card type-prog">
+          <div className="chart-title">Type programma</div>
+          <Donut data={m.typeProgramma} height={220} />
+        </div>
+        <div className="card stat">
+          <h3>Totaal gerealiseerd m²</h3>
+          <div className="num">{fmt(m.totaalGerealiseerd)}</div>
+        </div>
+        <div className="card stat">
+          <h3>Gerenoveerd (m²)</h3>
+          <div className="num">{fmt(m.gerenoveerd)}</div>
+        </div>
+        <div className="card stat">
+          <h3>Nieuw</h3>
+          <div className="num">{fmt(m.nieuw)}</div>
+        </div>
+        <div className="card stat">
+          <h3>Gesloopt</h3>
+          <div className="num">{fmt(m.gesloopt)}</div>
+        </div>
+      </div>
+
+      <div className="grid grid-bvo">
+        <div className="card grootste-gebouw">
+          <h3 style={{textAlign:'center', marginBottom:12}}>{m.grootsteGebouw.title}</h3>
+          <a className="bg-img" href={projectHref(m.grootsteGebouw.ranks[0].name)}><span className="label">PLACE IMAGE HERE</span></a>
+          <RankList items={m.grootsteGebouw.ranks} breakdown linkProjects
+                    suffix=" m²"
+                    scoreFormatter={(v) => v.toLocaleString('nl-NL')} />
+        </div>
+        <div className="bvo-list">
+          {m.bvoLijst.map((row, i) => (
+            <div key={i} className="bvo-card">
+              <span className="ftn">Functie</span>
+              <span className="ttl">{row.type}</span>
+              <div className="tot">{row.totaal}</div>
+              <ol className="top3">
+                {row.ranks.map((r, j) => (
+                  <li key={j}>
+                    <span className="rk">{j+1}.</span>
+                    <span className="nm"><a href={`project_page.html?nr=${encodeURIComponent(r.projectnummer||'')}&p=${encodeURIComponent(r.name||'')}`}>{r.name}</a></span>
+                    <span className="v">{r.v}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+
+/* ── MobiliteitRatioSection: parkeren en mobiliteitsratio ── */
+function MobiliteitRatioSection({ mob, ratio }){
+  return (
+    <>
+      <div style={{display:'grid', gridTemplateColumns:'1fr 2fr', gap: 14, marginTop: 28}}>
+        <SectionTitle>Mobiliteit</SectionTitle>
+        <SectionTitle>Efficiëntie / ratio</SectionTitle>
+      </div>
+      <div className="grid grid-mob-ratio">
+        <div className="mob-col">
+          <div className="card">
+            <h3>Aantal autoparkeerplekken</h3>
+            <RankList items={mob.auto} linkProjects />
+          </div>
+          <div className="card">
+            <h3>Aantal fietsparkeerplekken</h3>
+            <RankList items={mob.fiets} linkProjects />
+          </div>
+        </div>
+        <div className="card grootste-gebouw">
+          <h3 style={{textAlign:'center', marginBottom:12}}>Beste ratio · wonen</h3>
+          <a className="bg-img" href={projectHref(ratio.wonen[0].name)}><span className="label">PLACE IMAGE HERE</span></a>
+          <RankList items={ratio.wonen} linkProjects />
+        </div>
+        <div className="card grootste-gebouw">
+          <h3 style={{textAlign:'center', marginBottom:12}}>Beste ratio · kantoor</h3>
+          <a className="bg-img" href={projectHref(ratio.kantoor[0].name)}><span className="label">PLACE IMAGE HERE</span></a>
+          <RankList items={ratio.kantoor} linkProjects />
+        </div>
+      </div>
+    </>
+  );
+}
+
+
+/* ── DuurzaamheidSection: duurzaamheidslabels en scores ── */
+function DuurzaamheidSection({ d }){
+  return (
+    <>
+      <SectionTitle>Duurzaamheid</SectionTitle>
+      <div className="grid" style={{gridTemplateColumns:'1fr 1fr 1fr', marginBottom: 14}}>
+        <div className="card grootste-gebouw">
+          <h3 style={{textAlign:'center', marginBottom:12}}>Duurzaamheidsscore (NPG?)</h3>
+          <a className="bg-img" href={projectHref(d.score[0].name)}><span className="label">PLACE IMAGE HERE</span></a>
+          <RankList items={d.score} linkProjects />
+        </div>
+        <div className="card grootste-gebouw">
+          <h3 style={{textAlign:'center', marginBottom:12}}>M² binnentuin / daktuin</h3>
+          <a className="bg-img" href={projectHref(d.daktuin[0].name)}><span className="label">PLACE IMAGE HERE</span></a>
+          <RankList items={d.daktuin} linkProjects />
+        </div>
+        <div className="card grootste-gebouw">
+          <h3 style={{textAlign:'center', marginBottom:12}}>Meeste zonnepanelen</h3>
+          <a className="bg-img" href={projectHref(d.zonnepanelen[0].name)}><span className="label">PLACE IMAGE HERE</span></a>
+          <RankList items={d.zonnepanelen} linkProjects />
+        </div>
+      </div>
+    </>
+  );
+}
+
+
+/* ── BouwOverigSection: bouwhoogte, awards, tevredenheid ── */
+function BouwOverigSection({ b }){
+  return (
+    <>
+      <div style={{display:'grid', gridTemplateColumns:'1fr 2fr', gap: 14, marginTop: 28}}>
+        <SectionTitle>Bouwhoogte</SectionTitle>
+        <SectionTitle>Overig</SectionTitle>
+      </div>
+      <div className="grid" style={{gridTemplateColumns:'1fr 1fr 1fr', alignItems:'start'}}>
+        <div className="card grootste-gebouw" style={{gridRow:'span 2'}}>
+          <h3 style={{textAlign:'center', marginBottom:12}}>Hoogste gebouw</h3>
+          <a className="bg-img" href={projectHref(b.hoogsteGebouw[0].name)}><span className="label">PLACE IMAGE HERE</span></a>
+          <RankList items={b.hoogsteGebouw} linkProjects />
+        </div>
+        <div className="card stat">
+          <h3>Tevredenheidsverklar-</h3>
+          <div className="num">{b.tevredenheid}</div>
+        </div>
+        <div className="card stat">
+          <h3>Totaal aantal awards</h3>
+          <div className="num">{b.totaalAwards.toLocaleString('nl-NL')}</div>
+        </div>
+        <div className="card">
+          <h3 style={{textAlign:'center', marginBottom:12}}>Labels</h3>
+          <RankList items={b.labels} />
+        </div>
+        <div className="card grootste-gebouw">
+          <h3 style={{textAlign:'center', marginBottom:12}}>Meeste awards</h3>
+          <a className="bg-img" href={projectHref(b.awards[0].name)}><span className="label">PLACE IMAGE HERE</span></a>
+          <RankList items={b.awards} linkProjects />
+        </div>
+      </div>
+    </>
+  );
+}
+
+
+/* ── LocatieSection: steden, provincies, binnen/buitenland ── */
+function LocatieSection({ l }){
+  return (
+    <>
+      <SectionTitle>Locatie</SectionTitle>
+      <div className="grid grid-loc">
+        <div className="card">
+          <h3>Binnen- vs. buitenland</h3>
+          <div className="loc-split">
+            <div className="cell">
+              <div className="lbl">Binnenland</div>
+              <div className="num">{l.binnenland}</div>
+            </div>
+            <div className="cell">
+              <div className="lbl">Buitenland</div>
+              <div className="num">{l.buitenland}</div>
+            </div>
+          </div>
+        </div>
+        <div className="card">
+          <h3>Top 5 provincies (NL)</h3>
+          <RankList items={l.provincies.map(p => ({ name: p.name, score: p.v }))} onItemClick={(name) => { window.location.href = `projects_map.html?provincie=${encodeURIComponent(name)}`; }} />
+        </div>
+        <div className="card">
+          <h3>Top 5 steden (NL)</h3>
+          <RankList items={l.steden.map(c => ({ name: c.name, score: c.v }))} onItemClick={(name) => { window.location.href = `projects_map.html?stad=${encodeURIComponent(name)}`; }} />
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+   App
+--------------------------------------------------------------------------- */
+
+/* ═══════════════════════════════════════════════
+   APP — HOOFDCOMPONENT
+   Beheert alle state en laadt data uit Supabase.
+   Rendert alle sectiecomponenten hierboven.
+   ═══════════════════════════════════════════════ */
+function App(){
+  /* ── State: live data uit Supabase ── */
+  const [liveData, setLiveData] = React.useState(null);
+  /* ── State: alle ruwe projecten (voor zoeken en fase-modal) ── */
+  const [allProjects, setAllProjects] = React.useState([]);
+  /* ── State: fase-modal (null = gesloten, object = welke fase) ── */
+  const [faseModal, setFaseModal] = React.useState(null); // { label, fullName, projects }
+  /* ── State: geselecteerde periode voor filtering ── */
+  const [period, setPeriod] = React.useState('all');
+  /* ── State: zoekbalk ── */
+  const [searchQ, setSearchQ] = React.useState('');
+  const [searchOpen, setSearchOpen] = React.useState(false);
+  const [thumbCache, setThumbCache] = React.useState({});
+  const [recentProjects, setRecentProjects] = React.useState([]);
+  const searchRef = React.useRef(null);
+
+  // Sluit dropdown als je buiten klikt
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) setSearchOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Zoekresultaten — filter op naam, stad, fase, projectnummer
+  const searchResults = React.useMemo(() => {
+    const q = searchQ.toLowerCase().trim();
+    if (!q || q.length < 2) return [];
+    return allProjects.filter(p =>
+      (p.projectnaam || '').toLowerCase().includes(q) ||
+      (p.stad || '').toLowerCase().includes(q) ||
+      (p.fase || '').toLowerCase().includes(q) ||
+      (p.projectnummer || '').toLowerCase().includes(q) ||
+      (p.project_type || '').toLowerCase().includes(q)
+    ).slice(0, 8);
+  }, [searchQ, allProjects]);
+
+  // Laad thumbnail lazy voor zoekresultaat
+  const getThumb = async (p) => {
+    if (!p.projectnummer || thumbCache[p.projectnummer] !== undefined) return;
+    setThumbCache(c => ({ ...c, [p.projectnummer]: null }));
+    try {
+      const imgs = await Images.getForProject(p.projectnummer);
+      setThumbCache(c => ({ ...c, [p.projectnummer]: imgs[0] || null }));
+    } catch(e) {}
+  }; // 'all' | 'year' | 'month'
+
+  // Filter projecten op basis van periode
+  /* ── filterByPeriod: filtert projecten op opleverdatum of created_at ── */
+  const filterByPeriod = (projects, p) => {
+    if (p === 'all') return projects;
+    const now = new Date();
+    return projects.filter(proj => {
+      // Gebruik opleverdatum als primair, anders created_at
+      const raw = proj.opleverdatum || proj.created_at;
+      if (!raw) return p === 'all';
+      const d = new Date(raw);
+      if (p === 'month') {
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      }
+      if (p === 'year') {
+        return d.getFullYear() === now.getFullYear();
+      }
+      return true;
+    });
+  };
+
+  const FASE_NAMES = {
+    AQ: 'Acquisitie', SO: 'Schets Ontwerp', VO: 'Voorlopig Ontwerp',
+    DO: 'Definitief Ontwerp', TO: 'Technisch Ontwerp', UO: 'Uitvoerings Ontwerp',
+    UV: 'Uitvoering', OP: 'Opgeleverd',
+  };
+  const [liveAlgemeen, setLiveAlgemeen] = React.useState(null);
+  const [liveLocatie, setLiveLocatie] = React.useState(null);
+  const [liveMetrage, setLiveMetrage] = React.useState(null);
+  const [liveMobiliteit, setLiveMobiliteit] = React.useState(null);
+  const [liveDuurzaamheid, setLiveDuurzaamheid] = React.useState(null);
+  const [liveBouw, setLiveBouw] = React.useState(null);
+
+  // Herbereken stats als periode verandert
+  React.useEffect(() => {
+    if (!allProjects.length) return;
+    computeStats(allProjects, period);
+  }, [period, allProjects]);
+
+  /* ── computeStats: berekent alle widgetdata uit gefilterde projecten ── */
+  const computeStats = (rawProjects, p) => {
+    const projects = filterByPeriod(rawProjects, p);
+    if (!projects.length) {
+      setLiveData(d => d ? {...d, projectsFilled: 0, totalBvo:'0', avgBvo:'—'} : null);
+      setLiveAlgemeen(null); setLiveLocatie(null); setLiveMetrage(null);
+      setLiveMobiliteit(null); setLiveDuurzaamheid(null); setLiveBouw(null);
+      return;
+    }
+    const n = projects.length;
+
+      // Helper: tel projecten met een waarde
+      const count = (key) => projects.filter(p => p[key] != null && p[key] !== '').length;
+      // Helper: som van numeriek veld
+      const sum = (key) => projects.reduce((a, p) => a + (parseFloat(p[key]) || 0), 0);
+      // Helper: meest voorkomende waarde
+      const mode = (key) => {
+        const freq = {};
+        projects.forEach(p => { if (p[key]) freq[p[key]] = (freq[p[key]] || 0) + 1; });
+        return Object.entries(freq).sort((a,b) => b[1]-a[1])[0]?.[0] || '—';
+      };
+
+      // DATA sectie (grote nummers bovenaan)
+      setLiveData({
+        ...MOCK.data,
+        projectsFilled: n,
+        totalBvo: Math.round(sum('totaal_bvo')).toLocaleString('nl-NL'),
+        avgBvo: n > 0 ? Math.round(sum('totaal_bvo') / n).toLocaleString('nl-NL') : '—',
+      });
+
+      // ALGEMEEN
+      // Bereken live fase-verdeling voor de balkengrafiek
+      const FASE_ORDER = ['AQ','SO','VO','DO','TO','UO','UV','OP'];
+      const faseCounts = {};
+      projects.forEach(p => { if (p.fase) faseCounts[p.fase] = (faseCounts[p.fase]||0)+1; });
+      const liveFases = FASE_ORDER.map(f => ({
+        label: f,
+        full: {AQ:'Acquisitie',SO:'Schets Ontwerp',VO:'Voorlopig Ontwerp',DO:'Definitief Ontwerp',
+               TO:'Technisch Ontwerp',UO:'Uitvoerings Ontwerp',UV:'Uitvoering',OP:'Opgeleverd'}[f],
+        v: faseCounts[f] || 0,
+      }));
+
+      setLiveAlgemeen({
+        ...MOCK.algemeen,
+        fases: liveFases,
+        projecten: n,
+        meesteFase: mode('fase'),
+        meesteFunctie: mode('functie'),
+        meesteType: mode('project_type'),
+        meesteVerkrijging: mode('verkregen_dmv'),
+        metFase: count('fase'),
+        metType: count('project_type'),
+      });
+
+      // LOCATIE
+      const steden = {};
+      projects.forEach(p => { if (p.stad) steden[p.stad] = (steden[p.stad]||0)+1; });
+      setLiveLocatie({
+        ...MOCK.locatie,
+        aantalSteden: Object.keys(steden).length,
+        topStad: Object.entries(steden).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—',
+        metLocatie: count('stad'),
+      });
+
+      // METRAGE
+      setLiveMetrage({
+        ...MOCK.metrage,
+        totaalBvo: Math.round(sum('totaal_bvo')).toLocaleString('nl-NL'),
+        totaalWonen: Math.round(sum('m_wonen')).toLocaleString('nl-NL'),
+        totaalKantoor: Math.round(sum('m_kantoor')).toLocaleString('nl-NL'),
+        totaalCommercieel: Math.round(sum('m_commercieel')).toLocaleString('nl-NL'),
+        gemBvo: n > 0 ? Math.round(sum('totaal_bvo')/n).toLocaleString('nl-NL') : '—',
+      });
+
+      // MOBILITEIT
+      setLiveMobiliteit({
+        ...MOCK.mobiliteit,
+        totaalAuto: Math.round(sum('autoparkeren')).toLocaleString('nl-NL'),
+        totaalFiets: Math.round(sum('fietsparkeren')).toLocaleString('nl-NL'),
+      });
+
+      // DUURZAAMHEID
+      setLiveDuurzaamheid({
+        ...MOCK.duurzaamheid,
+        totaalDaktuin: Math.round(sum('daktuin')).toLocaleString('nl-NL'),
+        totaalZonnepanelen: Math.round(sum('zonnepanelen')).toLocaleString('nl-NL'),
+        meesteLabel: mode('duurzaamheidslabel'),
+      });
+
+      // BOUW & OVERIG
+      setLiveBouw({
+        ...MOCK.bouwOverig,
+        gemHoogte: n > 0 ? Math.round(sum('bouwhoogte')/count('bouwhoogte')||0) : '—',
+        totaalAwards: Math.round(sum('awards')),
+      });
+  };
+
+  React.useEffect(() => {
+    Projects.getAll().then(rawProjects => {
+      if (!rawProjects || !rawProjects.length) return;
+      setAllProjects(rawProjects);
+      window._allProjects = rawProjects; // globaal beschikbaar voor projectHref
+      computeStats(rawProjects, 'all');
+      // Recent gewijzigd: laatste 6 op updated_at of created_at
+      const sorted = [...rawProjects].sort((a,b) => {
+        const da = new Date(a.updated_at || a.created_at || 0);
+        const db = new Date(b.updated_at || b.created_at || 0);
+        return db - da;
+      });
+      setRecentProjects(sorted.slice(0, 6));
+    }).catch(() => {});
+  }, []);
+
+  // Foto van de #1 werknemer voor de leaderboard widget
+  const [liveLeaderPhoto, setLiveLeaderPhoto] = React.useState(null);
+  React.useEffect(() => {
+    if (!liveData || !liveData.leaderboard || !liveData.leaderboard[0]) return;
+    const leader = liveData.leaderboard[0];
+    if (!leader.name) return;
+    const key = 'mock-' + leader.name.toLowerCase().replace(/\s+/g,'-').replace(/\./g,'');
+    EmployeeImages.getForEmployee(key).then(url => {
+      if (url) setLiveLeaderPhoto(url);
+    }).catch(()=>{});
+  }, [liveData]);
+
+  // Donkere modus
+  const [darkMode, setDarkMode] = React.useState(() => localStorage.getItem('mvsa.dark') === '1');
+  React.useEffect(() => {
+    document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : '');
+    localStorage.setItem('mvsa.dark', darkMode ? '1' : '0');
+  }, [darkMode]);
+
+  // Activiteitenlog — sla op in localStorage
+  const logActivity = (action, project) => {
+    try {
+      const log = JSON.parse(localStorage.getItem('mvsa.log') || '[]');
+      log.unshift({ action, project, time: new Date().toISOString() });
+      localStorage.setItem('mvsa.log', JSON.stringify(log.slice(0, 50)));
+    } catch(e) {}
+  };
+  const [activityLog] = React.useState(() => {
+    try { return JSON.parse(localStorage.getItem('mvsa.log') || '[]'); } catch(e) { return []; }
+  });
+
+  /* ── exportCSV: downloadt alle projecten als CSV bestand ── */
+  const exportCSV = async () => {
+    const projects = await Projects.getAll();
+    if (!projects.length) { alert('Geen projecten om te exporteren.'); return; }
+    const cols = Object.keys(projects[0]).filter(k => k !== 'id');
+    const header = cols.join(';');
+    const rows = projects.map(p =>
+      cols.map(c => {
+        const v = p[c] == null ? '' : String(p[c]);
+        return v.includes(';') || v.includes('"') || v.includes('\n')
+          ? `"${v.replace(/"/g, '""')}"` : v;
+      }).join(';')
+    );
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mvsa-projecten-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  return (
+    <>
+      <header className="topbar">
+        <div className="crumbs">Projecten · <strong>Statistieken</strong></div>
+        <div className="meta">
+          <span><span className="dot"></span>Live · synced 2 min geleden</span>
+          <a href="projects_list.html" style={{
+            background: '#fff', color: '#111418', textDecoration: 'none',
+            padding: '8px 16px', borderRadius: '999px',
+            fontSize: '11px', letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: 700,
+            border: '1px solid rgba(17,20,24,.12)',
+          }}
+          onMouseOver={(e) => { e.currentTarget.style.background = '#f3f7fa'; }}
+          onMouseOut={(e) => { e.currentTarget.style.background = '#fff'; }}>
+            📋 Lijst
+          </a>
+          <a href="projects_map.html" style={{
+            background: '#fff', color: '#111418', textDecoration: 'none',
+            padding: '8px 16px', borderRadius: '999px',
+            fontSize: '11px', letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: 700,
+            border: '1px solid rgba(17,20,24,.12)',
+            transition: 'background .15s ease, transform .15s ease'
+          }}
+          onMouseOver={(e) => { e.currentTarget.style.background = '#f3f7fa'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+          onMouseOut={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+            🗺 Kaart
+          </a>
+          <a href="employees.html" style={{
+            background: '#fff', color: '#111418', textDecoration: 'none',
+            padding: '8px 16px', borderRadius: '999px',
+            fontSize: '11px', letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: 700,
+            border: '1px solid rgba(17,20,24,.12)',
+            transition: 'background .15s ease, transform .15s ease'
+          }}
+          onMouseOver={(e) => { e.currentTarget.style.background = '#f3f7fa'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+          onMouseOut={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+            👥 Team
+          </a>
+          <a href="admin.html" style={{
+            background: '#fff', color: '#111418', textDecoration: 'none',
+            padding: '8px 16px', borderRadius: '999px',
+            fontSize: '11px', letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: 700,
+            border: '1px solid rgba(17,20,24,.12)',
+            transition: 'background .15s ease, transform .15s ease'
+          }}
+          onMouseOver={(e) => { e.currentTarget.style.background = '#f3f7fa'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+          onMouseOut={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+            🛠 Beheer
+          </a>
+
+          <a href="new_project.html" style={{
+            background: '#111418', color: '#fff', textDecoration: 'none',
+            padding: '8px 16px', borderRadius: '999px',
+            fontSize: '11px', letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: 700,
+            transition: 'background .15s ease, transform .15s ease'
+          }}
+          onMouseOver={(e) => { e.currentTarget.style.background = '#3d6e8a'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+          onMouseOut={(e) => { e.currentTarget.style.background = '#111418'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+            + Nieuw project
+          </a>
+        </div>
+      </header>
+
+      {/* ZOEKBALK */}
+      <div className="search-wrap">
+        <div className="search-outer" ref={searchRef}>
+          <span className="search-icon">↗</span>
+          <input
+            className="search-main"
+            type="search"
+            placeholder="Zoek op projectnaam, stad, fase of projectnummer…"
+            value={searchQ}
+            onChange={e => { setSearchQ(e.target.value); setSearchOpen(true); }}
+            onFocus={() => searchQ.length >= 2 && setSearchOpen(true)}
+            autoComplete="off"
+          />
+          {searchQ && (
+            <button className="search-clear" onClick={() => { setSearchQ(''); setSearchOpen(false); }}>×</button>
+          )}
+
+          {/* DROPDOWN */}
+          {searchOpen && searchQ.length >= 2 && (
+            <div className="search-results">
+              {searchResults.length === 0 ? (
+                <div className="search-no-results">Geen projecten gevonden voor "{searchQ}"</div>
+              ) : (
+                <>
+                  <div className="search-count">{searchResults.length} resultaat{searchResults.length !== 1 ? 'en' : ''}</div>
+                  {searchResults.map(p => {
+                    getThumb(p);
+                    const thumb = p.projectnummer ? thumbCache[p.projectnummer] : null;
+                    return (
+                      <a key={p.id}
+                        className="search-result-item"
+                        href={`project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}`}
+                        onClick={() => setSearchOpen(false)}>
+                        <div className="sri-left">
+                          {thumb
+                            ? <img className="sri-thumb" src={thumb} alt="" />
+                            : <div className="sri-thumb-placeholder">🏗</div>}
+                          <div>
+                            <div className="sri-name">{p.projectnaam}</div>
+                            <div className="sri-meta">{[p.stad, p.land].filter(Boolean).join(', ') || '—'}</div>
+                          </div>
+                        </div>
+                        <div className="sri-right">
+                          {p.fase && <span className="sri-fase">{p.fase}</span>}
+                          <span className="sri-arrow">→</span>
+                        </div>
+                      </a>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <DataSection d={liveData || MOCK.data} leaderPhoto={liveLeaderPhoto} />
+      <AlgemeenSection a={liveAlgemeen || MOCK.algemeen} onBarClick={(d) => {
+        const filtered = allProjects.filter(p => {
+          if (!p.fase) return false;
+          const f = p.fase.trim().toUpperCase();
+          // Match op code (bijv. "DO") of volledige naam (bijv. "Definitief Ontwerp")
+          return f === d.label ||
+                 f.startsWith(d.label + ' ') ||
+                 f.includes('(' + d.label + ')') ||
+                 f.startsWith(d.full ? d.full.toUpperCase() : '____');
+        });
+        setFaseModal({ label: d.label, fullName: d.full || FASE_NAMES[d.label] || d.label, projects: filtered });
+      }} />
+      <LocatieSection l={liveLocatie || MOCK.locatie} />
+      <MetrageSection m={liveMetrage || MOCK.metrage} />
+      <MobiliteitRatioSection mob={liveMobiliteit || MOCK.mobiliteit} ratio={MOCK.ratio} />
+      <DuurzaamheidSection d={liveDuurzaamheid || MOCK.duurzaamheid} />
+      <BouwOverigSection b={liveBouw || MOCK.bouwOverig} />
+
+      {/* ACTIVITEITENLOG */}
+      {activityLog.length > 0 && (
+        <div className="recent-section" style={{marginTop:0}}>
+          <SectionTitle>Activiteitenlog</SectionTitle>
+          <div style={{background:'var(--card)', borderRadius:14, padding:'8px 0',
+            boxShadow:'0 1px 0 rgba(20,30,45,.04),0 4px 12px -6px rgba(20,30,45,.12)'}}>
+            {activityLog.slice(0,8).map((entry, i) => {
+              const when = new Date(entry.time);
+              const diffMin = Math.floor((Date.now() - when) / 60000);
+              const label = diffMin < 1 ? 'Zojuist' : diffMin < 60 ? `${diffMin}m geleden` :
+                diffMin < 1440 ? `${Math.floor(diffMin/60)}u geleden` : `${Math.floor(diffMin/1440)}d geleden`;
+              return (
+                <div key={i} style={{display:'flex', alignItems:'center', gap:12,
+                  padding:'10px 18px', borderBottom: i < Math.min(activityLog.length,8)-1 ? '1px solid var(--line)' : 'none'}}>
+                  <span style={{fontSize:18}}>{entry.action === 'save' ? '💾' : entry.action === 'delete' ? '🗑' : '✏️'}</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:12, fontWeight:700, color:'var(--ink)'}}>{entry.project}</div>
+                    <div style={{fontSize:11, color:'var(--muted)'}}>{entry.action === 'save' ? 'Opgeslagen' : 'Verwijderd'}</div>
+                  </div>
+                  <span style={{fontSize:11, color:'var(--muted)'}}>{label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* RECENT GEWIJZIGD */}
+      {recentProjects.length > 0 && (
+        <div className="recent-section">
+          <SectionTitle>Recent gewijzigd</SectionTitle>
+          <div className="recent-grid">
+            {recentProjects.map(p => {
+              const thumb = p.projectnummer ? thumbCache[p.projectnummer] : null;
+              if (p.projectnummer && thumbCache[p.projectnummer] === undefined) {
+                setThumbCache(c => ({ ...c, [p.projectnummer]: null }));
+                Images.getForProject(p.projectnummer).then(imgs => {
+                  setThumbCache(c => ({ ...c, [p.projectnummer]: imgs[0] || null }));
+                }).catch(() => {});
+              }
+              const when = new Date(p.updated_at || p.created_at);
+              const diffDays = Math.floor((Date.now() - when) / 86400000);
+              const whenLabel = diffDays === 0 ? 'Vandaag' : diffDays === 1 ? 'Gisteren' : `${diffDays} dagen geleden`;
+              return (
+                <a key={p.id} className="recent-card"
+                  href={`project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}`}>
+                  {thumb
+                    ? <img className="recent-thumb" src={thumb} alt="" />
+                    : <div className="recent-thumb-ph">🏗</div>}
+                  <div className="recent-info">
+                    <div className="recent-name">{p.projectnaam}</div>
+                    <div className="recent-meta">{p.stad || '—'}</div>
+                    <div className="recent-date">{whenLabel}</div>
+                  </div>
+                  {p.fase && <span className="recent-badge">{p.fase}</span>}
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <footer className="footer">
+        <span>Live data · Supabase</span>
+        <span>v0.1 · interne preview</span>
+      </footer>
+
+      {/* DONKERE MODUS TOGGLE */}
+      <button className="dark-toggle" onClick={() => setDarkMode(d => !d)}>
+        {darkMode ? '☀️ Licht' : '🌙 Donker'}
+      </button>
+
+      {/* FASE MODAL */}
+      {faseModal && (
+        <>
+          <div className="fase-backdrop" onClick={() => setFaseModal(null)} />
+          <div className="fase-modal">
+            <div className="fase-modal-header">
+              <div>
+                <div className="fase-modal-label">{faseModal.label}</div>
+                <h2>{faseModal.fullName}</h2>
+                <div className="count">
+                  {faseModal.projects.length} project{faseModal.projects.length !== 1 ? 'en' : ''}
+                  {faseModal.projects.length > 0 && faseModal.projects[0].totaal_bvo
+                    ? ` · ${Math.round(faseModal.projects.reduce((s,p)=>s+(parseFloat(p.totaal_bvo)||0),0)).toLocaleString('nl-NL')} m² totaal BVO`
+                    : ''}
+                </div>
+              </div>
+              <button className="fase-modal-close" onClick={() => setFaseModal(null)}>×</button>
+            </div>
+            <div className="fase-modal-body">
+              {faseModal.projects.length === 0 ? (
+                <div className="fase-empty">
+                  <div className="fase-empty-icon">📭</div>
+                  Geen projecten gevonden in fase {faseModal.label}.
+                </div>
+              ) : (
+                faseModal.projects
+                  .sort((a,b) => (b.totaal_bvo||0) - (a.totaal_bvo||0))
+                  .map((p, i) => {
+                    const thumb = p.projectnummer ? thumbCache[p.projectnummer] : null;
+                    if (p.projectnummer && thumbCache[p.projectnummer] === undefined) {
+                      setThumbCache(c => ({ ...c, [p.projectnummer]: null }));
+                      Images.getForProject(p.projectnummer).then(imgs =>
+                        setThumbCache(c => ({ ...c, [p.projectnummer]: imgs[0]||null }))
+                      ).catch(()=>{});
+                    }
+                    return (
+                      <a key={p.id} className="fase-project-row"
+                        href={`project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}`}>
+                        <span className="fpr-rank">{i+1}</span>
+                        {thumb
+                          ? <img className="fpr-thumb" src={thumb} alt="" />
+                          : <div className="fpr-thumb-ph">🏗</div>}
+                        <div className="fpr-info">
+                          <div className="fpr-name">{p.projectnaam || '—'}</div>
+                          <div className="fpr-meta">
+                            {[p.stad, p.provincie, p.land].filter(Boolean).join(' · ') || '—'}
+                            {p.opdrachtgever ? ` — ${p.opdrachtgever}` : ''}
+                          </div>
+                        </div>
+                        <div className="fpr-right">
+                          {p.totaal_bvo
+                            ? <span className="fpr-bvo">{Number(p.totaal_bvo).toLocaleString('nl-NL')} m²</span>
+                            : null}
+                          {p.projectnummer
+                            ? <span className="fpr-num">{p.projectnummer}</span>
+                            : null}
+                        </div>
+                        <span className="fpr-arrow">→</span>
+                      </a>
+                    );
+                  })
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+<script src="transitions.js"></script>
+</body>
+</html>
