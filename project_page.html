@@ -627,25 +627,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 })();
 </script>
 <script src="transitions.js"></script>
-<script>
-(async function() {
-  try {
-    const { data: { user } } = await db.auth.getUser();
-    const bar = document.getElementById('auth-bar');
-    if (!bar) return;
-    if (!user) {
-      bar.innerHTML = '<a href="login.html" style="background:var(--ink);color:#fff;text-decoration:none;padding:8px 16px;border-radius:999px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;">Inloggen →</a>';
-      return;
-    }
-    const { data: profile } = await db.from('profiles').select('naam,status').eq('id', user.id).maybeSingle();
-    if (profile && profile.status === 'approved') {
-      bar.innerHTML = '<span style="font-weight:700;font-size:12px;">' + profile.naam + '</span><span style="color:var(--line)">|</span><button onclick="Auth.logout().then(()=>location.reload())" style="background:none;border:none;cursor:pointer;font-family:inherit;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--muted);">Uitloggen</button>';
-    } else {
-      bar.innerHTML = '<a href="login.html" style="background:var(--ink);color:#fff;text-decoration:none;padding:8px 16px;border-radius:999px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;">Inloggen →</a>';
-    }
-  } catch(e) {}
-})();
-</script>
-<div id="auth-bar" style="position:fixed;top:24px;right:24px;z-index:200;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.85);backdrop-filter:blur(10px);border:1px solid rgba(17,20,24,.08);border-radius:999px;padding:8px 14px;box-shadow:0 4px 16px -4px rgba(20,30,45,.18);font-size:11px;font-family:inherit;"></div>
+
 </body>
 </html>

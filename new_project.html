@@ -395,7 +395,17 @@ function App(){
       return;
     }
     try {
-      await Projects.upsert(toSnake(data));
+      const savedProject = await Projects.upsert(toSnake(data));
+
+      // Punten toekennen: 1 punt per ingevuld veld
+      const filledFields = Object.values(toSnake(data)).filter(v => v !== null && v !== '' && v !== undefined).length;
+      await Employees.addPoints(filledFields);
+
+      // Eerste keer opslaan → projectenteller ophogen
+      if (!isEdit) {
+        await Employees.incrementProjects();
+      }
+
       // Log activiteit
       try {
         const log = JSON.parse(localStorage.getItem('mvsa.log') || '[]');

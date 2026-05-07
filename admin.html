@@ -741,10 +741,11 @@ async function loadRegistrations() {
 }
 
 async function approveUser(id, naam) {
-  if (!confirm(`${naam} goedkeuren?`)) return;
+  if (!confirm(`${naam} goedkeuren?\n\nDe medewerker verschijnt direct op het leaderboard.`)) return;
   await AdminAuth.approve(id);
-  showToast(`✓ ${naam} goedgekeurd`);
+  showToast(`✓ ${naam} goedgekeurd — staat nu op het leaderboard`);
   loadRegistrations();
+  loadEmployees(); // Herlaad leaderboard want er kan een nieuwe werknemer bij zijn
 }
 
 async function rejectUser(id, naam) {

@@ -1190,11 +1190,11 @@ function App(){
   // Herbereken stats als periode verandert
   React.useEffect(() => {
     if (!allProjects.length) return;
-    computeStats(allProjects, period);
+    computeStats(allProjects, period).catch(()=>{});
   }, [period, allProjects]);
 
   /* ── computeStats: berekent alle widgetdata uit gefilterde projecten ── */
-  const computeStats = (rawProjects, p) => {
+  const computeStats = async (rawProjects, p) => {
     const projects = filterByPeriod(rawProjects, p);
     if (!projects.length) {
       setLiveData(d => d ? {...d, projectsFilled: 0, totalBvo:'0', avgBvo:'—'} : null);
@@ -1216,11 +1216,19 @@ function App(){
       };
 
       // DATA sectie (grote nummers bovenaan)
+      // Laad werknemers voor leaderboard
+      const empRows = await Employees.getAll();
+      const liveLeaderboard = empRows
+        .sort((a,b) => (b.score||0)-(a.score||0))
+        .slice(0,5)
+        .map(e => ({ name: e.naam, score: e.score||0, id: e.id }));
+
       setLiveData({
         ...MOCK.data,
         projectsFilled: n,
         totalBvo: Math.round(sum('totaal_bvo')).toLocaleString('nl-NL'),
         avgBvo: n > 0 ? Math.round(sum('totaal_bvo') / n).toLocaleString('nl-NL') : '—',
+        leaderboard: liveLeaderboard.length ? liveLeaderboard : MOCK.data.leaderboard,
       });
 
       // ALGEMEEN
@@ -1295,7 +1303,21 @@ function App(){
       if (!rawProjects || !rawProjects.length) return;
       setAllProjects(rawProjects);
       window._allProjects = rawProjects; // globaal beschikbaar voor projectHref
-      computeStats(rawProjects, 'all');
+      // Recente projecten voor de kaarten
+      window._recentProjects = [...rawProjects]
+        .sort((a,b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0,2);
+      // Laad thumbnails voor recente projecten
+      window._thumbCache = window._thumbCache || {};
+      window._recentProjects.forEach(async p => {
+        if (p.projectnummer && !window._thumbCache[p.projectnummer]) {
+          try {
+            const imgs = await Images.getForProject(p.projectnummer);
+            if (imgs[0]) window._thumbCache[p.projectnummer] = imgs[0];
+          } catch(e) {}
+        }
+      });
+      computeStats(rawProjects, 'all').catch(()=>{});
       // Recent gewijzigd: laatste 6 op updated_at of created_at
       const sorted = [...rawProjects].sort((a,b) => {
         const da = new Date(a.updated_at || a.created_at || 0);
@@ -1312,10 +1334,17 @@ function App(){
     if (!liveData || !liveData.leaderboard || !liveData.leaderboard[0]) return;
     const leader = liveData.leaderboard[0];
     if (!leader.name) return;
-    const key = 'mock-' + leader.name.toLowerCase().replace(/\s+/g,'-').replace(/\./g,'');
-    EmployeeImages.getForEmployee(key).then(url => {
-      if (url) setLiveLeaderPhoto(url);
-    }).catch(()=>{});
+    // Probeer op id, dan op naam-slug
+    const tryLoad = async () => {
+      if (leader.id) {
+        const url = await EmployeeImages.getForEmployee(leader.id).catch(()=>null);
+        if (url) { setLiveLeaderPhoto(url); return; }
+      }
+      const key = 'mock-' + leader.name.toLowerCase().replace(/\s+/g,'-').replace(/\./g,'');
+      const url2 = await EmployeeImages.getForEmployee(key).catch(()=>null);
+      if (url2) setLiveLeaderPhoto(url2);
+    };
+    tryLoad();
   }, [liveData]);
 
   // Donkere modus

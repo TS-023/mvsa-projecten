@@ -50,7 +50,42 @@ const Employees = {
     const { data, error } = await db.from('employees').select('*').order('score', { ascending: false });
     if (error) { console.error('employees:', error); return []; }
     return data;
-  }
+  },
+
+  // Punten toevoegen aan de ingelogde gebruiker
+  async addPoints(points = 1) {
+    try {
+      const { data: { user } } = await db.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await db.from('profiles')
+        .select('employee_id').eq('id', user.id).maybeSingle();
+      if (!profile?.employee_id) return;
+      // Haal huidige score op en verhoog
+      const { data: emp } = await db.from('employees')
+        .select('score, projecten').eq('id', profile.employee_id).single();
+      if (!emp) return;
+      await db.from('employees').update({
+        score: (emp.score || 0) + points,
+      }).eq('id', profile.employee_id);
+    } catch(e) { console.warn('addPoints fout:', e); }
+  },
+
+  // Projecten teller verhogen voor de ingelogde gebruiker
+  async incrementProjects() {
+    try {
+      const { data: { user } } = await db.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await db.from('profiles')
+        .select('employee_id').eq('id', user.id).maybeSingle();
+      if (!profile?.employee_id) return;
+      const { data: emp } = await db.from('employees')
+        .select('projecten').eq('id', profile.employee_id).single();
+      if (!emp) return;
+      await db.from('employees').update({
+        projecten: (emp.projecten || 0) + 1,
+      }).eq('id', profile.employee_id);
+    } catch(e) { console.warn('incrementProjects fout:', e); }
+  },
 };
 
 // ============================================================
@@ -139,12 +174,31 @@ const Auth = {
   async register(email, password, naam, team) {
     const { data, error } = await db.auth.signUp({ email, password });
     if (error) throw error;
-    // Maak profiel aan met status 'pending'
     if (data.user) {
+      // Zoek bestaande werknemer op naam (case-insensitive)
+      let { data: existing } = await db.from('employees')
+        .select('id').ilike('naam', naam.trim()).maybeSingle();
+
+      // Als geen bestaande werknemer → maak nieuwe aan
+      if (!existing) {
+        const { data: newEmp } = await db.from('employees').insert([{
+          naam: naam.trim(),
+          rol: '',
+          team: team,
+          score: 0,
+          projecten: 0,
+        }]).select('id').single();
+        existing = newEmp;
+      }
+
+      // Maak profiel aan gekoppeld aan werknemer
       await db.from('profiles').insert([{
         id: data.user.id,
-        naam, email, team,
+        naam: naam.trim(),
+        email,
+        team,
         status: 'pending',
+        employee_id: existing?.id || null,
       }]);
     }
     return data;
@@ -196,10 +250,19 @@ const AdminAuth = {
 
   // Goedkeuren
   async approve(profileId) {
+    const { data: profile } = await db.from('profiles')
+      .select('*').eq('id', profileId).maybeSingle();
     await db.from('profiles').update({
       status: 'approved',
       approved_at: new Date().toISOString(),
     }).eq('id', profileId);
+    // Update werknemer team als dat nog leeg was
+    if (profile?.employee_id && profile?.team) {
+      await db.from('employees')
+        .update({ team: profile.team })
+        .eq('id', profile.employee_id)
+        .eq('team', ''); // alleen als team nog leeg is
+    }
   },
 
   // Afkeuren
