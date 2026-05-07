@@ -523,9 +523,81 @@ function InfoCard({ title, items, keyStat }){
 }
 
 /* ── CompareView: toont twee projecten naast elkaar met vergelijkingsresultaten ── */
-function CompareView({ projectA, projectB, projectBImages, thumbCache, onClose }) {
+function CompareView({ projectA, projectB, projectBImages, thumbCache, allProjectsList, setCompareProject, setCompareImages, onClose }) {
+  const [showSwitcher, setShowSwitcher] = React.useState(false);
+  const [switcherSearch, setSwitcherSearch] = React.useState('');
   const a = projectA;
   const b = projectB;
+
+  // Als geen project B → toon picker
+  if (!b) {
+    return (
+      <div className="compare-overlay">
+        <div className="compare-topbar">
+          <h2>⚖ Vergelijken</h2>
+          <span style={{fontSize:'12px',color:'var(--muted)'}}>Kies een project om te vergelijken met {a?.projectnaam||'dit project'}</span>
+          <button className="compare-close" onClick={onClose}>× Sluiten</button>
+        </div>
+        <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:'40px'}}>
+          <div style={{width:'min(480px,100%)',background:'var(--card)',borderRadius:20,overflow:'hidden',boxShadow:'var(--shadow)'}}>
+            <div style={{background:'var(--ink)',padding:'28px 28px 20px'}}>
+              <div style={{fontSize:'10px',letterSpacing:'.2em',textTransform:'uppercase',color:'rgba(255,255,255,.5)',marginBottom:8}}>Project A — vast</div>
+              <div style={{fontSize:'20px',fontWeight:800,color:'#fff',letterSpacing:'-.02em'}}>{a?.projectnaam||'—'}</div>
+              <div style={{fontSize:'12px',color:'rgba(255,255,255,.5)',marginTop:4}}>{[a?.stad, a?.land].filter(Boolean).join(' · ')||'—'}</div>
+            </div>
+            <div style={{padding:'20px 28px 28px'}}>
+              <div style={{fontSize:'10px',letterSpacing:'.2em',textTransform:'uppercase',color:'var(--muted)',fontWeight:700,marginBottom:12}}>Kies Project B</div>
+              <input autoFocus type="search"
+                placeholder="Zoek op naam, stad of fase…"
+                value={switcherSearch}
+                onChange={e=>setSwitcherSearch(e.target.value)}
+                style={{width:'100%',fontFamily:'inherit',fontSize:'13px',padding:'11px 14px',
+                  border:'1.5px solid var(--line)',borderRadius:10,background:'var(--bg)',
+                  color:'var(--ink)',outline:'none',marginBottom:10}}
+                onFocus={e=>e.target.style.borderColor='var(--accent)'}
+                onBlur={e=>e.target.style.borderColor='var(--line)'}
+              />
+              <div style={{maxHeight:'300px',overflowY:'auto',display:'flex',flexDirection:'column',gap:4}}>
+                {allProjectsList
+                  .filter(p => p.projectnaam !== a?.projectnaam)
+                  .filter(p => {
+                    const q = switcherSearch.toLowerCase();
+                    return !q || (p.projectnaam||'').toLowerCase().includes(q) || (p.stad||'').toLowerCase().includes(q) || (p.fase||'').toLowerCase().includes(q);
+                  })
+                  .slice(0,10)
+                  .map(p => (
+                    <button key={p.id}
+                      onClick={async () => {
+                        setSwitcherSearch('');
+                        if (p.projectnummer) {
+                          try { const imgs = await Images.getForProject(p.projectnummer); setCompareImages(imgs); } catch(e) { setCompareImages([]); }
+                        } else { setCompareImages([]); }
+                        setCompareProject(p);
+                      }}
+                      style={{display:'flex',alignItems:'center',gap:12,padding:'10px 12px',
+                        background:'var(--bg)',border:'1px solid var(--line)',borderRadius:10,
+                        cursor:'pointer',textAlign:'left',fontFamily:'inherit',transition:'all .15s'}}
+                      onMouseOver={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.transform='translateX(4px)'}}
+                      onMouseOut={e=>{e.currentTarget.style.borderColor='var(--line)';e.currentTarget.style.transform=''}}
+                    >
+                      {thumbCache[p.projectnummer]
+                        ? <img src={thumbCache[p.projectnummer]} alt="" style={{width:40,height:40,borderRadius:8,objectFit:'cover',flex:'none'}} />
+                        : <div style={{width:40,height:40,borderRadius:8,background:'var(--line)',flex:'none',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🏗</div>}
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontWeight:800,fontSize:13,letterSpacing:'.02em',textTransform:'uppercase',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.projectnaam}</div>
+                        <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>{[p.stad,p.fase].filter(Boolean).join(' · ')||'—'}</div>
+                      </div>
+                      <span style={{color:'var(--muted)',fontSize:16}}>→</span>
+                    </button>
+                  ))
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   const da = projectA.data || {};
 
   // Bouw vergelijkdata op
@@ -598,8 +670,105 @@ function CompareView({ projectA, projectB, projectBImages, thumbCache, onClose }
         {/* ── KOLOM B ── */}
         <div className="compare-col">
           <div className="compare-col-header">
-            <div className="compare-col-name">{b.projectnaam || '—'}</div>
-            <div className="compare-col-sub">{[b.stad, b.land].filter(Boolean).join(' · ') || '—'}</div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+              <div>
+                <div className="compare-col-name">{b.projectnaam || '—'}</div>
+                <div className="compare-col-sub">{[b.stad, b.land].filter(Boolean).join(' · ') || '—'}</div>
+              </div>
+              <div style={{position:'relative'}}>
+                <button
+                  onClick={() => setShowSwitcher(s => !s)}
+                  style={{
+                    display:'flex',alignItems:'center',gap:6,
+                    background:'var(--card)',border:'1px solid var(--line)',
+                    borderRadius:'999px',padding:'7px 14px',cursor:'pointer',
+                    fontFamily:'inherit',fontSize:'11px',fontWeight:700,
+                    letterSpacing:'.1em',textTransform:'uppercase',color:'var(--ink)',
+                    transition:'all .15s',boxShadow:'var(--shadow)',
+                  }}
+                  onMouseOver={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)'}}
+                  onMouseOut={e=>{e.currentTarget.style.borderColor='var(--line)';e.currentTarget.style.color='var(--ink)'}}
+                >
+                  ⇄ Wissel project
+                </button>
+
+                {showSwitcher && (
+                  <>
+                    <div style={{position:'fixed',inset:0,zIndex:10}} onClick={()=>setShowSwitcher(false)} />
+                    <div style={{
+                      position:'absolute',top:'calc(100% + 8px)',right:0,
+                      width:'320px',background:'var(--card)',borderRadius:14,
+                      boxShadow:'0 16px 40px -8px rgba(20,30,45,.25)',
+                      border:'1px solid var(--line)',overflow:'hidden',zIndex:11,
+                      animation:'dropIn .2s cubic-bezier(.22,1,.36,1)',
+                    }}>
+                      <div style={{padding:'12px 14px 8px'}}>
+                        <input
+                          autoFocus
+                          type="search"
+                          placeholder="Zoek project…"
+                          value={switcherSearch}
+                          onChange={e=>setSwitcherSearch(e.target.value)}
+                          style={{
+                            width:'100%',fontFamily:'inherit',fontSize:'13px',
+                            padding:'9px 12px',border:'1.5px solid var(--line)',
+                            borderRadius:8,background:'var(--bg)',color:'var(--ink)',outline:'none',
+                          }}
+                          onFocus={e=>e.target.style.borderColor='var(--accent)'}
+                          onBlur={e=>e.target.style.borderColor='var(--line)'}
+                        />
+                      </div>
+                      <div style={{maxHeight:'260px',overflowY:'auto',padding:'4px 0'}}>
+                        {allProjectsList
+                          .filter(p => p.projectnaam !== (projectA?.projectnaam))
+                          .filter(p => {
+                            const q = switcherSearch.toLowerCase();
+                            return !q || (p.projectnaam||'').toLowerCase().includes(q)
+                              || (p.stad||'').toLowerCase().includes(q);
+                          })
+                          .slice(0,10)
+                          .map(p => (
+                            <button key={p.id}
+                              onClick={async () => {
+                                setShowSwitcher(false);
+                                setSwitcherSearch('');
+                                // Laad afbeeldingen voor nieuw project
+                                if (p.projectnummer) {
+                                  try {
+                                    const imgs = await Images.getForProject(p.projectnummer);
+                                    setCompareImages(imgs);
+                                  } catch(e) {}
+                                } else {
+                                  setCompareImages([]);
+                                }
+                                setCompareProject(p);
+                              }}
+                              style={{
+                                display:'flex',alignItems:'center',gap:10,
+                                width:'100%',padding:'10px 14px',background:'none',
+                                border:'none',cursor:'pointer',textAlign:'left',
+                                fontFamily:'inherit',transition:'background .1s',
+                              }}
+                              onMouseOver={e=>e.currentTarget.style.background='var(--bg)'}
+                              onMouseOut={e=>e.currentTarget.style.background='none'}
+                            >
+                              {thumbCache[p.projectnummer]
+                                ? <img src={thumbCache[p.projectnummer]} alt=""
+                                    style={{width:36,height:36,borderRadius:8,objectFit:'cover',flex:'none'}} />
+                                : <div style={{width:36,height:36,borderRadius:8,background:'var(--line)',flex:'none',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}}>🏗</div>}
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontWeight:700,fontSize:12,letterSpacing:'.03em',textTransform:'uppercase',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.projectnaam}</div>
+                                <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>{p.stad||'—'} {p.fase ? `· ${p.fase}`:''}</div>
+                              </div>
+                            </button>
+                          ))
+                        }
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
           <div className="compare-hero-img">
             {projectBImages && projectBImages[0]
@@ -651,9 +820,13 @@ function CompareView({ projectA, projectB, projectBImages, thumbCache, onClose }
               <span style={{color:'var(--accent)'}}>{da.title?.split(' ')[0] || 'A'}</span>
               <span style={{color:'var(--muted)'}}>{b.projectnaam?.split(' ')[0] || 'B'}</span>
             </div>
-            <div className="score-bar">
-              <div className="a" style={{width:`${pctA+5}%`}}></div>
-              <div className="b" style={{width:`${pctB+5}%`}}></div>
+            <div className="score-bar" style={{background:'rgba(180,60,60,.15)',borderRadius:'999px',height:8,overflow:'hidden',display:'flex'}}>
+              <div style={{width:`${Math.max(pctA*0.9+5,10)}%`,background:'#1c8c50',borderRadius:'999px',transition:'width .6s ease'}}></div>
+              <div style={{flex:1,background:'transparent'}}></div>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:'10px',marginTop:4}}>
+              <span style={{color:'#1c8c50',fontWeight:700}}>{scoreA} gewonnen</span>
+              <span style={{color:'#b43c3c',fontWeight:700}}>{scoreB} gewonnen</span>
             </div>
             <div style={{display:'flex',justifyContent:'space-between',fontSize:'10px',color:'var(--muted)',marginTop:4}}>
               <span>{scoreA} criteria</span>
@@ -669,23 +842,51 @@ function CompareView({ projectA, projectB, projectBImages, thumbCache, onClose }
               const nb = parseFloat(c.vb) || 0;
               const aWins = c.numeric && na > nb;
               const bWins = c.numeric && nb > na;
+              const equal = c.numeric && na === nb && na !== 0;
+
+              const colorA = aWins ? '#1c8c50' : bWins ? '#b43c3c' : equal ? '#c8900a' : 'var(--ink)';
+              const colorB = bWins ? '#1c8c50' : aWins ? '#b43c3c' : equal ? '#c8900a' : 'var(--ink)';
+              const bgA = aWins ? 'rgba(28,140,80,.08)' : bWins ? 'rgba(180,60,60,.06)' : equal ? 'rgba(200,144,10,.08)' : 'transparent';
+              const bgB = bWins ? 'rgba(28,140,80,.08)' : aWins ? 'rgba(180,60,60,.06)' : equal ? 'rgba(200,144,10,.08)' : 'transparent';
+
+              const fmtVal = (v, numeric, unit) =>
+                v ? (numeric ? Number(v).toLocaleString('nl-NL')+(unit?' '+unit:'') : v) : '—';
+
               return (
-                <div key={i} className="compare-row">
-                  <div style={{flex:1}}>
-                    <div className="cr-lbl">{c.lbl}</div>
-                    <div className="cr-vals" style={{marginTop:4}}>
-                      <span className={`cr-val ${aWins?'winner':bWins?'loser':''}`}>
-                        {c.va ? (c.numeric ? Number(c.va).toLocaleString('nl-NL')+(c.unit?' '+c.unit:'') : c.va) : '—'}
-                      </span>
-                      <span className="cr-vs">vs</span>
-                      <span className={`cr-val ${bWins?'winner':aWins?'loser':''}`}>
-                        {c.vb ? (c.numeric ? Number(c.vb).toLocaleString('nl-NL')+(c.unit?' '+c.unit:'') : c.vb) : '—'}
-                      </span>
+                <div key={i} style={{marginBottom:8}}>
+                  <div style={{fontSize:'9px',letterSpacing:'.16em',textTransform:'uppercase',color:'var(--muted)',fontWeight:700,marginBottom:6}}>{c.lbl}</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',gap:6,alignItems:'center'}}>
+                    {/* Waarde A */}
+                    <div style={{
+                      background:bgA, borderRadius:8, padding:'8px 12px',
+                      border:`1px solid ${aWins?'rgba(28,140,80,.2)':bWins?'rgba(180,60,60,.15)':equal?'rgba(200,144,10,.2)':'var(--line)'}`,
+                      textAlign:'center',
+                    }}>
+                      <div style={{fontSize:'14px',fontWeight:800,color:colorA,letterSpacing:'-.01em'}}>
+                        {fmtVal(c.va, c.numeric, c.unit)}
+                      </div>
+                      {aWins && <div style={{fontSize:'9px',color:'#1c8c50',fontWeight:700,marginTop:2,letterSpacing:'.1em'}}>▲ MEER</div>}
+                      {bWins && <div style={{fontSize:'9px',color:'#b43c3c',fontWeight:700,marginTop:2,letterSpacing:'.1em'}}>▼ MINDER</div>}
+                      {equal && <div style={{fontSize:'9px',color:'#c8900a',fontWeight:700,marginTop:2,letterSpacing:'.1em'}}>● GELIJK</div>}
+                    </div>
+
+                    {/* VS */}
+                    <div style={{fontSize:'9px',color:'var(--muted)',fontWeight:700,letterSpacing:'.1em',textAlign:'center'}}>VS</div>
+
+                    {/* Waarde B */}
+                    <div style={{
+                      background:bgB, borderRadius:8, padding:'8px 12px',
+                      border:`1px solid ${bWins?'rgba(28,140,80,.2)':aWins?'rgba(180,60,60,.15)':equal?'rgba(200,144,10,.2)':'var(--line)'}`,
+                      textAlign:'center',
+                    }}>
+                      <div style={{fontSize:'14px',fontWeight:800,color:colorB,letterSpacing:'-.01em'}}>
+                        {fmtVal(c.vb, c.numeric, c.unit)}
+                      </div>
+                      {bWins && <div style={{fontSize:'9px',color:'#1c8c50',fontWeight:700,marginTop:2,letterSpacing:'.1em'}}>▲ MEER</div>}
+                      {aWins && <div style={{fontSize:'9px',color:'#b43c3c',fontWeight:700,marginTop:2,letterSpacing:'.1em'}}>▼ MINDER</div>}
+                      {equal && <div style={{fontSize:'9px',color:'#c8900a',fontWeight:700,marginTop:2,letterSpacing:'.1em'}}>● GELIJK</div>}
                     </div>
                   </div>
-                  {aWins && <span style={{fontSize:14}}>←</span>}
-                  {bWins && <span style={{fontSize:14}}>→</span>}
-                  {!aWins && !bWins && c.numeric && <span style={{fontSize:12,color:'var(--muted)'}}>≈</span>}
                 </div>
               );
             })}
@@ -711,8 +912,6 @@ function CompareView({ projectA, projectB, projectBImages, thumbCache, onClose }
 /* ── App: laadt projectdata uit Supabase en rendert de pagina ── */
 function App(){
   const [editHref, setEditHref] = React.useState(null);
-  const [showCompareDropdown, setShowCompareDropdown] = React.useState(false);
-  const [compareSearch, setCompareSearch] = React.useState('');
   const [allProjectsList, setAllProjectsList] = React.useState([]);
   const [compareProject, setCompareProject] = React.useState(null); // het tweede project
   const [showCompareView, setShowCompareView] = React.useState(false);
@@ -878,8 +1077,12 @@ function App(){
             document.title = data.title || 'MVSA Project';
             window.print();
           }}>⬇ PDF</button>
-          <button className={`compare-btn ${showCompareDropdown ? 'active' : ''}`}
-            onClick={() => setShowCompareDropdown(s => !s)}>
+          <button className="compare-btn"
+            onClick={() => {
+              setCompareProject(null);
+              setCompareImages([]);
+              setShowCompareView(true);
+            }}>
             ⚖ Vergelijk
           </button>
           {editHref ? (
@@ -896,39 +1099,6 @@ function App(){
         </div>
       </header>
 
-      {/* VERGELIJK DROPDOWN */}
-      {showCompareDropdown && (
-        <>
-          <div className="compare-backdrop" onClick={() => setShowCompareDropdown(false)} />
-          <div className="compare-dropdown">
-            <div className="cd-header">
-              <div className="cd-title">Kies een project om te vergelijken</div>
-              <input className="cd-search" type="search" autoFocus
-                placeholder="Zoek op naam, stad of fase…"
-                value={compareSearch}
-                onChange={e => setCompareSearch(e.target.value)} />
-            </div>
-            <div className="cd-results">
-              {compareResults.length === 0
-                ? <div className="cd-empty">Geen projecten gevonden.</div>
-                : compareResults.map(p => (
-                  <button key={p.id} className="cd-result" onClick={() => selectCompareProject(p)}>
-                    {thumbCache[p.projectnummer]
-                      ? <img className="cd-thumb" src={thumbCache[p.projectnummer]} alt="" />
-                      : <div className="cd-thumb-ph">🏗</div>}
-                    <div className="cd-info">
-                      <div className="cd-name">{p.projectnaam}</div>
-                      <div className="cd-meta">{[p.stad, p.land].filter(Boolean).join(' · ') || '—'}</div>
-                    </div>
-                    {p.fase && <span className="cd-fase">{p.fase}</span>}
-                  </button>
-                ))
-              }
-            </div>
-          </div>
-        </>
-      )}
-
       {/* VERGELIJK OVERLAY */}
       {showCompareView && compareProject && (
         <CompareView
@@ -936,6 +1106,8 @@ function App(){
           projectB={compareProject}
           projectBImages={compareImages}
           thumbCache={thumbCache}
+          setCompareProject={setCompareProject}
+          setCompareImages={setCompareImages}
           onClose={() => setShowCompareView(false)}
         />
       )}

@@ -22,6 +22,16 @@ html,body{
   background:var(--card); border-radius:24px; width:min(440px,100%);
   box-shadow:0 24px 64px -12px rgba(20,30,45,.18);
   overflow:hidden; animation:popIn .35s cubic-bezier(.22,1,.36,1);
+  min-height:520px; display:flex; flex-direction:column;
+}
+.card-top{ flex:none; }
+.tabs{ flex:none; }
+.form{
+  flex:1; min-height:260px;
+  transition:opacity .15s ease;
+}
+.status-screen{
+  flex:1; min-height:260px;
 }
 @keyframes popIn{ from{opacity:0;transform:translateY(16px) scale(.97)} to{opacity:1;transform:none} }
 
@@ -215,6 +225,12 @@ html,body{
 <script>
 /* ── Tab wisselen ── */
 function showTab(tab) {
+  // Fade out all forms first
+  ['login-form','register-form','reset-form'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.opacity = '0';
+  });
+  setTimeout(() => {
   document.querySelectorAll('.tab').forEach((t,i) => {
     t.classList.toggle('active',
       (i===0&&tab==='login') || (i===1&&tab==='register') || (i===2&&tab==='reset'));
@@ -229,6 +245,10 @@ function showTab(tab) {
   };
   document.getElementById('card-title').textContent = titles[tab][0];
   document.getElementById('card-sub').textContent   = titles[tab][1];
+  // Fade in active form
+  const active = document.getElementById(tab+'-form');
+  if (active) setTimeout(() => active.style.opacity = '1', 10);
+  }, 100);
 }
 
 function showMsg(id, text, type) {
