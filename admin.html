@@ -335,6 +335,30 @@ html,body{ background:var(--bg); color:var(--ink); font-family:'Inter',sans-seri
       <p>Werknemers, projecten, database en systeeminstellingen.</p>
     </div>
 
+    <!-- ── AANMELDINGEN ── -->
+    <div class="section-label">🔔 Aanmeldingen</div>
+    <div class="grid-2" style="margin-bottom:16px;">
+
+      <!-- Openstaande aanmeldingen -->
+      <div class="widget">
+        <div class="widget-title" style="display:flex;align-items:center;">
+          <span class="ico">⏳</span> Wacht op goedkeuring
+          <span id="pending-count" style="margin-left:auto;font-size:11px;background:rgba(224,160,48,.15);color:#e0a030;padding:2px 8px;border-radius:999px;font-weight:700;">0</span>
+        </div>
+        <div id="pending-list">
+          <div class="reg-empty">Geen openstaande aanmeldingen.</div>
+        </div>
+      </div>
+
+      <!-- Alle gebruikers overzicht -->
+      <div class="widget">
+        <div class="widget-title"><span class="ico">👤</span> Alle gebruikers</div>
+        <div id="all-users-list">
+          <div class="reg-empty">Laden…</div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── WERKNEMERS ── -->
     <div class="section-label">👥 Werknemers</div>
 
@@ -659,8 +683,79 @@ let employees = [];
 let projects = [];
 let photoCache = {};
 
+async function loadRegistrations() {
+  // Openstaande aanmeldingen
+  const pending = await AdminAuth.getPending();
+  const pendingEl = document.getElementById('pending-list');
+  const countEl = document.getElementById('pending-count');
+  countEl.textContent = pending.length;
+  countEl.style.display = pending.length ? 'inline' : 'none';
+
+  if (!pending.length) {
+    pendingEl.innerHTML = '<div class="reg-empty">✓ Geen openstaande aanmeldingen.</div>';
+  } else {
+    pendingEl.innerHTML = pending.map(u => `
+      <div class="reg-row" id="reg-${u.id}">
+        <div class="reg-avatar">${(u.naam||'?')[0].toUpperCase()}</div>
+        <div class="reg-info">
+          <div class="reg-naam">${u.naam}</div>
+          <div class="reg-meta">${u.email} · ${u.team||'—'}</div>
+        </div>
+        <div class="reg-actions">
+          <button class="reg-approve" onclick="approveUser('${u.id}', '${u.naam}')">✓ Goed</button>
+          <button class="reg-reject"  onclick="rejectUser('${u.id}',  '${u.naam}')">✗ Afwijzen</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Alle gebruikers
+  const all = await AdminAuth.getAll();
+  const allEl = document.getElementById('all-users-list');
+  if (!all.length) {
+    allEl.innerHTML = '<div class="reg-empty">Geen gebruikers gevonden.</div>';
+  } else {
+    allEl.innerHTML = all.map(u => {
+      const when = new Date(u.created_at);
+      const diffDays = Math.floor((Date.now()-when)/86400000);
+      const whenLabel = diffDays===0?'Vandaag':diffDays===1?'Gisteren':`${diffDays}d geleden`;
+      const badgeMap = {pending:'⏳', approved:'✓ Actief', rejected:'✗ Afgewezen'};
+      const badge = badgeMap[u.status] || u.status;
+      return `<div class="reg-row">
+        <div class="reg-avatar">${(u.naam||'?')[0].toUpperCase()}</div>
+        <div class="reg-info">
+          <div class="reg-naam">${u.naam}</div>
+          <div class="reg-meta">${u.email} · ${u.team||'—'}</div>
+        </div>
+        <span class="reg-time">${whenLabel}</span>
+        <span class="reg-badge ${u.status}">${badge}</span>
+        ${u.status==='pending'
+          ? `<div class="reg-actions">
+              <button class="reg-approve" onclick="approveUser('${u.id}','${u.naam}')">✓</button>
+              <button class="reg-reject"  onclick="rejectUser('${u.id}','${u.naam}')">✗</button>
+             </div>`
+          : ''}
+      </div>`;
+    }).join('');
+  }
+}
+
+async function approveUser(id, naam) {
+  if (!confirm(`${naam} goedkeuren?`)) return;
+  await AdminAuth.approve(id);
+  showToast(`✓ ${naam} goedgekeurd`);
+  loadRegistrations();
+}
+
+async function rejectUser(id, naam) {
+  if (!confirm(`${naam} afwijzen?`)) return;
+  await AdminAuth.reject(id);
+  showToast(`✗ ${naam} afgewezen`);
+  loadRegistrations();
+}
+
 async function initAdmin(){
-  await Promise.all([ loadEmployees(), loadProjects() ]);
+  await Promise.all([ loadEmployees(), loadProjects(), loadRegistrations() ]);
   renderActivityLog();
   updateDarkBtn();
 }
