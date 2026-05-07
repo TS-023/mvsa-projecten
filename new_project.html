@@ -412,8 +412,8 @@ function App(){
         log.unshift({ action: 'save', project: data.projectnaam || data.projectnummer || 'Naamloos', time: new Date().toISOString() });
         localStorage.setItem('mvsa.log', JSON.stringify(log.slice(0,50)));
       } catch(e) {}
-      toast(`Project opgeslagen · ${filledCount} velden = ${filledCount} punten`, 'save', filledCount);
-      setTimeout(() => { window.location.href = `project_page.html?p=${encodeURIComponent(data.projectnaam || '')}`; }, 1200);
+      toast(`Project opgeslagen · ${filledFields} velden = ${filledFields} punten`, 'save', filledFields);
+      setTimeout(() => { window.location.href = `project_page.html?nr=${encodeURIComponent(data.projectnummer || '')}&p=${encodeURIComponent(data.projectnaam || '')}`; }, 1200);
     } catch(e) {
       toast('Opslaan mislukt: ' + e.message, 'save');
       console.error('Supabase fout:', e);
