@@ -394,14 +394,25 @@ const MOCK = {
   data: {
     projectsFilled: 0,
     fieldsFilled: 0,
-    randomProject: { name: '—', city: '', tags: [] },
+    totalBvo: '0',
+    avgBvo: '0',
+    randomProject: { name: 'Nog geen projecten', city: '', tags: [] },
     leaderboard: [],
     recent: [],
   },
   algemeen: {
-    projecttype: [{label:'Won',v:0},{label:'Util',v:0},{label:'Mix',v:0}],
-    functie: [{label:'Wonen',v:0},{label:'Kantoor',v:0},{label:'Overig',v:0}],
-    verkrijging: [{label:'Aq',v:0},{label:'1v1',v:0},{label:'Tnd',v:0}],
+    projecttype: [
+      { label: 'Won', v: 0 }, { label: 'Util', v: 0 }, { label: 'Mix', v: 0 },
+      { label: 'Zorg', v: 0 }, { label: 'Onw', v: 0 }, { label: 'Ovr', v: 0 },
+    ],
+    functie: [
+      { label: 'Wonen', v: 0 }, { label: 'Kantoor', v: 0 }, { label: 'Retail', v: 0 },
+      { label: 'Horeca', v: 0 }, { label: 'Zorg', v: 0 }, { label: 'Overig', v: 0 },
+    ],
+    verkrijging: [
+      { label: 'Aq', v: 0 }, { label: '1v1', v: 0 }, { label: 'Tnd', v: 0 },
+      { label: 'Pit', v: 0 }, { label: 'Ovr', v: 0 },
+    ],
     fases: [
       { label: 'AQ', full: 'Acquisitie', v: 0 },
       { label: 'SO', full: 'Schets Ontwerp', v: 0 },
@@ -423,8 +434,25 @@ const MOCK = {
     metType: 0,
   },
   locatie: {
-    steden: [{label:'—',v:0}],
-    provincies: [{label:'—',v:0}],
+    steden: [{ label: '—', v: 0 }],
+    provincies: [{ label: '—', v: 0 }],
+  },
+  bouw: {
+    hoogsteProject: '—',
+    hoogsteWaarde: 0,
+    gemBouwhoogte: '—',
+    bvoList: [],
+    totaalAwards: 0,
+  },
+  mobiliteit: {
+    autoParkeren: 0,
+    fietsParkeren: 0,
+    ratioAuto: '—',
+    ratioFiets: '—',
+  },
+  duurzaamheid: {
+    labels: [{ label: '—', v: 0 }],
+    gemNpg: '—',
   },
 };
 
@@ -884,6 +912,7 @@ function DuurzaamheidSection({ d }){
 
 /* ── BouwOverigSection: bouwhoogte, awards, tevredenheid ── */
 function BouwOverigSection({ b }){
+  if (!b) return null;
   if (!b) return null;
   return (
     <>

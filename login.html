@@ -20,86 +20,109 @@ html,body{
   position:relative; overflow:hidden;
 }
 
-/* Architecturale achtergrond */
-body::before{
-  content:''; position:fixed; inset:0; z-index:0;
+/* ═══════════════════════════════════════════════
+   DONKERE TECH ACHTERGROND MET PROJECTFOTO'S
+   ═══════════════════════════════════════════════ */
+
+/* Donkere achtergrond */
+body{
+  background:#0a0c10 !important;
+}
+
+/* Grote projectfoto — wisselt elke 6s */
+.bg-project{
+  position:fixed; inset:0; z-index:0; overflow:hidden;
+}
+.bg-project img{
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; opacity:0;
+  transition:opacity 1.5s ease;
+  filter:brightness(.35) contrast(1.1) grayscale(.3);
+}
+.bg-project img.active{ opacity:1; }
+
+/* Scan lines overlay */
+.bg-project::after{
+  content:''; position:absolute; inset:0; z-index:1;
   background:
-    /* Subtiele grid lijnen — architectuur stijl */
-    linear-gradient(90deg, rgba(17,20,24,.03) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(17,20,24,.03) 1px, transparent 1px),
-    /* Grote diagonale lijn */
-    linear-gradient(135deg, transparent 40%, rgba(61,110,138,.06) 40%, rgba(61,110,138,.06) 40.3%, transparent 40.3%),
-    /* Accent hoek */
-    linear-gradient(225deg, transparent 70%, rgba(61,110,138,.04) 70%, rgba(61,110,138,.04) 70.5%, transparent 70.5%),
-    /* Gradient base */
-    linear-gradient(160deg, #c8d4de 0%, #dee7ef 30%, #e8eef4 60%, #d4dfe8 100%);
-  background-size: 60px 60px, 60px 60px, 100% 100%, 100% 100%, 100% 100%;
+    repeating-linear-gradient(0deg, rgba(0,0,0,.03) 0px, rgba(0,0,0,.03) 1px, transparent 1px, transparent 3px),
+    linear-gradient(180deg, rgba(10,12,16,.4) 0%, transparent 30%, transparent 70%, rgba(10,12,16,.8) 100%);
+  pointer-events:none;
 }
 
-/* Floating geometrische vormen */
-body::after{
-  content:''; position:fixed; z-index:0;
-  width:600px; height:600px;
-  top:-150px; right:-100px;
-  border-radius:50%;
-  background:radial-gradient(circle, rgba(61,110,138,.08) 0%, transparent 70%);
-  animation:floatBlob 20s ease-in-out infinite alternate;
-}
-@keyframes floatBlob{
-  0%{ transform:translate(0,0) scale(1); }
-  50%{ transform:translate(-40px,30px) scale(1.1); }
-  100%{ transform:translate(20px,-20px) scale(0.95); }
+/* Grid overlay */
+.bg-grid{
+  position:fixed; inset:0; z-index:1; pointer-events:none;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255,255,255,.02) 1px, transparent 1px);
+  background-size:80px 80px;
 }
 
-/* Accent cirkel linksonder */
-.bg-circle{
-  position:fixed; z-index:0;
-  width:400px; height:400px;
-  bottom:-120px; left:-80px;
-  border-radius:50%;
-  border:1px solid rgba(61,110,138,.1);
-  animation:floatCircle 25s ease-in-out infinite alternate;
+/* Projectinfo overlay linksonder */
+.bg-info{
+  position:fixed; bottom:40px; left:40px; z-index:2;
+  color:rgba(255,255,255,.4); font-family:'Inter',sans-serif;
+  pointer-events:none; user-select:none;
 }
-.bg-circle::before{
-  content:''; position:absolute;
-  inset:30px; border-radius:50%;
-  border:1px solid rgba(61,110,138,.06);
+.bg-info .label{
+  font-size:9px; letter-spacing:.25em; text-transform:uppercase;
+  color:rgba(255,255,255,.25); margin-bottom:6px;
 }
-.bg-circle::after{
-  content:''; position:absolute;
-  inset:60px; border-radius:50%;
-  border:1px solid rgba(61,110,138,.04);
+.bg-info .project-name{
+  font-size:28px; font-weight:800; letter-spacing:-.02em;
+  color:rgba(255,255,255,.15); line-height:1.1; margin-bottom:4px;
 }
-@keyframes floatCircle{
-  0%{ transform:translate(0,0) rotate(0deg); }
-  100%{ transform:translate(30px,-20px) rotate(45deg); }
+.bg-info .project-meta{
+  font-size:11px; letter-spacing:.08em; color:rgba(255,255,255,.2);
 }
-
-/* Dunne architectuurlijnen */
-.bg-lines{
-  position:fixed; z-index:0; inset:0; pointer-events:none;
+/* Indicator dots */
+.bg-dots{
+  position:fixed; bottom:44px; right:40px; z-index:2;
+  display:flex; gap:8px; pointer-events:none;
 }
-.bg-lines::before{
-  content:''; position:absolute;
-  top:20%; left:0; right:0; height:1px;
-  background:linear-gradient(90deg, transparent, rgba(61,110,138,.08) 30%, rgba(61,110,138,.08) 70%, transparent);
+.bg-dot{
+  width:8px; height:8px; border-radius:50%;
+  background:rgba(255,255,255,.15); transition:all .4s;
 }
-.bg-lines::after{
-  content:''; position:absolute;
-  top:0; bottom:0; left:35%; width:1px;
-  background:linear-gradient(0deg, transparent, rgba(61,110,138,.06) 20%, rgba(61,110,138,.06) 80%, transparent);
+.bg-dot.active{
+  background:rgba(61,110,138,.7); box-shadow:0 0 8px rgba(61,110,138,.4);
 }
 
-/* MVSA logo watermark */
+/* MVSA logo watermark rechtsonder */
 .bg-watermark{
-  position:fixed; z-index:0;
-  bottom:40px; left:40px;
-  font-family:'Inter',sans-serif;
-  font-size:120px; font-weight:900;
-  letter-spacing:-.06em;
-  color:rgba(17,20,24,.03);
-  line-height:1; pointer-events:none;
-  user-select:none;
+  position:fixed; z-index:2;
+  bottom:80px; right:40px;
+  pointer-events:none; user-select:none;
+  opacity:.06;
+}
+
+/* Accent lijn boven */
+.bg-accent{
+  position:fixed; top:0; left:0; right:0; height:2px; z-index:2;
+  background:linear-gradient(90deg, transparent, rgba(61,110,138,.5) 30%, rgba(61,110,138,.5) 70%, transparent);
+}
+
+/* Card aanpassen voor donker thema */
+.card{
+  border:1px solid rgba(255,255,255,.08) !important;
+  box-shadow:0 32px 80px -16px rgba(0,0,0,.6) !important;
+}
+.card-top{
+  background:rgba(17,20,24,.95) !important;
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+
+/* Terug knop donker */
+div[style*="margin-bottom"] a{
+  background:rgba(255,255,255,.08) !important;
+  color:rgba(255,255,255,.6) !important;
+  border-color:rgba(255,255,255,.1) !important;
+  backdrop-filter:blur(10px);
+}
+div[style*="margin-bottom"] a:hover{
+  background:rgba(255,255,255,.15) !important;
+  color:#fff !important;
 }
 
 /* Alles boven de achtergrond */
@@ -110,7 +133,7 @@ body::after{
   background:var(--card); border-radius:24px; width:min(440px,100%);
   box-shadow:0 24px 64px -12px rgba(20,30,45,.18);
   overflow:hidden; animation:popIn .35s cubic-bezier(.22,1,.36,1);
-  height:580px; display:flex; flex-direction:column;
+  height:620px; display:flex; flex-direction:column;
 }
 .card-top{ flex:none; }
 .tabs{ flex:none; }
@@ -186,9 +209,26 @@ body::after{
 </style>
 </head>
 <body>
-<div class="bg-circle"></div>
-<div class="bg-lines"></div>
-<div class="bg-watermark">MVSA</div>
+<div class="bg-project" id="bg-project"></div>
+<div class="bg-grid"></div>
+<div class="bg-accent"></div>
+<div class="bg-info">
+  <div class="label">MVSA Architects · Portfolio</div>
+  <div class="project-name" id="bg-name"></div>
+  <div class="project-meta" id="bg-meta"></div>
+</div>
+<div class="bg-dots" id="bg-dots"></div>
+<div class="bg-watermark">
+  <svg width="120" height="86" viewBox="0 0 280 200" fill="#ffffff" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0 0h28v130h-28zM28 0l42 80h4l42-80v130h-28V60l-30 58h-4L24 60v70H0"/>
+    <path d="M140 0l35 100h4l35-100h30L200 130h-36L120 0z"/>
+    <rect x="248" y="0" width="14" height="14"/><rect x="266" y="0" width="14" height="14"/>
+    <path d="M0 150h80v14H14v14h66v14H0v-14h66v-14H0z"/>
+    <path d="M90 150h28v42h28v-42h28v56h-84zM118 178h28v14h-28z"/>
+    <rect x="248" y="150" width="14" height="14"/><rect x="266" y="150" width="14" height="14"/>
+    <rect x="248" y="168" width="14" height="14"/><rect x="266" y="168" width="14" height="14"/>
+  </svg>
+</div>
 <div style="width:min(440px,100%);margin-bottom:12px;position:relative;z-index:1;">
   <a href="projects_dashboard.html" style="
     display:inline-flex;align-items:center;gap:8px;
