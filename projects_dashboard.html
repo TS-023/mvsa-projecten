@@ -700,10 +700,10 @@ function DataSection({ d, leaderPhoto }){
         </div>
         <div className="card random-project left-3">
           <h3>Random project uitgelicht</h3>
-          <a className="rp-img" href={projectHref((d.randomProject?.name || '—')}>
+          <a className="rp-img" href={projectHref(d.randomProject?.name || '—')}>
             <span className="label">PLACE IMAGE HERE</span>
           </a>
-          <div className="name"><a href={projectHref((d.randomProject?.name || '—')} style={{color:'inherit', textDecoration:'none'}} onMouseOver={(e)=>e.target.style.color='#3d6e8a'} onMouseOut={(e)=>e.target.style.color='inherit'}>{{d.randomProject?.name || '—'}</a></div>
+          <div className="name"><a href={projectHref(d.randomProject?.name || '—')} style={{color:'inherit', textDecoration:'none'}} onMouseOver={(e)=>e.target.style.color='#3d6e8a'} onMouseOut={(e)=>e.target.style.color='inherit'}>{d.randomProject?.name || '—'}</a></div>
           <div className="meta">{{d.randomProject?.city || ''}</div>
           <div className="rp-tags">
             {(d.randomProject?.tags || []).map((t,i)=> <span key={i} className="tag">{t}</span>)}
