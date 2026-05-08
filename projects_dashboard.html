@@ -394,14 +394,14 @@ const MOCK = {
   data: {
     projectsFilled: 0,
     fieldsFilled: 0,
-    randomProject: null,
+    randomProject: { name: '—', city: '', tags: [] },
     leaderboard: [],
     recent: [],
   },
   algemeen: {
-    projecttype: [],
-    functie: [],
-    verkrijging: [],
+    projecttype: [{label:'Won',v:0},{label:'Util',v:0},{label:'Mix',v:0}],
+    functie: [{label:'Wonen',v:0},{label:'Kantoor',v:0},{label:'Overig',v:0}],
+    verkrijging: [{label:'Aq',v:0},{label:'1v1',v:0},{label:'Tnd',v:0}],
     fases: [
       { label: 'AQ', full: 'Acquisitie', v: 0 },
       { label: 'SO', full: 'Schets Ontwerp', v: 0 },
@@ -423,8 +423,8 @@ const MOCK = {
     metType: 0,
   },
   locatie: {
-    steden: [],
-    provincies: [],
+    steden: [{label:'—',v:0}],
+    provincies: [{label:'—',v:0}],
   },
 };
 
@@ -672,13 +672,13 @@ function DataSection({ d, leaderPhoto }){
         </div>
         <div className="card random-project left-3">
           <h3>Random project uitgelicht</h3>
-          <a className="rp-img" href={projectHref(d.randomProject.name)}>
+          <a className="rp-img" href={projectHref((d.randomProject?.name || '—')}>
             <span className="label">PLACE IMAGE HERE</span>
           </a>
-          <div className="name"><a href={projectHref(d.randomProject.name)} style={{color:'inherit', textDecoration:'none'}} onMouseOver={(e)=>e.target.style.color='#3d6e8a'} onMouseOut={(e)=>e.target.style.color='inherit'}>{d.randomProject.name}</a></div>
-          <div className="meta">{d.randomProject.city}</div>
+          <div className="name"><a href={projectHref((d.randomProject?.name || '—')} style={{color:'inherit', textDecoration:'none'}} onMouseOver={(e)=>e.target.style.color='#3d6e8a'} onMouseOut={(e)=>e.target.style.color='inherit'}>{{d.randomProject?.name || '—'}</a></div>
+          <div className="meta">{{d.randomProject?.city || ''}</div>
           <div className="rp-tags">
-            {d.randomProject.tags.map((t,i)=> <span key={i} className="tag">{t}</span>)}
+            {(d.randomProject?.tags || []).map((t,i)=> <span key={i} className="tag">{t}</span>)}
           </div>
         </div>
 
@@ -884,6 +884,7 @@ function DuurzaamheidSection({ d }){
 
 /* ── BouwOverigSection: bouwhoogte, awards, tevredenheid ── */
 function BouwOverigSection({ b }){
+  if (!b) return null;
   return (
     <>
       <div style={{display:'grid', gridTemplateColumns:'1fr 2fr', gap: 14, marginTop: 28}}>
