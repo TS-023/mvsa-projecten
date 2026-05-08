@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mijn profiel · MVSA</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#DEE7EF; --card:#fff; --ink:#111418; --muted:#6b7480;
+  --line:#e6ecf2; --accent:#3d6e8a; --danger:#b43c3c;
+  --shadow:0 1px 0 rgba(20,30,45,.04),0 8px 24px -12px rgba(20,30,45,.18);
+}
+[data-theme="dark"]{
+  --bg:#0f1114; --card:#1a1d22; --ink:#e8ecf0;
+  --muted:#8a929c; --line:#2a2e35; --accent:#5a9ab8;
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+html,body{ min-height:100vh; background:var(--bg); color:var(--ink);
+  font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+
+.page{ max-width:600px; margin:0 auto; padding:32px 24px 80px; }
+
+/* Topbar */
+.topbar{
+  display:flex; align-items:center; gap:12px; margin-bottom:32px;
+}
+.back{
+  font-size:12px; letter-spacing:.1em; text-transform:uppercase; font-weight:600;
+  color:var(--muted); text-decoration:none; padding:8px 14px; border-radius:999px;
+  border:1px solid var(--line); background:var(--card); transition:all .15s;
+}
+.back:hover{ color:var(--ink); border-color:rgba(17,20,24,.2); }
+
+/* Vcard */
+.vcard{
+  background:var(--card); border-radius:20px; box-shadow:var(--shadow); overflow:hidden;
+}
+.vcard-top{
+  background:var(--ink); padding:40px 32px 28px;
+  display:flex; flex-direction:column; align-items:center; text-align:center;
+  position:relative;
+}
+.vcard-photo{
+  width:100px; height:100px; border-radius:50%;
+  border:4px solid rgba(255,255,255,.2);
+  background:radial-gradient(120% 80% at 30% 30%,#3a3f47 0%,#1a1d22 60%,#0c0e11 100%);
+  overflow:hidden; margin-bottom:16px; cursor:pointer; position:relative;
+}
+.vcard-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+.vcard-photo .overlay{
+  position:absolute; inset:0; background:rgba(0,0,0,.5);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  opacity:0; transition:opacity .2s; font-size:20px; color:#fff; border-radius:50%;
+}
+.vcard-photo .overlay span{ font-size:9px; letter-spacing:.1em; text-transform:uppercase; margin-top:4px; font-weight:700; }
+.vcard-photo:hover .overlay{ opacity:1; }
+
+.fd{
+  background:transparent; border:none; border-bottom:1px solid rgba(255,255,255,.2);
+  color:#fff; font-family:inherit; text-align:center; width:100%; outline:none; padding:4px 0;
+  transition:border-color .15s;
+}
+.fd:focus{ border-bottom-color:rgba(255,255,255,.6); }
+.fd::placeholder{ color:rgba(255,255,255,.3); }
+.fd.fn{ font-size:20px; font-weight:800; margin-bottom:8px; letter-spacing:-.01em; }
+.fd.fr{ font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.7); margin-bottom:14px; }
+.team-sel{
+  background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.15); color:#fff;
+  font-family:inherit; font-size:10px; letter-spacing:.14em; text-transform:uppercase;
+  font-weight:700; padding:5px 14px; border-radius:999px; outline:none; cursor:pointer;
+}
+.team-sel option{ background:#1a1d22; }
+
+/* Body */
+.vcard-body{ padding:24px 32px; }
+.sec-title{
+  font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted);
+  font-weight:700; margin:16px 0 12px; padding-bottom:8px; border-bottom:1px solid var(--line);
+}
+.sec-title:first-child{ margin-top:0; }
+.row{ display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+.row-icon{
+  width:36px; height:36px; border-radius:10px; background:rgba(17,20,24,.05);
+  display:flex; align-items:center; justify-content:center; font-size:16px; flex:none;
+}
+.row-field{ flex:1; }
+.row-field .lbl{ font-size:10px; color:var(--muted); letter-spacing:.08em; text-transform:uppercase; margin-bottom:3px; }
+.row-input{
+  background:transparent; border:none; border-bottom:1px solid var(--line);
+  font-family:inherit; font-size:14px; font-weight:600; color:var(--ink);
+  width:100%; outline:none; padding:4px 0; transition:border-color .15s;
+}
+.row-input:focus{ border-bottom-color:var(--accent); }
+.row-input::placeholder{ color:var(--muted); font-weight:400; }
+
+/* Stats */
+.stats-grid{
+  display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin:16px 0;
+}
+.stat-box{
+  background:var(--bg); border-radius:12px; padding:14px; text-align:center;
+}
+.stat-num{ font-size:28px; font-weight:800; letter-spacing:-.03em; line-height:1; }
+.stat-lbl{ font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:600; margin-top:4px; }
+
+/* Footer */
+.vcard-foot{
+  padding:16px 32px 28px; border-top:1px solid var(--line);
+  display:flex; gap:10px;
+}
+.save-btn{
+  flex:1; background:var(--ink); color:#fff; border:none; padding:13px;
+  border-radius:999px; font-family:inherit; font-size:12px; letter-spacing:.14em;
+  text-transform:uppercase; font-weight:700; cursor:pointer; transition:background .15s;
+}
+.save-btn:hover{ background:var(--accent); }
+.save-btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+.toast{
+  position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+  background:var(--ink); color:#fff; padding:10px 20px; border-radius:999px;
+  font-size:12px; letter-spacing:.08em; z-index:999; animation:toastIn .3s ease;
+}
+@keyframes toastIn{ from{opacity:0;transform:translateX(-50%) translateY(8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+
+.not-logged-in{
+  text-align:center; padding:60px 32px;
+}
+.not-logged-in .icon{ font-size:48px; margin-bottom:16px; }
+.not-logged-in h2{ font-size:22px; font-weight:800; margin-bottom:8px; }
+.not-logged-in p{ font-size:13px; color:var(--muted); margin-bottom:24px; }
+.login-link{
+  display:inline-block; background:var(--ink); color:#fff; text-decoration:none;
+  padding:12px 24px; border-radius:999px; font-size:12px; letter-spacing:.14em;
+  text-transform:uppercase; font-weight:700;
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="topbar">
+    <a class="back" href="projects_dashboard.html">← Dashboard</a>
+  </div>
+
+  <div id="content">
+    <div style="text-align:center;padding:60px;color:var(--muted)">Profiel laden…</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase.js"></script>
+<script>
+let currentUser = null;
+let currentProfile = null;
+let currentEmployee = null;
+let photoFile = null;
+let photoPreview = null;
+
+async function init() {
+  const { data: { user } } = await db.auth.getUser();
+  if (!user) {
+    document.getElementById('content').innerHTML = `
+      <div class="not-logged-in">
+        <div class="icon">🔒</div>
+        <h2>Niet ingelogd</h2>
+        <p>Log in om je profiel te bekijken en bewerken.</p>
+        <a class="login-link" href="login.html">Inloggen →</a>
+      </div>`;
+    return;
+  }
+  currentUser = user;
+
+  // Haal profiel op
+  const { data: profile } = await db.from('profiles')
+    .select('*').eq('id', user.id).maybeSingle();
+  currentProfile = profile;
+
+  // Haal werknemer op als die gekoppeld is
+  if (profile?.employee_id) {
+    const { data: emp } = await db.from('employees')
+      .select('*').eq('id', profile.employee_id).maybeSingle();
+    currentEmployee = emp;
+  }
+
+  // Haal foto op
+  let photoUrl = null;
+  if (currentEmployee?.id) {
+    try {
+      photoUrl = await EmployeeImages.getForEmployee(currentEmployee.id);
+    } catch(e) {}
+  }
+
+  renderProfile(profile, currentEmployee, photoUrl);
+}
+
+function renderProfile(profile, emp, photoUrl) {
+  const naam = profile?.naam || '';
+  const rol = emp?.rol || '';
+  const team = profile?.team || emp?.team || 'Ontwerp';
+  const score = emp?.score || 0;
+  const projecten = emp?.projecten || 0;
+
+  document.getElementById('content').innerHTML = `
+    <div class="vcard">
+      <div class="vcard-top">
+        <label class="vcard-photo" id="photo-wrap">
+          ${photoUrl ? `<img id="photo-img" src="${photoUrl}" alt="">` : `<div id="photo-img" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:32px;">👤</div>`}
+          <div class="overlay"><span>📷</span><span>Foto</span></div>
+          <input type="file" accept="image/*" id="photo-input" style="display:none"
+            onchange="handlePhoto(this)">
+        </label>
+        <input class="fd fn" id="pf-naam" type="text" placeholder="Je naam" value="${naam}">
+        <input class="fd fr" id="pf-rol" type="text" placeholder="Functie bijv. Architect" value="${rol}">
+        <select class="team-sel" id="pf-team">
+          ${['Ontwerp','Stedenbouw','Interieur','Technisch','Onderzoek','Uitvoering'].map(t =>
+            `<option ${t===team?'selected':''}>${t}</option>`
+          ).join('')}
+        </select>
+      </div>
+
+      <div class="vcard-body">
+        <div class="sec-title">Contact</div>
+        <div class="row">
+          <div class="row-icon">✉️</div>
+          <div class="row-field">
+            <div class="lbl">E-mail</div>
+            <input class="row-input" id="pf-email" type="email" placeholder="naam@mvsa-architects.com"
+              value="${profile?.email || currentUser.email || ''}" readonly
+              style="color:var(--muted);cursor:not-allowed;">
+          </div>
+        </div>
+        <div class="row">
+          <div class="row-icon">📞</div>
+          <div class="row-field">
+            <div class="lbl">Telefoon</div>
+            <input class="row-input" id="pf-tel" type="tel" placeholder="+31 6 00000000"
+              value="${emp?.telefoon || ''}">
+          </div>
+        </div>
+        <div class="row">
+          <div class="row-icon">🏢</div>
+          <div class="row-field">
+            <div class="lbl">Kantoor</div>
+            <input class="row-input" id="pf-kantoor" type="text" placeholder="Amsterdam"
+              value="${emp?.kantoor || ''}">
+          </div>
+        </div>
+
+        <div class="sec-title">Statistieken</div>
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-num">${score}</div>
+            <div class="stat-lbl">Punten</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num">${projecten}</div>
+            <div class="stat-lbl">Projecten</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num">${emp?.score || 0}</div>
+            <div class="stat-lbl">Velden</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="vcard-foot">
+        <button class="save-btn" id="save-btn" onclick="saveProfile()">Opslaan →</button>
+      </div>
+    </div>`;
+}
+
+function handlePhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  photoFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const el = document.getElementById('photo-img');
+    if (el.tagName === 'IMG') {
+      el.src = e.target.result;
+    } else {
+      el.outerHTML = `<img id="photo-img" src="${e.target.result}" alt="" style="width:100%;height:100%;object-fit:cover;">`;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveProfile() {
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true; btn.textContent = 'Opslaan…';
+
+  const naam = document.getElementById('pf-naam').value.trim();
+  const rol = document.getElementById('pf-rol').value.trim();
+  const team = document.getElementById('pf-team').value;
+  const tel = document.getElementById('pf-tel').value.trim();
+  const kantoor = document.getElementById('pf-kantoor').value.trim();
+
+  if (!naam) { alert('Vul je naam in.'); btn.disabled = false; btn.textContent = 'Opslaan →'; return; }
+
+  try {
+    // Update of maak werknemer aan
+    let empId = currentProfile?.employee_id;
+
+    if (empId) {
+      // Update bestaande werknemer
+      await db.from('employees').update({
+        naam, rol, team, telefoon: tel, kantoor
+      }).eq('id', empId);
+    } else {
+      // Maak nieuwe werknemer aan
+      const { data: newEmp, error } = await db.from('employees').insert([{
+        naam, rol, team, telefoon: tel, kantoor, score: 0, projecten: 0,
+      }]).select('id').single();
+      if (error) throw error;
+      empId = newEmp.id;
+    }
+
+    // Update profiel met naam, team en employee_id koppeling
+    await db.from('profiles').update({
+      naam, team, employee_id: empId,
+    }).eq('id', currentUser.id);
+
+    // Upload foto als die geselecteerd is
+    if (photoFile && empId) {
+      try {
+        await EmployeeImages.upload(empId, photoFile);
+        photoFile = null;
+      } catch(e) { console.warn('Foto upload mislukt:', e); }
+    }
+
+    // Toast
+    const t = document.createElement('div');
+    t.className = 'toast'; t.textContent = '✓ Profiel opgeslagen!';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2500);
+
+    // Herlaad
+    await init();
+
+  } catch(e) {
+    alert('Opslaan mislukt: ' + e.message);
+  }
+  btn.disabled = false; btn.textContent = 'Opslaan →';
+}
+
+init();
+</script>
+<script>
+(function(){
+  if(localStorage.getItem('mvsa.dark')==='1')
+    document.documentElement.setAttribute('data-theme','dark');
+})();
+</script>
+<script src="transitions.js"></script>
+</body>
+</html>

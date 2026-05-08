@@ -392,187 +392,39 @@
 --------------------------------------------------------------------------- */
 const MOCK = {
   data: {
-    projectsFilled: 64,
-    fieldsFilled: 872,
-    randomProject: {
-      name: 'Stadion Galgenwaard',
-      city: 'Utrecht',
-      tags: ['Mixed Use', 'Renovatie', '2024'],
-    },
-    leaderboard: [
-      { name: 'Gil Louwerens',     score: 500 },
-      { name: 'Cornee Louwerens',  score: 432 },
-      { name: 'Tom Stut',          score: 321 },
-      { name: 'Pascal Wesdijk',    score: 203 },
-      { name: 'Wessel Knolpower',  score:   1 },
-    ],
-    recent: [
-      { title: 'Kade Noord 21',   date: '06 mei',  tone: 'warm' },
-      { title: 'Bloktoren Zuid',  date: '04 mei',  tone: 'cool' },
-    ],
+    projectsFilled: 0,
+    fieldsFilled: 0,
+    randomProject: null,
+    leaderboard: [],
+    recent: [],
   },
   algemeen: {
-    projecttype: [
-      { label: 'Won',  v: 12 },
-      { label: 'Util', v: 22 },
-      { label: 'Mix',  v: 28 },
-      { label: 'Zorg', v: 14 },
-      { label: 'Onw',  v: 9  },
-      { label: 'Ovr',  v: 6  },
-    ],
-    functie: [
-      { label: 'Architect',   v: 58 },
-      { label: 'Stedenbouw',  v: 14 },
-      { label: 'Interieur',   v: 18 },
-      { label: 'Onderzoek',   v: 10 },
-    ],
-    verkregen: [
-      { label: 'Aq', v: 18 },
-      { label: '1v1', v: 28 },
-      { label: 'Tnd', v: 24 },
-      { label: 'Pit', v: 16 },
-      { label: 'Ovr', v: 8 },
-    ],
-    ontwerp: 32,
-    opgeleverd: 200,
+    projecttype: [],
+    functie: [],
+    verkrijging: [],
     fases: [
-      { label: 'AQ', full: 'Acquisitie',          v: 6  },
-      { label: 'SO', full: 'Schets Ontwerp',      v: 22 },
-      { label: 'VO', full: 'Voorlopig Ontwerp',   v: 28 },
-      { label: 'DO', full: 'Definitief Ontwerp', v: 34 },
-      { label: 'TO', full: 'Technisch Ontwerp',   v: 24 },
-      { label: 'UO', full: 'Uitvoerings Ontwerp', v: 16 },
-      { label: 'UV', full: 'Uitvoering',          v: 12 },
-      { label: 'OP', full: 'Opgeleverd',          v: 8  },
+      { label: 'AQ', full: 'Acquisitie', v: 0 },
+      { label: 'SO', full: 'Schets Ontwerp', v: 0 },
+      { label: 'VO', full: 'Voorlopig Ontwerp', v: 0 },
+      { label: 'DO', full: 'Definitief Ontwerp', v: 0 },
+      { label: 'TO', full: 'Technisch Ontwerp', v: 0 },
+      { label: 'UO', full: 'Uitvoerings Ontwerp', v: 0 },
+      { label: 'UV', full: 'Uitvoering', v: 0 },
+      { label: 'OP', full: 'Opgeleverd', v: 0 },
     ],
+    ontwerp: 0,
+    opgeleverd: 0,
+    meesteFase: '—',
+    meesteFunctie: '—',
+    meesteType: '—',
+    meesteVerkrijging: '—',
+    projecten: 0,
+    metFase: 0,
+    metType: 0,
   },
   locatie: {
-    binnenland: 832,
-    buitenland: 40,
-    provincies: [
-      { name: 'Noord-Holland', v: 286 },
-      { name: 'Zuid-Holland',  v: 211 },
-      { name: 'Utrecht',       v: 142 },
-      { name: 'Noord-Brabant', v: 98  },
-      { name: 'Gelderland',    v: 64  },
-    ],
-    steden: [
-      { name: 'Amsterdam',  v: 198 },
-      { name: 'Rotterdam',  v: 132 },
-      { name: 'Utrecht',    v: 96  },
-      { name: 'Den Haag',   v: 74  },
-      { name: 'Eindhoven',  v: 44  },
-    ],
-  },
-  metrage: {
-    typeProgramma: [
-      { label: 'Wonen',    v: 42 },
-      { label: 'Kantoor',  v: 28 },
-      { label: 'Publiek',  v: 14 },
-      { label: 'Mixed',    v: 16 },
-    ],
-    totaalGerealiseerd: 2000001,
-    gerenoveerd: 123456,
-    nieuw: 999888,
-    gesloopt: 872,
-    grootsteGebouw: {
-      title: 'Grootste gebouw',
-      ranks: [
-        { name: 'Gil Louwerens',    score: 80000, breakdown: { wonen: 40000, kantoor: 22000, commercieel: 12000, shortstay: 6000 } },
-        { name: 'Cornee Louwerens', score: 64000, breakdown: { wonen: 38000, kantoor: 18000, commercieel: 8000 } },
-        { name: 'Tom Stut',         score: 52000, breakdown: { wonen: 30000, kantoor: 22000 } },
-        { name: 'Pascal Wesdijk',   score: 41000, breakdown: { wonen: 21000, shortstay: 12000, commercieel: 8000 } },
-        { name: 'Wessel Knolpower', score: 12000, breakdown: { kantoor: 12000 } },
-      ],
-    },
-    bvoLijst: [
-      { type: 'Wonen',       totaal: '420.000 m²', ranks: [{ name: 'Toorop', v: '100.000 m²' }, { name: 'Galgenwaard', v: '80.000 m²' }, { name: 'Margriet', v: '60.000 m²' }] },
-      { type: 'Kantoor',     totaal: '310.000 m²', ranks: [{ name: 'Toorop', v: '100.000 m²' }, { name: 'Galgenwaard', v: '80.000 m²' }, { name: 'Margriet', v: '60.000 m²' }] },
-      { type: 'Shortstay',   totaal: '142.000 m²', ranks: [{ name: 'Toorop', v: '60.000 m²' },  { name: 'Galgenwaard', v: '50.000 m²' }, { name: 'Margriet', v: '32.000 m²' }] },
-      { type: 'Commercieel', totaal: '128.000 m²', ranks: [{ name: 'Toorop', v: '52.000 m²' },  { name: 'Galgenwaard', v: '44.000 m²' }, { name: 'Margriet', v: '32.000 m²' }] },
-      { type: 'Publiek',     totaal: '98.000 m²',  ranks: [{ name: 'Toorop', v: '40.000 m²' },  { name: 'Galgenwaard', v: '34.000 m²' }, { name: 'Margriet', v: '24.000 m²' }] },
-      { type: 'Onderwijs',   totaal: '76.000 m²',  ranks: [{ name: 'Toorop', v: '32.000 m²' },  { name: 'Galgenwaard', v: '26.000 m²' }, { name: 'Margriet', v: '18.000 m²' }] },
-    ],
-  },
-  mobiliteit: {
-    auto: [
-      { name: 'Gil Louwerens',    score: 500 },
-      { name: 'Cornee Louwerens', score: 432 },
-      { name: 'Tom Stut',         score: 321 },
-    ],
-    fiets: [
-      { name: 'Gil Louwerens',    score: 500 },
-      { name: 'Cornee Louwerens', score: 432 },
-      { name: 'Tom Stut',         score: 321 },
-    ],
-  },
-  ratio: {
-    wonen: [
-      { name: 'Gil Louwerens',    score: 500 },
-      { name: 'Cornee Louwerens', score: 432 },
-      { name: 'Tom Stut',         score: 321 },
-      { name: 'Pascal Wesdijk',   score: 203 },
-      { name: 'Wessel Knolpower', score: 1   },
-    ],
-    kantoor: [
-      { name: 'Gil Louwerens',    score: 500 },
-      { name: 'Cornee Louwerens', score: 432 },
-      { name: 'Tom Stut',         score: 321 },
-      { name: 'Pascal Wesdijk',   score: 203 },
-      { name: 'Wessel Knolpower', score: 1   },
-    ],
-  },
-  duurzaamheid: {
-    score: [
-      { name: 'Gil Louwerens',    score: 500 },
-      { name: 'Cornee Louwerens', score: 432 },
-      { name: 'Tom Stut',         score: 321 },
-    ],
-    daktuin: [
-      { name: 'Gil Louwerens',    score: 500 },
-      { name: 'Cornee Louwerens', score: 432 },
-      { name: 'Tom Stut',         score: 321 },
-    ],
-    zonnepanelen: [
-      { name: 'Gil Louwerens',    score: 500 },
-      { name: 'Cornee Louwerens', score: 432 },
-      { name: 'Tom Stut',         score: 321 },
-    ],
-  },
-  bouwOverig: {
-    hoogsteGebouw: [
-      { name: 'Gil Louwerens',    score: 500 },
-      { name: 'Cornee Louwerens', score: 432 },
-      { name: 'Tom Stut',         score: 321 },
-      { name: 'Pascal Wesdijk',   score: 203 },
-      { name: 'Wessel Knolpower', score: 1   },
-      { name: 'Wessel Knolpower', score: 1   },
-      { name: 'Wessel Knolpower', score: 1   },
-      { name: 'Wessel Knolpower', score: 1   },
-      { name: 'Wessel Knolpower', score: 1   },
-      { name: 'Wessel Knolpower', score: 1   },
-    ],
-    tevredenheid: 49,
-    totaalAwards: 872,
-    labels: [
-      { name: 'Breeam Excellent', score: 500 },
-      { name: 'Breeam Outstanding', score: 500 },
-      { name: 'Paris Proof',      score: 500 },
-      { name: 'WELL',             score: 500 },
-      { name: 'Breeam Excellent', score: 500 },
-      { name: 'Breeam Excellent', score: 500 },
-      { name: 'Cornee Louwerens', score: 432 },
-      { name: 'Tom Stut',         score: 321 },
-      { name: 'Pascal Wesdijk',   score: 203 },
-      { name: 'Wessel Knolpower', score: 1   },
-    ],
-    awards: [
-      { name: 'Gil Louwerens',    score: 500 },
-      { name: 'Cornee Louwerens', score: 432 },
-      { name: 'Tom Stut',         score: 321 },
-      { name: 'Pascal Wesdijk',   score: 203 },
-      { name: 'Wessel Knolpower', score: 1   },
-    ],
+    steden: [],
+    provincies: [],
   },
 };
 
@@ -1786,8 +1638,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
         if (url) photoHtml = '<img src="' + url + '" alt="">';
       } catch(e) {}
     }
-    bar.innerHTML = '<div class="ab-avatar">' + photoHtml + '</div>'
-      + '<span class="ab-name">' + profile.naam + '</span>'
+    bar.innerHTML = '<a href="profile.html" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;" title="Mijn profiel"><div class="ab-avatar">' + photoHtml + '</div>'
+      + '<span class="ab-name">' + profile.naam + '</span></a>'
       + '<button class="ab-logout" onclick="Auth.logout().then(()=>location.reload())">Uitloggen</button>';
     bar.style.display = 'flex';
   } catch(e) {

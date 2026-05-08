@@ -396,8 +396,8 @@ render();
         if (url) photoHtml = '<img src="' + url + '" alt="">';
       } catch(e) {}
     }
-    bar.innerHTML = '<div class="ab-avatar">' + photoHtml + '</div>'
-      + '<span class="ab-name">' + profile.naam + '</span>'
+    bar.innerHTML = '<a href="profile.html" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;" title="Mijn profiel"><div class="ab-avatar">' + photoHtml + '</div>'
+      + '<span class="ab-name">' + profile.naam + '</span></a>'
       + '<button class="ab-logout" onclick="Auth.logout().then(()=>location.reload())">Uitloggen</button>';
     bar.style.display = 'flex';
   } catch(e) {
