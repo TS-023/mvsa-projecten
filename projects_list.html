@@ -18,6 +18,42 @@
   .header .sub{ font-size:13px; color:var(--muted); margin-top:8px; }
   .header a.cta{ background:var(--ink); color:#fff; text-decoration:none; padding:10px 18px; border-radius:999px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; }
   .header a.cta:hover{ background:var(--accent); }
+  /* ── Grid kaartweergave ── */
+  .proj-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
+    gap:16px;
+  }
+  .proj-card{
+    background:var(--card); border-radius:14px; overflow:hidden;
+    box-shadow:0 1px 0 rgba(20,30,45,.04), 0 4px 16px -4px rgba(20,30,45,.12);
+    text-decoration:none; color:inherit;
+    transition:transform .15s, box-shadow .15s;
+  }
+  .proj-card:hover{
+    transform:translateY(-3px);
+    box-shadow:0 1px 0 rgba(20,30,45,.04), 0 12px 28px -6px rgba(20,30,45,.2);
+  }
+  .pc-img{
+    width:100%; aspect-ratio:16/10; overflow:hidden;
+    background:linear-gradient(135deg, #1a2030, #2a3548);
+  }
+  .pc-placeholder{
+    width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    font-size:28px;
+  }
+  .pc-body{ padding:14px 16px 16px; }
+  .pc-name{
+    font-weight:800; font-size:14px; letter-spacing:.02em; text-transform:uppercase;
+    margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .pc-meta{ font-size:12px; color:var(--muted); margin-bottom:10px; }
+  .pc-tags{ display:flex; flex-wrap:wrap; gap:6px; }
+  .pc-tag{
+    font-size:9px; letter-spacing:.12em; text-transform:uppercase; font-weight:700;
+    padding:3px 8px; border-radius:999px;
+    background:rgba(61,110,138,.08); color:var(--accent);
+  }
+
   .card{ background:var(--card); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; }
   table{ width:100%; border-collapse:collapse; }
   thead th{ text-align:left; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); padding:16px 22px; font-weight:600; border-bottom:1px solid var(--line); background:#fafbfc; }
@@ -228,158 +264,52 @@ async function render() {
   try { projects = await Projects.getAll(); }
   catch(e) { root.innerHTML = '<div class="card empty">Database niet bereikbaar. Controleer supabase.js.</div>'; return; }
   if (!projects.length) { root.innerHTML = '<div class="card empty">Nog geen projecten. <a href="new_project.html">Voeg je eerste toe →</a></div>'; return; }
-  root.innerHTML = '<div class="card"><table><thead><tr><th>Projectnaam</th><th>Projectnummer</th><th>Stad</th><th>Fase</th><th class="right">Acties</th></tr></thead><tbody>' +
-    projects.map(p => `<tr>
-      <td class="nm"><a href="project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}">${p.projectnaam||'—'}</a></td>
-      <td><span class="num-pill">${p.projectnummer||'—'}</span></td>
-      <td>${p.stad||'—'}</td><td>${p.fase||'—'}</td>
-      <td class="right"><div class="actions">
-        <a class="btn" href="project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}">Bekijk</a>
-        ${isApproved ? `<a class="btn" href="new_project.html?edit=${encodeURIComponent(p.projectnummer||'')}">Bewerk</a>` : ''}
-        ${isApproved ? `<button class="btn del" data-id="${p.id}" data-naam="${p.projectnaam||p.projectnummer}">Verwijder</button>` : ''}
-      </div></td></tr>`).join('') + '</tbody></table></div>';
+  if (currentView === 'list') {
+    root.innerHTML = '<div class="card"><table><thead><tr><th>Projectnaam</th><th>Projectnummer</th><th>Stad</th><th>Fase</th><th class="right">Acties</th></tr></thead><tbody>' +
+      projects.map(p => `<tr>
+        <td class="nm"><a href="project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}">${p.projectnaam||'—'}</a></td>
+        <td><span class="num-pill">${p.projectnummer||'—'}</span></td>
+        <td>${p.stad||'—'}</td><td>${p.fase||'—'}</td>
+        <td class="right"><div class="actions">
+          <a class="btn" href="project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}">Bekijk</a>
+          ${isApproved ? `<a class="btn" href="new_project.html?edit=${encodeURIComponent(p.projectnummer||'')}">Bewerk</a>` : ''}
+          ${isApproved ? `<button class="btn del" data-id="${p.id}" data-naam="${p.projectnaam||p.projectnummer}">Verwijder</button>` : ''}
+        </div></td></tr>`).join('') + '</tbody></table></div>';
+  } else {
+    root.innerHTML = '<div class="proj-grid">' +
+      projects.map(p => `<a class="proj-card" href="project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}">
+        <div class="pc-img" id="pc-img-${p.projectnummer||''}">
+          <div class="pc-placeholder">🏗</div>
+        </div>
+        <div class="pc-body">
+          <div class="pc-name">${p.projectnaam||'—'}</div>
+          <div class="pc-meta">${[p.stad, p.land].filter(Boolean).join(' · ')||'—'}</div>
+          <div class="pc-tags">
+            ${p.fase ? `<span class="pc-tag">${p.fase}</span>` : ''}
+            ${p.project_type ? `<span class="pc-tag">${p.project_type}</span>` : ''}
+            ${p.totaal_bvo ? `<span class="pc-tag">${Number(p.totaal_bvo).toLocaleString('nl-NL')} m²</span>` : ''}
+          </div>
+        </div>
+      </a>`).join('') + '</div>';
+    // Laad thumbnails voor grid cards
+    projects.forEach(async p => {
+      if (!p.projectnummer) return;
+      try {
+        const imgs = await Images.getForProject(p.projectnummer);
+        if (imgs[0]) {
+          const el = document.getElementById('pc-img-' + p.projectnummer);
+          if (el) el.innerHTML = `<img src="${imgs[0]}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">`;
+        }
+      } catch(e) {}
+    });
+  }
   root.querySelectorAll('.btn.del').forEach(b => {
     b.addEventListener('click', async () => {
       if (!confirm(`Project "${b.dataset.naam}" verwijderen?`)) return;
       b.disabled = true; b.textContent = '…';
       try { await Projects.remove(b.dataset.id); render();
 
-// Vergelijk functie
-let compareSet = new Set();
-const compareBtn = document.getElementById('compare-btn');
-
-function updateCompareBtn() {
-  if (compareSet.size >= 2) {
-    compareBtn.style.display = 'flex';
-    compareBtn.textContent = `⚖ Vergelijk ${compareSet.size} projecten`;
-  } else {
-    compareBtn.style.display = 'none';
-  }
-}
-
-compareBtn.addEventListener('click', () => {
-  const projects = [...compareSet].map(id => allProjects.find(p => p.id === id)).filter(Boolean);
-  showCompare(projects);
-});
-
-async function showCompare(projects) {
-  // Laad thumbnails
-  const thumbs = {};
-  await Promise.all(projects.map(async p => {
-    if (p.projectnummer) {
-      try { const imgs = await Images.getForProject(p.projectnummer); thumbs[p.id] = imgs[0] || null; }
-      catch(e) {}
-    }
-  }));
-
-  const backdrop = document.createElement('div');
-  backdrop.className = 'cmp-backdrop';
-  const modal = document.createElement('div');
-  modal.className = 'cmp-modal';
-  modal.innerHTML = `
-    <div class="cmp-header">
-      <h2>Projecten vergelijken</h2>
-      <button class="cmp-close" id="cmp-close">×</button>
-    </div>
-    <div class="cmp-grid">
-      ${projects.map(p => `
-        <div class="cmp-card">
-          ${thumbs[p.id]
-            ? `<img class="cmp-img" src="${thumbs[p.id]}" alt="${p.projectnaam}">`
-            : `<div class="cmp-img-ph">🏗</div>`}
-          <div class="cmp-body">
-            <div class="cmp-name">${p.projectnaam || '—'}</div>
-            ${[
-              ['Stad', p.stad],
-              ['Fase', p.fase],
-              ['Projecttype', p.project_type],
-              ['Totaal BVO', p.totaal_bvo ? p.totaal_bvo.toLocaleString('nl-NL') + ' m²' : null],
-              ['Opdrachtgever', p.opdrachtgever],
-              ['Oplevering', p.opleverdatum ? p.opleverdatum.slice(0,4) : null],
-            ].filter(([,v]) => v).map(([l,v]) => `
-              <div class="cmp-row"><span class="cmp-lbl">${l}</span><span class="cmp-val">${v}</span></div>
-            `).join('')}
-          </div>
-        </div>
-      `).join('')}
-    </div>`;
-  document.body.appendChild(backdrop);
-  document.body.appendChild(modal);
-  backdrop.addEventListener('click', () => { backdrop.remove(); modal.remove(); });
-  modal.querySelector('#cmp-close').addEventListener('click', () => { backdrop.remove(); modal.remove(); });
-} }
-      catch(e) { alert('Verwijderen mislukt: ' + e.message); b.disabled=false; b.textContent='Verwijder'; }
-    });
-  });
-}
-render();
-
-// Vergelijk functie
-let compareSet = new Set();
-const compareBtn = document.getElementById('compare-btn');
-
-function updateCompareBtn() {
-  if (compareSet.size >= 2) {
-    compareBtn.style.display = 'flex';
-    compareBtn.textContent = `⚖ Vergelijk ${compareSet.size} projecten`;
-  } else {
-    compareBtn.style.display = 'none';
-  }
-}
-
-compareBtn.addEventListener('click', () => {
-  const projects = [...compareSet].map(id => allProjects.find(p => p.id === id)).filter(Boolean);
-  showCompare(projects);
-});
-
-async function showCompare(projects) {
-  // Laad thumbnails
-  const thumbs = {};
-  await Promise.all(projects.map(async p => {
-    if (p.projectnummer) {
-      try { const imgs = await Images.getForProject(p.projectnummer); thumbs[p.id] = imgs[0] || null; }
-      catch(e) {}
-    }
-  }));
-
-  const backdrop = document.createElement('div');
-  backdrop.className = 'cmp-backdrop';
-  const modal = document.createElement('div');
-  modal.className = 'cmp-modal';
-  modal.innerHTML = `
-    <div class="cmp-header">
-      <h2>Projecten vergelijken</h2>
-      <button class="cmp-close" id="cmp-close">×</button>
-    </div>
-    <div class="cmp-grid">
-      ${projects.map(p => `
-        <div class="cmp-card">
-          ${thumbs[p.id]
-            ? `<img class="cmp-img" src="${thumbs[p.id]}" alt="${p.projectnaam}">`
-            : `<div class="cmp-img-ph">🏗</div>`}
-          <div class="cmp-body">
-            <div class="cmp-name">${p.projectnaam || '—'}</div>
-            ${[
-              ['Stad', p.stad],
-              ['Fase', p.fase],
-              ['Projecttype', p.project_type],
-              ['Totaal BVO', p.totaal_bvo ? p.totaal_bvo.toLocaleString('nl-NL') + ' m²' : null],
-              ['Opdrachtgever', p.opdrachtgever],
-              ['Oplevering', p.opleverdatum ? p.opleverdatum.slice(0,4) : null],
-            ].filter(([,v]) => v).map(([l,v]) => `
-              <div class="cmp-row"><span class="cmp-lbl">${l}</span><span class="cmp-val">${v}</span></div>
-            `).join('')}
-          </div>
-        </div>
-      `).join('')}
-    </div>`;
-  document.body.appendChild(backdrop);
-  document.body.appendChild(modal);
-  backdrop.addEventListener('click', () => { backdrop.remove(); modal.remove(); });
-  modal.querySelector('#cmp-close').addEventListener('click', () => { backdrop.remove(); modal.remove(); });
-}
 </script>
-<button class="compare-btn-fixed" id="compare-btn">⚖ Vergelijk</button>
 <script>
 (function(){
   if(localStorage.getItem('mvsa.dark')==='1')
