@@ -704,7 +704,7 @@ function DataSection({ d, leaderPhoto }){
             <span className="label">PLACE IMAGE HERE</span>
           </a>
           <div className="name"><a href={projectHref(d.randomProject?.name || '—')} style={{color:'inherit', textDecoration:'none'}} onMouseOver={(e)=>e.target.style.color='#3d6e8a'} onMouseOut={(e)=>e.target.style.color='inherit'}>{d.randomProject?.name || '—'}</a></div>
-          <div className="meta">{{d.randomProject?.city || ''}</div>
+          <div className="meta">{d.randomProject?.city || ''}</div>
           <div className="rp-tags">
             {(d.randomProject?.tags || []).map((t,i)=> <span key={i} className="tag">{t}</span>)}
           </div>
