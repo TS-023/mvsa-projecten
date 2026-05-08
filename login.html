@@ -286,6 +286,26 @@ async function doLogin() {
     } else if (profile.status === 'rejected') {
       showRejected();
     } else {
+      // Check of werknemer-koppeling bestaat, anders aanmaken
+      if (!profile.employee_id) {
+        try {
+          // Zoek bestaande werknemer op naam
+          let { data: emp } = await db.from('employees')
+            .select('id').ilike('naam', profile.naam.trim()).maybeSingle();
+          // Maak nieuwe werknemer als die niet bestaat
+          if (!emp) {
+            const { data: newEmp } = await db.from('employees').insert([{
+              naam: profile.naam, rol: '', team: profile.team || 'Ontwerp',
+              score: 0, projecten: 0,
+            }]).select('id').single();
+            emp = newEmp;
+          }
+          // Koppel profiel aan werknemer
+          if (emp) {
+            await db.from('profiles').update({ employee_id: emp.id }).eq('id', user.id);
+          }
+        } catch(e) { console.warn('Werknemer koppeling mislukt:', e); }
+      }
       window.location.href = 'projects_dashboard.html';
     }
   } catch(e) {

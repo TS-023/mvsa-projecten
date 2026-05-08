@@ -248,7 +248,8 @@
     text-align:center; font-size:12px; font-weight:600; color:var(--ink-2); margin-bottom: 10px;
   }
   .chart-svg{ width: 100%; height: 180px; display:block; }
-  .axis-label{ font-size: 10px; fill: var(--muted); letter-spacing:.04em; font-family:'Inter', Helvetica, Arial, sans-serif; font-weight: 500; }
+  .chart-svg{ width: 100%; height: auto; display: block; }
+  .axis-label{ font-size: 9px; fill: var(--muted); letter-spacing:.12em; font-family:'Inter', Helvetica, Arial, sans-serif; font-weight: 600; text-transform: uppercase; }
   .bar{ fill: #111418; transition: fill .15s ease; }
   .bar:hover{ fill: #9aa3ad; }
   .bar-bg{ fill: #f1f4f7; }
@@ -594,7 +595,7 @@ function BarChart({ data, height = 180, gap = 10, showLabels = true, padTop = 14
   const chartH = h - padBottom - padTop;
   const [hov, setHov] = React.useState(null);
   return (
-    <svg className="chart-svg" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none"
+    <svg className="chart-svg" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="xMidYMid meet"
          onMouseLeave={() => setHov(null)}>
       {data.map((d, i) => {
         const bh = (d.v / max) * chartH;
@@ -1528,6 +1529,7 @@ function App(){
 
       <DataSection d={liveData || MOCK.data} leaderPhoto={liveLeaderPhoto} />
       <AlgemeenSection a={liveAlgemeen || MOCK.algemeen} onBarClick={(d) => {
+        console.log('Bar clicked:', d, 'allProjects:', allProjects.length);
         const filtered = allProjects.filter(p => {
           if (!p.fase) return false;
           const f = p.fase.trim().toUpperCase();
@@ -1537,6 +1539,7 @@ function App(){
                  f.includes('(' + d.label + ')') ||
                  f.startsWith(d.full ? d.full.toUpperCase() : '____');
         });
+        console.log('Filtered projects for', d.label, ':', filtered.length, filtered.map(p=>p.projectnaam));
         setFaseModal({ label: d.label, fullName: d.full || FASE_NAMES[d.label] || d.label, projects: filtered });
       }} />
       <LocatieSection l={liveLocatie || MOCK.locatie} />
@@ -1756,7 +1759,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 }
 .auth-bar .ab-login:hover{ background:var(--accent,#3d6e8a); }
 </style>
-<div class="auth-bar" id="auth-bar" style="opacity:0;"></div>
+<div class="auth-bar" id="auth-bar" style="display:none;"></div>
 <script>
 (async function(){
   const bar = document.getElementById('auth-bar');
@@ -1765,13 +1768,13 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     const { data: { user } } = await db.auth.getUser();
     if (!user) {
       bar.innerHTML = '<a class="ab-login" href="login.html">Inloggen →</a>';
-      bar.style.opacity = '1';
+      bar.style.display = 'flex';
       return;
     }
     const { data: profile } = await db.from('profiles').select('naam,status,employee_id').eq('id', user.id).maybeSingle();
     if (!profile || profile.status !== 'approved') {
       bar.innerHTML = '<a class="ab-login" href="login.html">Inloggen →</a>';
-      bar.style.opacity = '1';
+      bar.style.display = 'flex';
       return;
     }
     const initials = (profile.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
@@ -1786,9 +1789,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     bar.innerHTML = '<div class="ab-avatar">' + photoHtml + '</div>'
       + '<span class="ab-name">' + profile.naam + '</span>'
       + '<button class="ab-logout" onclick="Auth.logout().then(()=>location.reload())">Uitloggen</button>';
-    bar.style.opacity = '1';
+    bar.style.display = 'flex';
   } catch(e) {
-    bar.style.opacity = '1';
+    bar.style.display = 'flex';
   }
 })();
 </script>

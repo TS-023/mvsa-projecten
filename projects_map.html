@@ -654,7 +654,7 @@ document.getElementById('search').addEventListener('input', (e) => renderList(e.
 }
 .auth-bar .ab-login:hover{ background:var(--accent,#3d6e8a); }
 </style>
-<div class="auth-bar" id="auth-bar" style="opacity:0;"></div>
+<div class="auth-bar" id="auth-bar" style="display:none;"></div>
 <script>
 (async function(){
   const bar = document.getElementById('auth-bar');
@@ -663,13 +663,13 @@ document.getElementById('search').addEventListener('input', (e) => renderList(e.
     const { data: { user } } = await db.auth.getUser();
     if (!user) {
       bar.innerHTML = '<a class="ab-login" href="login.html">Inloggen →</a>';
-      bar.style.opacity = '1';
+      bar.style.display = 'flex';
       return;
     }
     const { data: profile } = await db.from('profiles').select('naam,status,employee_id').eq('id', user.id).maybeSingle();
     if (!profile || profile.status !== 'approved') {
       bar.innerHTML = '<a class="ab-login" href="login.html">Inloggen →</a>';
-      bar.style.opacity = '1';
+      bar.style.display = 'flex';
       return;
     }
     const initials = (profile.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
@@ -684,9 +684,9 @@ document.getElementById('search').addEventListener('input', (e) => renderList(e.
     bar.innerHTML = '<div class="ab-avatar">' + photoHtml + '</div>'
       + '<span class="ab-name">' + profile.naam + '</span>'
       + '<button class="ab-logout" onclick="Auth.logout().then(()=>location.reload())">Uitloggen</button>';
-    bar.style.opacity = '1';
+    bar.style.display = 'flex';
   } catch(e) {
-    bar.style.opacity = '1';
+    bar.style.display = 'flex';
   }
 })();
 </script>
