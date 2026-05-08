@@ -1709,6 +1709,89 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   } catch(e) {}
 })();
 </script>
-<div id="auth-bar" style="position:fixed;top:24px;right:24px;z-index:200;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.85);backdrop-filter:blur(10px);border:1px solid rgba(17,20,24,.08);border-radius:999px;padding:8px 14px;box-shadow:0 4px 16px -4px rgba(20,30,45,.18);font-size:11px;font-family:inherit;"></div>
+
+
+<style>
+.auth-bar{
+  position:fixed; top:16px; right:24px; z-index:200;
+  display:flex; align-items:center; gap:10px;
+  background:rgba(255,255,255,.9); backdrop-filter:blur(12px);
+  border:1px solid rgba(17,20,24,.08); border-radius:999px;
+  padding:6px 8px 6px 6px;
+  box-shadow:0 4px 16px -4px rgba(20,30,45,.15);
+  font-family:'Inter',sans-serif; font-size:12px;
+  transition:opacity .3s;
+}
+[data-theme="dark"] .auth-bar{
+  background:rgba(26,29,34,.9); border-color:#2a2e35;
+}
+.auth-bar .ab-avatar{
+  width:32px; height:32px; border-radius:50%; flex:none;
+  background:var(--ink); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:800; letter-spacing:.02em;
+  overflow:hidden;
+}
+.auth-bar .ab-avatar img{
+  width:100%; height:100%; object-fit:cover; display:block;
+}
+.auth-bar .ab-name{
+  font-weight:700; font-size:12px; letter-spacing:.02em;
+  color:var(--ink); max-width:120px; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap;
+}
+.auth-bar .ab-logout{
+  background:none; border:none; cursor:pointer; font-family:inherit;
+  font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+  font-weight:600; color:var(--muted); padding:4px 8px;
+  border-radius:999px; transition:all .15s;
+}
+.auth-bar .ab-logout:hover{ color:#b43c3c; background:rgba(180,60,60,.08); }
+.auth-bar .ab-login{
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--ink); color:#fff; text-decoration:none;
+  padding:8px 16px; border-radius:999px;
+  font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+  font-weight:700; transition:background .15s;
+}
+.auth-bar .ab-login:hover{ background:var(--accent,#3d6e8a); }
+</style>
+<div class="auth-bar" id="auth-bar" style="opacity:0;"></div>
+<script>
+(async function(){
+  const bar = document.getElementById('auth-bar');
+  if (!bar || typeof db === 'undefined') return;
+  try {
+    const { data: { user } } = await db.auth.getUser();
+    if (!user) {
+      bar.innerHTML = '<a class="ab-login" href="login.html">Inloggen →</a>';
+      bar.style.opacity = '1';
+      return;
+    }
+    const { data: profile } = await db.from('profiles').select('naam,status,employee_id').eq('id', user.id).maybeSingle();
+    if (!profile || profile.status !== 'approved') {
+      bar.innerHTML = '<a class="ab-login" href="login.html">Inloggen →</a>';
+      bar.style.opacity = '1';
+      return;
+    }
+    const initials = (profile.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+    // Probeer foto te laden
+    let photoHtml = initials;
+    if (profile.employee_id) {
+      try {
+        const url = await EmployeeImages.getForEmployee(profile.employee_id);
+        if (url) photoHtml = '<img src="' + url + '" alt="">';
+      } catch(e) {}
+    }
+    bar.innerHTML = '<div class="ab-avatar">' + photoHtml + '</div>'
+      + '<span class="ab-name">' + profile.naam + '</span>'
+      + '<button class="ab-logout" onclick="Auth.logout().then(()=>location.reload())">Uitloggen</button>';
+    bar.style.opacity = '1';
+  } catch(e) {
+    bar.style.opacity = '1';
+  }
+})();
+</script>
+
 </body>
 </html>
