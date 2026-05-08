@@ -13,10 +13,98 @@
 }
 *{ box-sizing:border-box; margin:0; padding:0; }
 html,body{
-  min-height:100vh; background:var(--bg); color:var(--ink);
+  min-height:100vh; color:var(--ink);
   font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased;
   display:flex; align-items:center; justify-content:center; padding:24px;
+  background:var(--bg);
+  position:relative; overflow:hidden;
 }
+
+/* Architecturale achtergrond */
+body::before{
+  content:''; position:fixed; inset:0; z-index:0;
+  background:
+    /* Subtiele grid lijnen — architectuur stijl */
+    linear-gradient(90deg, rgba(17,20,24,.03) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(17,20,24,.03) 1px, transparent 1px),
+    /* Grote diagonale lijn */
+    linear-gradient(135deg, transparent 40%, rgba(61,110,138,.06) 40%, rgba(61,110,138,.06) 40.3%, transparent 40.3%),
+    /* Accent hoek */
+    linear-gradient(225deg, transparent 70%, rgba(61,110,138,.04) 70%, rgba(61,110,138,.04) 70.5%, transparent 70.5%),
+    /* Gradient base */
+    linear-gradient(160deg, #c8d4de 0%, #dee7ef 30%, #e8eef4 60%, #d4dfe8 100%);
+  background-size: 60px 60px, 60px 60px, 100% 100%, 100% 100%, 100% 100%;
+}
+
+/* Floating geometrische vormen */
+body::after{
+  content:''; position:fixed; z-index:0;
+  width:600px; height:600px;
+  top:-150px; right:-100px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(61,110,138,.08) 0%, transparent 70%);
+  animation:floatBlob 20s ease-in-out infinite alternate;
+}
+@keyframes floatBlob{
+  0%{ transform:translate(0,0) scale(1); }
+  50%{ transform:translate(-40px,30px) scale(1.1); }
+  100%{ transform:translate(20px,-20px) scale(0.95); }
+}
+
+/* Accent cirkel linksonder */
+.bg-circle{
+  position:fixed; z-index:0;
+  width:400px; height:400px;
+  bottom:-120px; left:-80px;
+  border-radius:50%;
+  border:1px solid rgba(61,110,138,.1);
+  animation:floatCircle 25s ease-in-out infinite alternate;
+}
+.bg-circle::before{
+  content:''; position:absolute;
+  inset:30px; border-radius:50%;
+  border:1px solid rgba(61,110,138,.06);
+}
+.bg-circle::after{
+  content:''; position:absolute;
+  inset:60px; border-radius:50%;
+  border:1px solid rgba(61,110,138,.04);
+}
+@keyframes floatCircle{
+  0%{ transform:translate(0,0) rotate(0deg); }
+  100%{ transform:translate(30px,-20px) rotate(45deg); }
+}
+
+/* Dunne architectuurlijnen */
+.bg-lines{
+  position:fixed; z-index:0; inset:0; pointer-events:none;
+}
+.bg-lines::before{
+  content:''; position:absolute;
+  top:20%; left:0; right:0; height:1px;
+  background:linear-gradient(90deg, transparent, rgba(61,110,138,.08) 30%, rgba(61,110,138,.08) 70%, transparent);
+}
+.bg-lines::after{
+  content:''; position:absolute;
+  top:0; bottom:0; left:35%; width:1px;
+  background:linear-gradient(0deg, transparent, rgba(61,110,138,.06) 20%, rgba(61,110,138,.06) 80%, transparent);
+}
+
+/* MVSA logo watermark */
+.bg-watermark{
+  position:fixed; z-index:0;
+  bottom:40px; left:40px;
+  font-family:'Inter',sans-serif;
+  font-size:120px; font-weight:900;
+  letter-spacing:-.06em;
+  color:rgba(17,20,24,.03);
+  line-height:1; pointer-events:none;
+  user-select:none;
+}
+
+/* Alles boven de achtergrond */
+.card, div[style*="margin-bottom"]{ position:relative; z-index:1; }
+
 
 .card{
   background:var(--card); border-radius:24px; width:min(440px,100%);
@@ -98,7 +186,10 @@ html,body{
 </style>
 </head>
 <body>
-<div style="width:min(440px,100%);margin-bottom:12px;">
+<div class="bg-circle"></div>
+<div class="bg-lines"></div>
+<div class="bg-watermark">MVSA</div>
+<div style="width:min(440px,100%);margin-bottom:12px;position:relative;z-index:1;">
   <a href="projects_dashboard.html" style="
     display:inline-flex;align-items:center;gap:8px;
     color:var(--ink);text-decoration:none;font-size:12px;
