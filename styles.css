@@ -1,0 +1,191 @@
+/* ═══════════════════════════════════════════════════════════
+   MVSA Projecten — Gedeelde stijlen
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── CSS Variabelen ── */
+:root{
+  --bg: #DEE7EF;
+  --card: #ffffff;
+  --ink: #111418;
+  --ink-2: #2a2f36;
+  --muted: #6b7480;
+  --line: #e6ecf2;
+  --accent: #3d6e8a;
+  --danger: #b43c3c;
+  --shadow: 0 1px 0 rgba(20,30,45,.04), 0 8px 24px -12px rgba(20,30,45,.18);
+  --radius: 16px;
+}
+[data-theme="dark"]{
+  --bg: #0f1114;
+  --card: #1a1d22;
+  --ink: #e8ecf0;
+  --ink-2: #c8cdd4;
+  --muted: #8a929c;
+  --line: #2a2e35;
+  --accent: #5a9ab8;
+  --shadow: 0 1px 0 rgba(0,0,0,.2), 0 8px 24px -12px rgba(0,0,0,.4);
+}
+
+/* ── Reset ── */
+*{ box-sizing:border-box; margin:0; padding:0; }
+html, body{
+  background:var(--bg); color:var(--ink);
+  font-family:'Inter', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+
+/* ── Topbar ── */
+.topbar{
+  position:sticky; top:0; z-index:100;
+  background:rgba(222,231,239,.92); backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(17,20,24,.06);
+  display:flex; align-items:center; gap:12px; padding:14px 32px;
+}
+[data-theme="dark"] .topbar{
+  background:rgba(15,17,20,.92);
+}
+.topbar .crumbs{
+  flex:1; font-size:11px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--muted);
+}
+.topbar .crumbs a{
+  color:var(--muted); text-decoration:none;
+}
+.topbar .crumbs strong{ color:var(--ink); }
+.topbar .meta{
+  font-size:11px; letter-spacing:.08em; color:var(--muted);
+  display:flex; align-items:center; gap:12px;
+}
+.topbar .dot{
+  display:inline-block; width:6px; height:6px; border-radius:50%;
+  background:#1c8c50; margin-right:6px;
+}
+
+/* ── Topbar knoppen ── */
+.tb-btn{
+  background:#fff; color:var(--ink); text-decoration:none;
+  padding:8px 16px; border-radius:999px;
+  font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:700;
+  border:1px solid rgba(17,20,24,.12);
+  transition:background .15s ease, transform .15s ease;
+  display:inline-flex; align-items:center; gap:6px;
+  font-family:inherit; cursor:pointer;
+}
+.tb-btn:hover{
+  background:#f3f7fa; transform:translateY(-1px);
+}
+.tb-btn.primary{
+  background:var(--ink); color:#fff; border-color:var(--ink);
+}
+.tb-btn.primary:hover{
+  background:var(--accent); border-color:var(--accent);
+}
+[data-theme="dark"] .tb-btn{
+  background:var(--card); border-color:var(--line); color:var(--ink);
+}
+
+/* ── Back knop ── */
+.back{
+  position:fixed; top:24px; left:24px; z-index:100;
+  display:inline-flex; align-items:center; gap:6px;
+  color:var(--ink); text-decoration:none;
+  font-size:12px; letter-spacing:.1em; text-transform:uppercase; font-weight:600;
+  padding:10px 16px; border-radius:999px;
+  background:rgba(255,255,255,.85); backdrop-filter:blur(10px);
+  border:1px solid rgba(17,20,24,.08);
+  box-shadow:0 4px 16px -4px rgba(20,30,45,.18);
+  transition:background .15s ease, transform .15s ease;
+}
+.back:hover{
+  background:#fff; transform:translateY(-1px);
+  box-shadow:0 8px 20px -4px rgba(20,30,45,.24);
+}
+
+/* ── Kaarten ── */
+.card{
+  background:var(--card); border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+
+/* ── Sectie titels ── */
+.section-label{
+  font-size:10px; letter-spacing:.22em; text-transform:uppercase; font-weight:700;
+  color:var(--accent); margin-bottom:14px;
+  display:flex; align-items:center; gap:10px;
+}
+.section-label::after{
+  content:''; flex:1; height:1px; background:var(--line);
+}
+
+/* ── Pill badges ── */
+.pill{
+  font-size:9px; letter-spacing:.12em; text-transform:uppercase; font-weight:700;
+  padding:3px 8px; border-radius:999px;
+  background:rgba(61,110,138,.1); color:var(--accent);
+  display:inline-block;
+}
+
+/* ── Auth bar ── */
+.auth-bar{
+  position:fixed; top:16px; right:24px; z-index:200;
+  display:none; align-items:center; gap:10px;
+  background:rgba(255,255,255,.9); backdrop-filter:blur(12px);
+  border:1px solid rgba(17,20,24,.08); border-radius:999px;
+  padding:6px 8px 6px 6px;
+  box-shadow:0 4px 16px -4px rgba(20,30,45,.15);
+  font-family:'Inter',sans-serif; font-size:12px;
+}
+[data-theme="dark"] .auth-bar{
+  background:rgba(26,29,34,.9); border-color:#2a2e35;
+}
+.auth-bar .ab-avatar{
+  width:32px; height:32px; border-radius:50%; flex:none;
+  background:var(--ink); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:800; letter-spacing:.02em; overflow:hidden;
+}
+.auth-bar .ab-avatar img{
+  width:100%; height:100%; object-fit:cover; display:block;
+}
+.auth-bar .ab-name{
+  font-weight:700; font-size:12px; letter-spacing:.02em;
+  color:var(--ink); max-width:120px; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap;
+}
+.auth-bar .ab-logout{
+  background:none; border:none; cursor:pointer; font-family:inherit;
+  font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+  font-weight:600; color:var(--muted); padding:4px 8px;
+  border-radius:999px; transition:all .15s;
+}
+.auth-bar .ab-logout:hover{
+  color:var(--danger); background:rgba(180,60,60,.08);
+}
+.auth-bar .ab-login{
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--ink); color:#fff; text-decoration:none;
+  padding:8px 16px; border-radius:999px;
+  font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+  font-weight:700; transition:background .15s;
+}
+.auth-bar .ab-login:hover{
+  background:var(--accent);
+}
+
+/* ── Toast meldingen ── */
+.toast{
+  position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+  background:var(--ink); color:#fff; padding:10px 20px; border-radius:999px;
+  font-size:12px; letter-spacing:.08em; z-index:999; white-space:nowrap;
+  animation:toastIn .3s ease;
+}
+@keyframes toastIn{
+  from{opacity:0;transform:translateX(-50%) translateY(8px)}
+  to{opacity:1;transform:translateX(-50%) translateY(0)}
+}
+
+/* ── Print verbergen ── */
+@media print{
+  .auth-bar, .topbar, .back{ display:none !important; }
+}

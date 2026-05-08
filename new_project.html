@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
 <style>
   :root{
     --bg: #DEE7EF;
@@ -564,12 +565,7 @@ function App(){
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
-<script>
-(function(){
-  if(localStorage.getItem('mvsa.dark')==='1')
-    document.documentElement.setAttribute('data-theme','dark');
-})();
-</script>
+<script src="dark-mode.js"></script>
 <script src="transitions.js"></script>
 
 <style>
@@ -654,5 +650,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 })();
 </script>
 
+<div class="auth-bar" id="auth-bar"></div>
+<script src="auth-bar.js"></script>
 </body>
 </html>

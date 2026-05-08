@@ -6,6 +6,7 @@
 <title>Beheer · MVSA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
 <style>
 /* ═══════════════════════════════════════════════
    CSS VARIABELEN & RESET
@@ -1094,12 +1095,7 @@ if(authed){
   initAdmin();
 }
 </script>
-<script>
-(function(){
-  if(localStorage.getItem('mvsa.dark')==='1')
-    document.documentElement.setAttribute('data-theme','dark');
-})();
-</script>
+<script src="dark-mode.js"></script>
 <script src="transitions.js"></script>
 </body>
 </html>

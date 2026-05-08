@@ -1,128 +1,62 @@
-# MVSA Projecten — Codestructuur
+# MVSA Projecten Overzicht
 
-## Bestandsoverzicht
+Intern projectmanagementsysteem voor MVSA Architects.
 
-```
-mvsa-lower/
-├── index.html              → Redirect naar dashboard
-├── projects_dashboard.html → Hoofdpagina met alle statistieken
-├── projects_list.html      → Lijst + kaartweergave van alle projecten
-├── projects_map.html       → Interactieve kaart met alle projectlocaties
-├── project_page.html       → Detailpagina van één project
-├── new_project.html        → Formulier: nieuw project invoeren / bewerken
-├── employees.html          → Leaderboard werknemers + visitekaartje
-├── supabase.js             → Database configuratie + hulpfuncties
-├── transitions.js          → Vloeiende paginaovergangen
-└── database-setup.sql      → SQL om tabellen aan te maken in Supabase
-```
+## Bestandsstructuur
 
----
+### Gedeelde bestanden
+| Bestand | Functie |
+|---|---|
+| `styles.css` | Alle gedeelde CSS (variabelen, topbar, knoppen, kaarten, auth-bar, toast) |
+| `supabase.js` | Database configuratie + Auth/Projects/Employees/Images helpers |
+| `auth-bar.js` | Inlog/uitlog balk — wordt op elke pagina geladen |
+| `auth-check.js` | Beveiligingscheck — alleen op schrijf-pagina's (new_project) |
+| `dark-mode.js` | Donkere modus herstellen bij laden |
+| `transitions.js` | Paginaovergangen (fade in/out) |
 
-## supabase.js — de databaselaag
+### Pagina's
+| Bestand | Functie |
+|---|---|
+| `index.html` | Redirect naar dashboard |
+| `projects_dashboard.html` | Hoofdpagina met statistieken en widgets |
+| `projects_list.html` | Lijst + kaartweergave van alle projecten |
+| `projects_map.html` | Leaflet kaart met alle projecten |
+| `project_page.html` | Projectdetail + vergelijkfunctie + PDF export |
+| `new_project.html` | Formulier nieuw/bewerk project (beveiligd) |
+| `employees.html` | Leaderboard |
+| `login.html` | Inloggen / aanmelden / wachtwoord vergeten |
+| `profile.html` | Persoonlijk profiel bewerken |
+| `admin.html` | Beheerpagina (wachtwoord: beheerder) |
 
-Alle communicatie met Supabase zit hier. Aanpassen hoeft alleen als de
-URL of sleutel verandert.
+### Database
+| Bestand | Functie |
+|---|---|
+| `database-setup.sql` | SQL voor Supabase tabellen + RLS policies |
 
-```
-Projects.getAll()              → alle projecten ophalen
-Projects.getByName(naam)       → één project op naam
-Projects.getByNumber(nummer)   → één project op nummer
-Projects.upsert(project)       → opslaan of bijwerken
-Projects.remove(id)            → verwijderen
+## Hoe een pagina is opgebouwd
 
-Employees.getAll()             → alle werknemers ophalen
+```html
+<head>
+  <link href="fonts..." />
+  <link rel="stylesheet" href="styles.css" />  <!-- Gedeeld -->
+  <style>/* Pagina-specifieke CSS */</style>
+</head>
+<body>
+  <!-- Pagina content -->
 
-Images.upload(nummer, file)    → foto uploaden naar Storage
-Images.getForProject(nummer)   → foto-URLs ophalen voor een project
-Images.remove(url)             → foto verwijderen
+  <!-- Scripts (altijd in deze volgorde) -->
+  <script src="supabase.js"></script>
+  <script src="auth-check.js"></script>  <!-- Alleen op beveiligde pagina's -->
+  <script src="dark-mode.js"></script>
+  <script src="transitions.js"></script>
 
-EmployeeImages.upload(id, file)         → werknemerfoto uploaden
-EmployeeImages.getForEmployee(id)       → werknemerfoto ophalen
-```
-
----
-
-## projects_dashboard.html — structuur
-
-```
-CSS
-  ├── Layout (page, topbar, grid)
-  ├── Widget stijlen
-  │   ├── Data sectie (grote nummers)
-  │   ├── Leaderboard / RankList
-  │   ├── Charts (BarChart, Donut)
-  │   ├── Breakdown balk
-  │   └── Kaartjes per sectie
-  ├── Zoekbalk & dropdown
-  ├── Periode filter
-  ├── Recent gewijzigd
-  └── Modals (fase-modal)
-
-JavaScript componenten
-  ├── BarChart          → staafdiagram (fases, functies)
-  ├── Donut             → taartdiagram (verdeling)
-  ├── RankList          → genummerde ranglijst
-  ├── SectionTitle      → blauwe koptitel met lijn
-  ├── DataSection       → grote statistieken bovenaan
-  ├── AlgemeenSection   → fases, functies, opgave
-  ├── MetrageSection    → BVO verdeling
-  ├── MobiliteitRatioSection → parkeren
-  ├── DuurzaamheidSection    → labels en scores
-  ├── BouwOverigSection      → hoogte, awards
-  ├── LocatieSection         → steden, provincies
-  └── App               → hoofdcomponent, beheert alle state
-        ├── State
-        │   ├── liveData / liveAlgemeen / ... → Supabase data per sectie
-        │   ├── allProjects                   → ruwe projectenlijst
-        │   ├── period                        → Altijd / Dit jaar / Deze maand
-        │   ├── searchQ / searchOpen          → zoekbalk
-        │   ├── faseModal                     → welke fase is open
-        │   └── darkMode                      → donkere modus
-        ├── filterByPeriod()   → filtert op opleverdatum
-        ├── computeStats()     → berekent alle widgetdata
-        └── exportCSV()        → download als CSV
+  <!-- Auth bar (op elke publieke pagina) -->
+  <div class="auth-bar" id="auth-bar"></div>
+  <script src="auth-bar.js"></script>
+</body>
 ```
 
----
-
-## projects_list.html — structuur
-
-```
-State (gewone JS, geen React)
-  ├── currentView     → 'list' of 'grid'
-  ├── selected        → Set van geselecteerde project-ids
-  └── allProjects     → array van projecten uit Supabase
-
-Functies
-  ├── render()         → herlaadt uit Supabase
-  ├── renderTable()    → tekent lijst of kaartweergave
-  ├── renderBulkBar()  → toont bulk-bewerkbalk
-  ├── setView()        → schakelt weergave
-  └── showCompare()    → vergelijkingsmodal
-```
-
----
-
-## Supabase tabellen
-
-### projects
-Alle projectvelden — zie database-setup.sql voor de volledige lijst.
-Belangrijkste kolommen:
-```
-id, projectnummer, projectnaam, stad, provincie, land
-fase, opgave, project_type, functie
-totaal_bvo, m_wonen, m_kantoor, m_commercieel
-opdrachtgever, opleverdatum
-created_at, updated_at
-```
-
-### employees
-```
-id, naam, rol, team, score, projecten, awards
-```
-
-### Storage buckets
-```
-project-images/   → foto's per project (map = projectnummer)
-employee-images/  → foto's per werknemer (map = werknemer-id)
-```
+## Hosting
+- **GitHub Pages**: https://ts-023.github.io/mvsa-projecten/
+- **Database**: Supabase (PostgreSQL)
+- **Storage**: Supabase Storage (project-images, employee-images)

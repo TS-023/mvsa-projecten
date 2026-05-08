@@ -6,6 +6,7 @@
 <title>Projecten · Lijst</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
 <style>
   :root{ --bg:#DEE7EF; --card:#fff; --ink:#111418; --muted:#6b7480; --line:#e6ecf2; --accent:#3d6e8a; --shadow: 0 1px 0 rgba(20,30,45,.04), 0 8px 24px -12px rgba(20,30,45,.18); }
   *{ box-sizing: border-box; }
@@ -312,15 +313,8 @@ async function render() {
     });
   });
 }
-
-render();
 </script>
-<script>
-(function(){
-  if(localStorage.getItem('mvsa.dark')==='1')
-    document.documentElement.setAttribute('data-theme','dark');
-})();
-</script>
+<script src="dark-mode.js"></script>
 <script src="transitions.js"></script>
 
 
@@ -406,5 +400,7 @@ render();
 })();
 </script>
 
+<div class="auth-bar" id="auth-bar"></div>
+<script src="auth-bar.js"></script>
 </body>
 </html>

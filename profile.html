@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Mijn profiel · MVSA</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
 <style>
 :root{
   --bg:#DEE7EF; --card:#fff; --ink:#111418; --muted:#6b7480;
@@ -346,12 +347,9 @@ async function saveProfile() {
 
 init();
 </script>
-<script>
-(function(){
-  if(localStorage.getItem('mvsa.dark')==='1')
-    document.documentElement.setAttribute('data-theme','dark');
-})();
-</script>
+<script src="dark-mode.js"></script>
 <script src="transitions.js"></script>
+<div class="auth-bar" id="auth-bar"></div>
+<script src="auth-bar.js"></script>
 </body>
 </html>
