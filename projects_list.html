@@ -259,6 +259,22 @@
 <script src="supabase.js"></script>
 <script>
 /* ── render: herlaadt alle projecten uit Supabase en toont ze ── */
+let isApproved = false;
+let currentView = localStorage.getItem('mvsa.listview') || 'list';
+
+function setView(v) {
+  currentView = v;
+  localStorage.setItem('mvsa.listview', v);
+  document.getElementById('vt-grid')?.classList.toggle('active', v === 'grid');
+  document.getElementById('vt-list')?.classList.toggle('active', v === 'list');
+  render();
+}
+
+setTimeout(() => {
+  document.getElementById('vt-grid')?.classList.toggle('active', currentView === 'grid');
+  document.getElementById('vt-list')?.classList.toggle('active', currentView === 'list');
+}, 100);
+
 async function render() {
   const root = document.getElementById('root');
   let projects = [];
