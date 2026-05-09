@@ -420,7 +420,9 @@ async function doLogin() {
       showRejected();
     } else {
       // Check of werknemer-koppeling bestaat, anders aanmaken
+      console.log('Profile check:', profile.naam, 'employee_id:', profile.employee_id);
       if (!profile.employee_id) {
+        console.log('Geen employee_id — werknemer aanmaken...');
         try {
           // Zoek bestaande werknemer op naam
           let { data: emp } = await db.from('employees')
@@ -435,7 +437,12 @@ async function doLogin() {
           }
           // Koppel profiel aan werknemer
           if (emp) {
-            await db.from('profiles').update({ employee_id: emp.id }).eq('id', user.id);
+            console.log('Koppeling maken:', emp.id);
+            const { error: linkError } = await db.from('profiles').update({ employee_id: emp.id }).eq('id', user.id);
+            if (linkError) console.error('Koppeling mislukt:', linkError);
+            else console.log('Koppeling gelukt!');
+          } else {
+            console.error('Geen werknemer gevonden of aangemaakt');
           }
         } catch(e) { console.warn('Werknemer koppeling mislukt:', e); }
       }
