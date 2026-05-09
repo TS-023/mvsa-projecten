@@ -288,3 +288,84 @@ const AdminAuth = {
     await db.from('profiles').delete().eq('id', profileId);
   },
 };
+
+
+// ============================================================
+//  SESSIE TIMEOUT — automatisch uitloggen na 1 uur inactiviteit
+// ============================================================
+(function(){
+  const TIMEOUT = 60 * 60 * 1000; // 1 uur in milliseconden
+  let timer = null;
+
+  function resetTimer(){
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(async () => {
+      try {
+        const { data: { user } } = await db.auth.getUser();
+        if (user) {
+          await db.auth.signOut();
+          window.location.href = 'login.html';
+        }
+      } catch(e) {}
+    }, TIMEOUT);
+    // Sla laatste activiteit op
+    localStorage.setItem('mvsa.lastActivity', Date.now().toString());
+  }
+
+  // Check bij laden of sessie verlopen is
+  const last = parseInt(localStorage.getItem('mvsa.lastActivity') || '0');
+  if (last && (Date.now() - last) > TIMEOUT) {
+    db.auth.signOut().catch(()=>{});
+  }
+
+  // Reset timer bij elke interactie
+  ['click', 'keydown', 'scroll', 'mousemove'].forEach(evt => {
+    document.addEventListener(evt, resetTimer, { passive: true });
+  });
+
+  resetTimer();
+})();
+
+
+// ============================================================
+//  SESSIE TIMEOUT — automatisch uitloggen na 1 uur
+// ============================================================
+(function(){
+  const SESSION_TIMEOUT = 60 * 60 * 1000; // 1 uur in ms
+  const SESSION_KEY = 'mvsa.lastActivity';
+
+  function updateActivity(){
+    localStorage.setItem(SESSION_KEY, Date.now().toString());
+  }
+
+  function checkTimeout(){
+    const last = parseInt(localStorage.getItem(SESSION_KEY) || '0');
+    if (last && (Date.now() - last) > SESSION_TIMEOUT) {
+      // Sessie verlopen — uitloggen
+      localStorage.removeItem(SESSION_KEY);
+      db.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          db.auth.signOut().then(() => {
+            if (!window.location.pathname.includes('login.html')) {
+              window.location.href = 'login.html';
+            }
+          });
+        }
+      });
+    }
+  }
+
+  // Check bij laden
+  checkTimeout();
+
+  // Update activiteit bij interactie
+  ['click', 'keydown', 'scroll', 'mousemove'].forEach(evt => {
+    document.addEventListener(evt, updateActivity, { passive: true });
+  });
+
+  // Zet initiële activiteit
+  updateActivity();
+
+  // Check elke minuut
+  setInterval(checkTimeout, 60 * 1000);
+})();
