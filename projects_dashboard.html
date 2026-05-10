@@ -594,7 +594,7 @@ function BarChart({ data, height = 180, gap = 10, showLabels = true, padTop = 14
   const chartH = h - padBottom - padTop;
   const [hov, setHov] = React.useState(null);
   return (
-    <svg className="chart-svg" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none"
+    <svg className="chart-svg" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="xMidYMid meet" style={{width:'100%',height:'auto',display:'block'}}
          onMouseLeave={() => setHov(null)}>
       {data.map((d, i) => {
         const bh = (d.v / max) * chartH;
