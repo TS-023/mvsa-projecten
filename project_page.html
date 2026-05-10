@@ -561,7 +561,15 @@ function CompareView({ projectA, projectB, projectBImages, thumbCache, allProjec
       <div className="compare-overlay">
         {/* Topbar */}
         <div className="compare-topbar">
-          <h2>⚖ Vergelijken</h2>
+          <a href="projects_dashboard.html" style={{
+            fontSize:'11px',letterSpacing:'.1em',textTransform:'uppercase',fontWeight:600,
+            color:'var(--muted)',textDecoration:'none',padding:'8px 14px',borderRadius:999,
+            border:'1px solid var(--line)',background:'var(--card)',transition:'all .15s',
+          }}
+          onMouseOver={e=>{e.currentTarget.style.color='var(--ink)';e.currentTarget.style.borderColor='rgba(0,0,0,.2)';}}
+          onMouseOut={e=>{e.currentTarget.style.color='var(--muted)';e.currentTarget.style.borderColor='var(--line)';}}
+          >← Dashboard</a>
+          <h2 style={{flex:1}}>⚖ Vergelijken</h2>
           <button className="compare-close" onClick={onClose}>× Sluiten</button>
         </div>
 
