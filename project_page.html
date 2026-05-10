@@ -870,7 +870,7 @@ function CompareView({ projectA, projectB, projectBImages, thumbCache, allProjec
               return (
                 <div key={i} style={{marginBottom:8}}>
                   <div style={{fontSize:'9px',letterSpacing:'.16em',textTransform:'uppercase',color:'var(--muted)',fontWeight:700,marginBottom:6}}>{c.lbl}</div>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',gap:6,alignItems:'center'}}>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr 1fr',gap:6,alignItems:'center'}}>
                     {/* Waarde A */}
                     <div style={{
                       background:bgA, borderRadius:8, padding:'8px 12px',
@@ -880,9 +880,6 @@ function CompareView({ projectA, projectB, projectBImages, thumbCache, allProjec
                       <div style={{fontSize:'14px',fontWeight:800,color:colorA,letterSpacing:'-.01em'}}>
                         {fmtVal(c.va, c.numeric, c.unit)}
                       </div>
-                      {aWins && <div style={{fontSize:'9px',color:'#1c8c50',fontWeight:700,marginTop:2,letterSpacing:'.1em'}}>▲ MEER</div>}
-                      {bWins && <div style={{fontSize:'9px',color:'#b43c3c',fontWeight:700,marginTop:2,letterSpacing:'.1em'}}>▼ MINDER</div>}
-                      {equal && <div style={{fontSize:'9px',color:'#c8900a',fontWeight:700,marginTop:2,letterSpacing:'.1em'}}>● GELIJK</div>}
                     </div>
 
                     {/* VS */}
@@ -897,10 +894,21 @@ function CompareView({ projectA, projectB, projectBImages, thumbCache, allProjec
                       <div style={{fontSize:'14px',fontWeight:800,color:colorB,letterSpacing:'-.01em'}}>
                         {fmtVal(c.vb, c.numeric, c.unit)}
                       </div>
-                      {bWins && <div style={{fontSize:'9px',color:'#1c8c50',fontWeight:700,marginTop:2,letterSpacing:'.1em'}}>▲ MEER</div>}
-                      {aWins && <div style={{fontSize:'9px',color:'#b43c3c',fontWeight:700,marginTop:2,letterSpacing:'.1em'}}>▼ MINDER</div>}
-                      {equal && <div style={{fontSize:'9px',color:'#c8900a',fontWeight:700,marginTop:2,letterSpacing:'.1em'}}>● GELIJK</div>}
                     </div>
+
+                    {/* Verschil */}
+                    {c.numeric && (na !== 0 || nb !== 0) && (
+                      <div style={{
+                        background:equal?'rgba(200,144,10,.06)':aWins?'rgba(28,140,80,.06)':'rgba(180,60,60,.06)',
+                        borderRadius:8, padding:'6px 10px', textAlign:'center',
+                        border:`1px solid ${equal?'rgba(200,144,10,.12)':aWins?'rgba(28,140,80,.12)':'rgba(180,60,60,.12)'}`,
+                      }}>
+                        <div style={{fontSize:'9px',color:'var(--muted)',letterSpacing:'.1em',textTransform:'uppercase',fontWeight:600,marginBottom:2}}>Verschil</div>
+                        <div style={{fontSize:'13px',fontWeight:800,color:equal?'#c8900a':aWins?'#1c8c50':'#b43c3c'}}>
+                          {equal ? '0' : (aWins ? '+' : '-') + Math.abs(na - nb).toLocaleString('nl-NL')}{c.unit ? ' ' + c.unit : ''}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
