@@ -377,6 +377,8 @@
 </style>
 </head>
 <body>
+<div class="sidebar" id="sidebar"></div>
+
 <div class="page" id="root"></div>
 
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
@@ -852,7 +854,7 @@ function DataSection({ d, leaderPhoto }){
           </div>
         ))}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -901,7 +903,7 @@ function AlgemeenSection({ a, onBarClick }){
           </ul>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -962,7 +964,7 @@ function MetrageSection({ m }){
           ))}
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -997,7 +999,7 @@ function MobiliteitRatioSection({ mob, ratio }){
           <RankList items={ratio.kantoor} linkProjects />
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -1024,7 +1026,7 @@ function DuurzaamheidSection({ d }){
           <RankList items={d.zonnepanelen} linkProjects />
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -1061,7 +1063,7 @@ function BouwOverigSection({ b }){
           <RankList items={b.awards} linkProjects />
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -1094,7 +1096,7 @@ function LocatieSection({ l }){
           <RankList items={l.steden.map(c => ({ name: c.name, score: c.v }))} onItemClick={(name) => { window.location.href = `projects_map.html?stad=${encodeURIComponent(name)}`; }} />
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -1388,11 +1390,11 @@ function App(){
     URL.revokeObjectURL(url);
   };
   return (
-    <>
-      <header className="topbar">
-        <div className="crumbs">Projecten · <strong>Statistieken</strong></div>
+    <div className="main">
+      <header className="topbar" style={{position:'relative',background:'transparent',borderBottom:'none',padding:'0 0 24px'}}>
+        <h1 style={{flex:1,fontSize:'24px',fontWeight:800,letterSpacing:'-.03em'}}>Dashboard</h1>
         <div className="meta">
-          <span><span className="dot"></span>Live · synced 2 min geleden</span>
+          <span><span className="dot" style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:'var(--success)',marginRight:4}}></span>Live · synced 2 min geleden</span>
 
           {/* ZOEKBALK IN TOPBAR */}
           <div style={{position:'relative', flex:'0 1 280px'}} ref={searchRef}>
@@ -1616,7 +1618,7 @@ function App(){
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }
 
@@ -1645,6 +1647,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 <div id="auth-bar" style="position:fixed;top:24px;right:24px;z-index:200;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.85);backdrop-filter:blur(10px);border:1px solid rgba(17,20,24,.08);border-radius:999px;padding:8px 14px;box-shadow:0 4px 16px -4px rgba(20,30,45,.18);font-size:11px;font-family:inherit;"></div>
 <div class="auth-bar" id="auth-bar"></div>
-<script src="auth-bar.js"></script>
+<script src="sidebar.js"></script>
 </body>
 </html>
