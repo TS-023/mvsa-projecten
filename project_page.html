@@ -527,7 +527,7 @@ function InfoCard({ title, items, keyStat }){
 }
 
 /* ── CompareView: toont twee projecten naast elkaar met vergelijkingsresultaten ── */
-function CompareView({ projectA, projectB, projectBImages, thumbCache, allProjectsList, setCompareProject, setCompareImages, onClose }) {
+function CompareView({ projectA, projectB, projectBImages, thumbCache, allProjectsList = [], setCompareProject, setCompareImages, onClose }) {
   const [showSwitcher, setShowSwitcher] = React.useState(false);
   const [switcherSearch, setSwitcherSearch] = React.useState('');
   const a = projectA;
