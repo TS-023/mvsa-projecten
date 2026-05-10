@@ -1,12 +1,10 @@
 /* ═══════════════════════════════════════════════════════════
-   MVSA Projecten — Gedeelde stijlen v2
-   Warm kleurenpalet, zijmenu navigatie, moderne kaarten
+   MVSA Projecten — Gedeelde stijlen
+   Warm kleurenpalet
    ═══════════════════════════════════════════════════════════ */
 
-/* ── CSS Variabelen ── */
 :root{
   --bg: #f4f1ec;
-  --bg-2: #eae6df;
   --card: #ffffff;
   --ink: #1a1c1e;
   --ink-2: #2e3136;
@@ -18,191 +16,28 @@
   --success: #2d8a5e;
   --warning: #c8900a;
   --shadow: 0 1px 3px rgba(0,0,0,.04), 0 6px 16px -4px rgba(0,0,0,.08);
-  --shadow-hover: 0 1px 3px rgba(0,0,0,.04), 0 12px 28px -6px rgba(0,0,0,.14);
   --radius: 16px;
-  --radius-sm: 10px;
-  --sidebar-w: 260px;
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 [data-theme="dark"]{
   --bg: #111315;
-  --bg-2: #191b1e;
   --card: #1e2024;
   --ink: #e8ecf0;
   --ink-2: #c8cdd4;
   --muted: #6b7078;
   --line: #2a2d32;
   --accent: #5a9ab8;
-  --accent-light: rgba(90,154,184,.1);
   --shadow: 0 1px 3px rgba(0,0,0,.2), 0 6px 16px -4px rgba(0,0,0,.3);
-  --shadow-hover: 0 1px 3px rgba(0,0,0,.2), 0 12px 28px -6px rgba(0,0,0,.4);
 }
 
-/* ── Reset ── */
 *{ box-sizing:border-box; margin:0; padding:0; }
 html, body{
   background:var(--bg); color:var(--ink);
-  font-family:var(--font);
+  font-family:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing:antialiased;
   min-height:100vh;
 }
 
-/* ── Sidebar navigatie ── */
-.sidebar{
-  position:fixed; top:0; left:0; bottom:0; width:var(--sidebar-w);
-  background:var(--card); border-right:1px solid var(--line);
-  display:flex; flex-direction:column; z-index:150;
-  padding:28px 0;
-  transition:transform .25s ease;
-}
-.sidebar-brand{
-  padding:0 24px 24px; border-bottom:1px solid var(--line); margin-bottom:8px;
-}
-.sidebar-brand .logo{
-  font-size:22px; font-weight:900; letter-spacing:-.03em; color:var(--ink);
-}
-.sidebar-brand .sub{
-  font-size:10px; letter-spacing:.18em; text-transform:uppercase;
-  color:var(--muted); margin-top:2px;
-}
-.sidebar-nav{ flex:1; padding:8px 12px; overflow-y:auto; }
-.sidebar-nav a, .sidebar-nav button{
-  display:flex; align-items:center; gap:12px; width:100%;
-  padding:10px 14px; border-radius:var(--radius-sm);
-  font-family:var(--font); font-size:13px; font-weight:500;
-  color:var(--muted); text-decoration:none; border:none;
-  background:none; cursor:pointer; transition:all .15s;
-  margin-bottom:2px;
-}
-.sidebar-nav a:hover, .sidebar-nav button:hover{
-  background:var(--bg); color:var(--ink);
-}
-.sidebar-nav a.active{
-  background:var(--ink); color:#fff; font-weight:600;
-}
-.sidebar-nav .icon{
-  width:20px; text-align:center; font-size:15px; flex:none;
-}
-.sidebar-nav .sep{
-  height:1px; background:var(--line); margin:12px 14px;
-}
-.sidebar-profile{
-  padding:16px 20px; border-top:1px solid var(--line);
-  display:flex; align-items:center; gap:12px;
-}
-.sidebar-profile .sp-avatar{
-  width:40px; height:40px; border-radius:50%; flex:none;
-  background:var(--ink); color:#fff;
-  display:flex; align-items:center; justify-content:center;
-  font-size:14px; font-weight:800; overflow:hidden;
-}
-.sidebar-profile .sp-avatar img{
-  width:100%; height:100%; object-fit:cover;
-}
-.sidebar-profile .sp-info{ flex:1; min-width:0; }
-.sidebar-profile .sp-name{
-  font-weight:700; font-size:13px; overflow:hidden;
-  text-overflow:ellipsis; white-space:nowrap;
-}
-.sidebar-profile .sp-role{
-  font-size:11px; color:var(--muted);
-}
-.sidebar-profile .sp-logout{
-  background:none; border:none; cursor:pointer; color:var(--muted);
-  font-size:16px; padding:4px; transition:color .15s;
-}
-.sidebar-profile .sp-logout:hover{ color:var(--danger); }
-
-/* ── Hoofdcontent (naast sidebar) ── */
-.main{
-  margin-left:var(--sidebar-w); min-height:100vh;
-  padding:28px 32px 60px;
-}
-
-/* ── Topbar (binnen main) ── */
-.topbar{
-  display:flex; align-items:center; gap:16px;
-  margin-bottom:28px;
-}
-.topbar h1{
-  font-size:24px; font-weight:800; letter-spacing:-.03em; flex:1;
-}
-.topbar .meta{
-  font-size:12px; color:var(--muted);
-  display:flex; align-items:center; gap:8px;
-}
-.topbar .dot{
-  display:inline-block; width:6px; height:6px; border-radius:50%;
-  background:var(--success); margin-right:4px;
-}
-
-/* ── Knoppen ── */
-.tb-btn{
-  display:inline-flex; align-items:center; gap:6px;
-  padding:9px 18px; border-radius:var(--radius-sm);
-  font-family:var(--font); font-size:12px; font-weight:600;
-  letter-spacing:.02em; cursor:pointer;
-  border:1px solid var(--line); background:var(--card); color:var(--ink);
-  transition:all .15s; text-decoration:none;
-}
-.tb-btn:hover{
-  background:var(--bg); border-color:rgba(0,0,0,.12);
-  transform:translateY(-1px); box-shadow:var(--shadow);
-}
-.tb-btn.primary{
-  background:var(--ink); color:#fff; border-color:var(--ink);
-}
-.tb-btn.primary:hover{
-  background:var(--ink-2); transform:translateY(-1px);
-  box-shadow:var(--shadow-hover);
-}
-
-/* ── Kaarten ── */
-.card{
-  background:var(--card); border-radius:var(--radius);
-  box-shadow:var(--shadow); border:1px solid var(--line);
-}
-.card:hover{
-  box-shadow:var(--shadow-hover);
-}
-
-/* ── Sectie titels ── */
-.section-label{
-  font-size:10px; letter-spacing:.22em; text-transform:uppercase; font-weight:700;
-  color:var(--muted); margin-bottom:16px;
-  display:flex; align-items:center; gap:12px;
-}
-.section-label::after{
-  content:''; flex:1; height:1px; background:var(--line);
-}
-
-/* ── Pill badges ── */
-.pill{
-  font-size:9px; letter-spacing:.1em; text-transform:uppercase; font-weight:700;
-  padding:4px 10px; border-radius:999px;
-  background:var(--accent-light); color:var(--accent);
-  display:inline-block;
-}
-.pill.success{ background:rgba(45,138,94,.08); color:var(--success); }
-.pill.danger{ background:rgba(196,64,64,.08); color:var(--danger); }
-.pill.warning{ background:rgba(200,144,10,.08); color:var(--warning); }
-
-/* ── Stat kaarten ── */
-.stat-card{
-  background:var(--card); border-radius:var(--radius); padding:20px 24px;
-  border:1px solid var(--line);
-}
-.stat-card .stat-label{
-  font-size:11px; color:var(--muted); font-weight:500; margin-bottom:8px;
-}
-.stat-card .stat-num{
-  font-size:32px; font-weight:800; letter-spacing:-.04em; line-height:1;
-}
-.stat-card .stat-sub{
-  font-size:11px; color:var(--muted); margin-top:4px;
-}
-
-/* ── Auth bar (fallback voor pagina's zonder sidebar) ── */
+/* ── Auth bar ── */
 .auth-bar{
   position:fixed; top:16px; right:24px; z-index:90;
   display:none; align-items:center; gap:10px;
@@ -210,7 +45,7 @@ html, body{
   border:1px solid var(--line); border-radius:999px;
   padding:6px 8px 6px 6px;
   box-shadow:var(--shadow);
-  font-family:var(--font); font-size:12px;
+  font-family:'Inter',sans-serif; font-size:12px;
 }
 [data-theme="dark"] .auth-bar{
   background:rgba(30,32,36,.92);
@@ -221,22 +56,18 @@ html, body{
   display:flex; align-items:center; justify-content:center;
   font-size:11px; font-weight:800; overflow:hidden;
 }
-.auth-bar .ab-avatar img{
-  width:100%; height:100%; object-fit:cover; display:block;
-}
+.auth-bar .ab-avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
 .auth-bar .ab-name{
   font-weight:700; font-size:12px; color:var(--ink);
   max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .auth-bar .ab-logout{
-  background:none; border:none; cursor:pointer; font-family:var(--font);
+  background:none; border:none; cursor:pointer; font-family:inherit;
   font-size:10px; letter-spacing:.06em; text-transform:uppercase;
   font-weight:600; color:var(--muted); padding:4px 8px;
   border-radius:999px; transition:all .15s;
 }
-.auth-bar .ab-logout:hover{
-  color:var(--danger); background:rgba(196,64,64,.06);
-}
+.auth-bar .ab-logout:hover{ color:var(--danger); background:rgba(196,64,64,.06); }
 .auth-bar .ab-login{
   display:inline-flex; align-items:center; gap:6px;
   background:var(--ink); color:#fff; text-decoration:none;
@@ -246,12 +77,11 @@ html, body{
 }
 .auth-bar .ab-login:hover{ background:var(--accent); }
 
-/* ── Toast meldingen ── */
+/* ── Toast ── */
 .toast{
   position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
-  background:var(--ink); color:#fff; padding:12px 24px; border-radius:var(--radius-sm);
-  font-size:13px; font-weight:500; z-index:999; white-space:nowrap;
-  box-shadow:var(--shadow-hover);
+  background:var(--ink); color:#fff; padding:12px 24px; border-radius:10px;
+  font-size:13px; z-index:999; box-shadow:var(--shadow);
   animation:toastIn .3s ease;
 }
 @keyframes toastIn{
@@ -259,29 +89,6 @@ html, body{
   to{opacity:1;transform:translateX(-50%) translateY(0)}
 }
 
-/* ── Back knop (voor pagina's zonder sidebar) ── */
-.back{
-  display:inline-flex; align-items:center; gap:6px;
-  color:var(--ink); text-decoration:none;
-  font-size:12px; letter-spacing:.08em; text-transform:uppercase; font-weight:600;
-  padding:9px 18px; border-radius:var(--radius-sm);
-  background:var(--card); border:1px solid var(--line);
-  box-shadow:var(--shadow); transition:all .15s;
-}
-.back:hover{
-  background:var(--bg); transform:translateY(-1px);
-  box-shadow:var(--shadow-hover);
-}
-
-/* ── Responsive: sidebar verbergen op mobiel ── */
-@media(max-width:768px){
-  .sidebar{ transform:translateX(-100%); }
-  .sidebar.open{ transform:translateX(0); }
-  .main{ margin-left:0; }
-}
-
-/* ── Print verbergen ── */
 @media print{
-  .auth-bar, .sidebar, .topbar .tb-btn{ display:none !important; }
-  .main{ margin-left:0; }
+  .auth-bar{ display:none !important; }
 }
