@@ -1111,7 +1111,14 @@ function App(){
       {/* VERGELIJK OVERLAY */}
       {showCompareView && (
         <CompareView
-          projectA={{...project, images: projectImages, data}}
+          allProjectsList={allProjectsList}
+          projectA={{...project, images: projectImages, data,
+            totaal_bvo: project?.totaal_bvo, m_wonen: project?.m_wonen,
+            m_kantoor: project?.m_kantoor, m_commercieel: project?.m_commercieel,
+            autoparkeren: project?.autoparkeren, npg_score: project?.npg_score,
+            bouwhoogte: project?.bouwhoogte, awards: project?.awards,
+            stad: project?.stad, land: project?.land, projectnaam: project?.projectnaam,
+          }}
           projectB={compareProject}
           projectBImages={compareImages}
           thumbCache={thumbCache}
