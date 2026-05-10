@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   MVSA Projecten — Auth bar (inlog/uitlog balk)
+   MVSA Projecten — Auth bar + automatische werknemer-koppeling
    Laad dit op elke pagina NA supabase.js
    ═══════════════════════════════════════════════════════════ */
 (async function(){
@@ -16,7 +16,7 @@
     }
 
     const { data: profile } = await db.from('profiles')
-      .select('naam,status,employee_id')
+      .select('*')
       .eq('id', user.id).maybeSingle();
 
     if (!profile || profile.status !== 'approved') {
@@ -25,11 +25,39 @@
       return;
     }
 
-    // Initialen voor avatar
+    // ── Automatische werknemer-koppeling ──
+    if (!profile.employee_id) {
+      try {
+        // Zoek bestaande werknemer op naam
+        let { data: emp } = await db.from('employees')
+          .select('id').ilike('naam', profile.naam.trim()).maybeSingle();
+
+        // Maak nieuwe werknemer als die niet bestaat
+        if (!emp) {
+          const { data: newEmp } = await db.from('employees').insert([{
+            naam: profile.naam,
+            rol: '',
+            team: profile.team || 'Ontwerp',
+            score: 0,
+            projecten: 0,
+          }]).select('id').single();
+          emp = newEmp;
+        }
+
+        // Koppel profiel aan werknemer
+        if (emp) {
+          await db.from('profiles').update({ employee_id: emp.id }).eq('id', user.id);
+          profile.employee_id = emp.id;
+        }
+      } catch(e) {
+        console.warn('Werknemer koppeling mislukt:', e);
+      }
+    }
+
+    // ── Avatar opbouwen ──
     const initials = (profile.naam || '?')
       .split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
 
-    // Probeer foto te laden
     let photoHtml = initials;
     if (profile.employee_id && typeof EmployeeImages !== 'undefined') {
       try {
@@ -46,7 +74,6 @@
 
     bar.style.display = 'flex';
   } catch(e) {
-    // Bij fout — toon inlogknop
     bar.innerHTML = '<a class="ab-login" href="login.html">Inloggen →</a>';
     bar.style.display = 'flex';
   }
