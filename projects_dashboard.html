@@ -431,6 +431,32 @@
   .fpr-num{ font-size:10px; color:var(--muted); letter-spacing:.06em; }
   .fpr-arrow{ font-size:14px; color:var(--muted); flex-shrink:0; }
 
+  /* ── Fase tabs ── */
+  .fase-tabs{
+    display:flex; gap:6px; padding:14px 28px;
+    border-bottom:1px solid var(--line); flex-shrink:0;
+    overflow-x:auto; scrollbar-width:none;
+  }
+  .fase-tabs::-webkit-scrollbar{ display:none; }
+  .fase-tab{
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    padding:8px 14px; border-radius:10px; border:1px solid var(--line);
+    background:none; cursor:pointer; transition:all .15s ease;
+    flex-shrink:0;
+  }
+  .fase-tab:hover{ border-color:var(--accent); background:rgba(61,110,138,.06); }
+  .fase-tab.active{ background:var(--ink); border-color:var(--ink); }
+  .fase-tab-code{
+    font-size:11px; font-weight:800; letter-spacing:.1em;
+    color:var(--ink); transition:color .15s ease;
+  }
+  .fase-tab.active .fase-tab-code{ color:#fff; }
+  .fase-tab-count{
+    font-size:10px; color:var(--muted); font-variant-numeric:tabular-nums;
+    transition:color .15s ease;
+  }
+  .fase-tab.active .fase-tab-count{ color:rgba(255,255,255,.6); }
+
 </style>
 </head>
 <body>
@@ -2157,6 +2183,27 @@ function App(){
               </div>
               <button className="fase-modal-close" onClick={() => setFaseModal(null)}>×</button>
             </div>
+
+            {/* Fase filter tabs */}
+            <div className="fase-tabs">
+              {['AQ','SO','VO','DO','TO','UO','UV','OP'].map(code => {
+                const full = {AQ:'Acquisitie',SO:'Schets Ontwerp',VO:'Voorlopig Ontwerp',DO:'Definitief Ontwerp',TO:'Technisch Ontwerp',UO:'Uitvoerings Ontwerp',UV:'Uitvoering',OP:'Opgeleverd'}[code];
+                const count = allProjects.filter(p => p.fase && p.fase.trim().toUpperCase() === code).length;
+                const isActive = faseModal.label === code;
+                return (
+                  <button key={code}
+                    className={`fase-tab ${isActive ? 'active' : ''}`}
+                    onClick={() => {
+                      const filtered = allProjects.filter(p => p.fase && p.fase.trim().toUpperCase() === code);
+                      setFaseModal({ label: code, fullName: full, projects: filtered });
+                    }}>
+                    <span className="fase-tab-code">{code}</span>
+                    <span className="fase-tab-count">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+
             <div className="fase-modal-body">
               {faseModal.projects.length === 0 ? (
                 <div className="fase-empty">
