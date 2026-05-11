@@ -649,11 +649,31 @@ function VeldenIngevuld({ fieldsFilled }) {
 }
 
 
-/* ── RandomProject: uitgelicht project met tags ── */
-function RandomProject({ project }) {
+/* ── RandomProject: uitgelicht project met shuffle knop ── */
+function RandomProject({ project, onShuffle }) {
+  const [spinning, setSpinning] = React.useState(false);
+
+  const handleShuffle = () => {
+    setSpinning(true);
+    setTimeout(() => setSpinning(false), 500);
+    onShuffle && onShuffle();
+  };
+
   return (
     <div className="card random-project left-3">
-      <h3>Random project uitgelicht</h3>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <h3 style={{ margin: 0 }}>Random project uitgelicht</h3>
+        <button onClick={handleShuffle} title="Shuffle" style={{
+          background: 'none', border: '1px solid rgba(17,20,24,.12)', borderRadius: '999px',
+          cursor: 'pointer', padding: '4px 10px', fontSize: 14,
+          color: 'var(--muted)', transition: 'all .15s ease',
+          display: 'flex', alignItems: 'center', gap: 4,
+        }}
+        onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
+        onMouseOut={(e) => { e.currentTarget.style.borderColor = 'rgba(17,20,24,.12)'; e.currentTarget.style.color = 'var(--muted)'; }}>
+          <span style={{ display: 'inline-block', transition: 'transform .5s ease', transform: spinning ? 'rotate(360deg)' : 'rotate(0deg)' }}>🔀</span>
+        </button>
+      </div>
       <a className="rp-img" href={projectHref(project.name)}>
         <span className="label">PLACE IMAGE HERE</span>
       </a>
@@ -726,7 +746,16 @@ function DataSection({ d, leaderPhoto }) {
       <div className="grid grid-data">
         <AantalProjecten projectsFilled={d.projectsFilled} />
         <VeldenIngevuld fieldsFilled={d.fieldsFilled} />
-        <RandomProject project={d.randomProject} />
+        <RandomProject project={d.randomProject} onShuffle={() => {
+          const projects = window._allProjects || [];
+          if (!projects.length) return;
+          const pick = projects[Math.floor(Math.random() * projects.length)];
+          setRandomProject({
+            name: pick.projectnaam,
+            city: pick.stad || pick.land || '',
+            tags: [pick.project_type, pick.fase, pick.opgave].filter(Boolean).slice(0, 3),
+          });
+        }} />
         <Leaderboard leaderboard={d.leaderboard} leaderPhoto={leaderPhoto} />
         {d.recent.map((r, i) => (
           <RecentCard key={i} project={r} position={i} />
@@ -1544,6 +1573,7 @@ function projectHref(name){
 function App(){
   /* ── State: live data uit Supabase ── */
   const [liveData, setLiveData] = React.useState(null);
+  const [randomProject, setRandomProject] = React.useState(null);
   /* ── State: alle ruwe projecten (voor zoeken en fase-modal) ── */
   const [allProjects, setAllProjects] = React.useState([]);
   /* ── State: fase-modal (null = gesloten, object = welke fase) ── */
@@ -1737,6 +1767,13 @@ function App(){
       if (!rawProjects || !rawProjects.length) return;
       setAllProjects(rawProjects);
       window._allProjects = rawProjects; // globaal beschikbaar voor projectHref
+      // Stel een random project in
+      const pick = rawProjects[Math.floor(Math.random() * rawProjects.length)];
+      if (pick) setRandomProject({
+        name: pick.projectnaam,
+        city: pick.stad || pick.land || '',
+        tags: [pick.project_type, pick.fase, pick.opgave].filter(Boolean).slice(0, 3),
+      });
       // Recente projecten voor de kaarten
       window._recentProjects = [...rawProjects]
         .sort((a,b) => new Date(b.created_at) - new Date(a.created_at))
@@ -1954,7 +1991,7 @@ function App(){
       </header>
 
 
-      <DataSection d={liveData || MOCK.data} leaderPhoto={liveLeaderPhoto} />
+      <DataSection d={{...(liveData || MOCK.data), randomProject: randomProject || (liveData || MOCK.data).randomProject}} leaderPhoto={liveLeaderPhoto} />
       <AlgemeenSection a={liveAlgemeen || MOCK.algemeen} onBarClick={(d) => {
         const filtered = allProjects.filter(p => {
           if (!p.fase) return false;
