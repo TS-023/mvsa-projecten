@@ -782,9 +782,31 @@ async function loadRegistrations() {
 async function approveUser(id, naam) {
   if (!confirm(`${naam} goedkeuren?\n\nDe medewerker verschijnt direct op het leaderboard.`)) return;
   await AdminAuth.approve(id);
+
+  // Zorg dat de werknemer ook in de employees tabel staat
+  try {
+    const { data: profile } = await db.from('profiles').select('*').eq('id', id).maybeSingle();
+    if (profile && !profile.employee_id) {
+      // Zoek bestaande werknemer op naam
+      let { data: emp } = await db.from('employees')
+        .select('id').ilike('naam', naam.trim()).maybeSingle();
+      // Maak nieuwe werknemer als die niet bestaat
+      if (!emp) {
+        const { data: newEmp } = await db.from('employees').insert([{
+          naam: naam.trim(), rol: '', score: 0, projecten: 0,
+        }]).select('id').single();
+        emp = newEmp;
+      }
+      // Koppel profiel aan werknemer
+      if (emp) {
+        await db.from('profiles').update({ employee_id: emp.id }).eq('id', id);
+      }
+    }
+  } catch(e) { console.warn('Auto-link werknemer mislukt:', e); }
+
   showToast(`✓ ${naam} goedgekeurd — staat nu op het leaderboard`);
   loadRegistrations();
-  loadEmployees(); // Herlaad leaderboard want er kan een nieuwe werknemer bij zijn
+  loadEmployees();
 }
 
 async function rejectUser(id, naam) {
