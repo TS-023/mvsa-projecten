@@ -743,20 +743,8 @@ function RandomProject({ project, onShuffle }) {
   };
 
   return (
-    <div className="card random-project left-3">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <h3 style={{ margin: 0 }}>Random project uitgelicht</h3>
-        <button onClick={handleShuffle} title="Shuffle" style={{
-          background: 'none', border: '1px solid rgba(17,20,24,.12)', borderRadius: '999px',
-          cursor: 'pointer', padding: '4px 10px', fontSize: 14,
-          color: 'var(--muted)', transition: 'all .15s ease',
-          display: 'flex', alignItems: 'center', gap: 4,
-        }}
-        onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
-        onMouseOut={(e) => { e.currentTarget.style.borderColor = 'rgba(17,20,24,.12)'; e.currentTarget.style.color = 'var(--muted)'; }}>
-          <span style={{ display: 'inline-block', transition: 'transform .5s ease', transform: spinning ? 'rotate(360deg)' : 'rotate(0deg)' }}>🔀</span>
-        </button>
-      </div>
+    <div className="card random-project left-3" style={{ paddingBottom: 0 }}>
+      <h3>Random project uitgelicht</h3>
       <a className="rp-img" href={projectHref(project.name)}>
         <span className="label">PLACE IMAGE HERE</span>
       </a>
@@ -772,6 +760,21 @@ function RandomProject({ project, onShuffle }) {
       <div className="rp-tags">
         {project.tags.map((t, i) => <span key={i} className="tag">{t}</span>)}
       </div>
+      <button onClick={handleShuffle} style={{
+        width: 'calc(100% + 40px)', marginLeft: '-20px',
+        marginTop: 14,
+        background: 'none', border: 'none', borderTop: '1px solid var(--line)',
+        padding: '12px 0', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        color: 'var(--muted)', fontSize: 13, fontFamily: 'inherit',
+        transition: 'background .15s, color .15s',
+        borderRadius: '0 0 var(--radius) var(--radius)',
+      }}
+      onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(17,20,24,.04)'; e.currentTarget.style.color = 'var(--ink)'; }}
+      onMouseOut={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted)'; }}>
+        <span style={{ display: 'inline-block', transition: 'transform .5s ease', transform: spinning ? 'rotate(180deg)' : 'rotate(0deg)', fontSize: 14 }}>⇄</span>
+        shuffle
+      </button>
     </div>
   );
 }
