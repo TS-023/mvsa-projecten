@@ -253,14 +253,14 @@
   .bar:hover{ fill: #9aa3ad; }
   .bar-bg{ fill: #f1f4f7; }
 
-  .duo-stat{ display:flex; flex-direction: column; gap: 6px; }
+  .duo-stat{ display:flex; flex-direction: column; gap: 2px; }
   .duo-stat .row{
     display:flex; align-items:baseline; justify-content:space-between;
-    padding: 14px 4px; border-top: 1px solid var(--line);
+    padding: 8px 4px; border-top: 1px solid var(--line);
   }
-  .duo-stat .row:first-of-type{ border-top: 0; padding-top: 6px; }
+  .duo-stat .row:first-of-type{ border-top: 0; padding-top: 4px; }
   .duo-stat .row .lbl{ font-size: 11px; letter-spacing:.16em; text-transform:uppercase; color: var(--muted); }
-  .duo-stat .row .num{ font-size: 48px; font-weight: 700; letter-spacing:-.03em; }
+  .duo-stat .row .num{ font-size: 32px; font-weight: 700; letter-spacing:-.03em; }
 
   .phase-legend{
     list-style: none; padding: 0; margin: 12px 0 0;
@@ -925,7 +925,7 @@ function FasesChart({ fases, onBarClick }) {
       <div className="chart-title">Fases</div>
       <BarChart
         data={fases}
-        height={200}
+        height={120}
         hoverPalette={['#5a4a8a', '#3d6e8a', '#3d8a6e', '#8a7a3d', '#8a4a4a', '#6e3d8a', '#3d8a8a', '#8a6e3d']}
         onBarClick={onBarClick}
       />
