@@ -25,33 +25,9 @@
       return;
     }
 
-    // ── Automatische werknemer-koppeling ──
-    if (!profile.employee_id) {
-      try {
-        // Zoek bestaande werknemer op naam
-        let { data: emp } = await db.from('employees')
-          .select('id').ilike('naam', profile.naam.trim()).maybeSingle();
-
-        // Maak nieuwe werknemer als die niet bestaat
-        if (!emp) {
-          const { data: newEmp } = await db.from('employees').insert([{
-            naam: profile.naam,
-            rol: '',
-            team: profile.team || 'Ontwerp',
-            score: 0,
-            projecten: 0,
-          }]).select('id').single();
-          emp = newEmp;
-        }
-
-        // Koppel profiel aan werknemer
-        if (emp) {
-          await db.from('profiles').update({ employee_id: emp.id }).eq('id', user.id);
-          profile.employee_id = emp.id;
-        }
-      } catch(e) {
-        console.warn('Werknemer koppeling mislukt:', e);
-      }
+    // ── Automatische werknemer-koppeling (gedeelde functie uit supabase.js) ──
+    if (!profile.employee_id && typeof autoLinkEmployee !== 'undefined') {
+      profile = await autoLinkEmployee(profile);
     }
 
     // ── Avatar opbouwen ──
