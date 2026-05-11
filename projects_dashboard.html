@@ -87,6 +87,11 @@
     box-shadow: var(--shadow);
     padding: 18px 20px;
     border: 1px solid rgba(255,255,255,.6);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .card:hover{
+    transform: translateY(-3px);
+    box-shadow: 0 2px 8px rgba(0,0,0,.06), 0 16px 40px -8px rgba(20,30,45,.18);
   }
   .card h3{
     margin:0 0 10px;
