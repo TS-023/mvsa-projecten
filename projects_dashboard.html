@@ -2139,8 +2139,8 @@ function App(){
         {darkMode ? '☀️ Licht' : '🌙 Donker'}
       </button>
 
-      {/* FASE MODAL */}
-      {faseModal && (
+      {/* FASE MODAL — via portal buiten root div zodat fixed positioning altijd werkt */}
+      {faseModal && ReactDOM.createPortal(
         <>
           <div className="fase-backdrop" onClick={() => setFaseModal(null)} />
           <div className="fase-modal">
@@ -2203,7 +2203,8 @@ function App(){
               )}
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </>
   );
