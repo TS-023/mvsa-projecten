@@ -1960,9 +1960,10 @@ function App(){
   return (
     <>
       <header className="topbar">
-        <div className="crumbs">Projecten · <strong>Statistieken</strong></div>
-        <div className="meta">
-          {/* ZOEKBALK IN TOPBAR */}
+        <div style={{display:'flex', alignItems:'center', gap:16, flex:1}}>
+          <div className="crumbs">Projecten · <strong>Statistieken</strong></div>
+
+          {/* ZOEKBALK — links naast de titel */}
           <div style={{position:'relative', flex:'0 1 280px'}} ref={searchRef}>
             <input
               type="search"
@@ -2030,51 +2031,28 @@ function App(){
               </div>
             )}
           </div>
+        </div>
 
-          <a href="projects_list.html" style={{
-            background: '#fff', color: '#111418', textDecoration: 'none',
-            padding: '8px 16px', borderRadius: '999px',
-            fontSize: '11px', letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: 700,
-            border: '1px solid rgba(17,20,24,.12)',
-          }}
-          onMouseOver={(e) => { e.currentTarget.style.background = '#f3f7fa'; }}
-          onMouseOut={(e) => { e.currentTarget.style.background = '#fff'; }}>
+        {/* NAVIGATIE KNOPPEN — rechts */}
+        <div className="meta">
+          <a href="projects_list.html" style={{background:'#fff',color:'#111418',textDecoration:'none',padding:'8px 14px',borderRadius:'999px',fontSize:'11px',letterSpacing:'.1em',textTransform:'uppercase',fontWeight:700,border:'1px solid rgba(17,20,24,.12)',display:'flex',alignItems:'center',gap:6,transition:'background .15s'}}
+          onMouseOver={e=>e.currentTarget.style.background='#f3f7fa'} onMouseOut={e=>e.currentTarget.style.background='#fff'}>
             📋 Projecten
           </a>
-          <a href="projects_map.html" style={{
-            background: '#fff', color: '#111418', textDecoration: 'none',
-            padding: '8px 16px', borderRadius: '999px',
-            fontSize: '11px', letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: 700,
-            border: '1px solid rgba(17,20,24,.12)',
-            transition: 'background .15s ease, transform .15s ease'
-          }}
-          onMouseOver={(e) => { e.currentTarget.style.background = '#f3f7fa'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-          onMouseOut={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+          <a href="projects_map.html" style={{background:'#fff',color:'#111418',textDecoration:'none',padding:'8px 14px',borderRadius:'999px',fontSize:'11px',letterSpacing:'.1em',textTransform:'uppercase',fontWeight:700,border:'1px solid rgba(17,20,24,.12)',display:'flex',alignItems:'center',gap:6,transition:'background .15s'}}
+          onMouseOver={e=>e.currentTarget.style.background='#f3f7fa'} onMouseOut={e=>e.currentTarget.style.background='#fff'}>
             🗺 Kaart
           </a>
-          <a href="employees.html" style={{
-            background: '#fff', color: '#111418', textDecoration: 'none',
-            padding: '8px 16px', borderRadius: '999px',
-            fontSize: '11px', letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: 700,
-            border: '1px solid rgba(17,20,24,.12)',
-            transition: 'background .15s ease, transform .15s ease'
-          }}
-          onMouseOver={(e) => { e.currentTarget.style.background = '#f3f7fa'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-          onMouseOut={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+          <a href="employees.html" style={{background:'#fff',color:'#111418',textDecoration:'none',padding:'8px 14px',borderRadius:'999px',fontSize:'11px',letterSpacing:'.1em',textTransform:'uppercase',fontWeight:700,border:'1px solid rgba(17,20,24,.12)',display:'flex',alignItems:'center',gap:6,transition:'background .15s'}}
+          onMouseOver={e=>e.currentTarget.style.background='#f3f7fa'} onMouseOut={e=>e.currentTarget.style.background='#fff'}>
             👥 Team
           </a>
 
-          {/* Auth knop — wordt dynamisch ingevuld door auth-bar.js */}
-          <div id="auth-bar-inline" style={{display:'flex', alignItems:'center'}}></div>
+          {/* Auth — dynamisch ingevuld */}
+          <div id="auth-bar-inline" style={{display:'flex',alignItems:'center',gap:8}}></div>
 
-          <a href="new_project.html" style={{
-            background: '#111418', color: '#fff', textDecoration: 'none',
-            padding: '8px 16px', borderRadius: '999px',
-            fontSize: '11px', letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: 700,
-            transition: 'background .15s ease, transform .15s ease'
-          }}
-          onMouseOver={(e) => { e.currentTarget.style.background = '#3d6e8a'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-          onMouseOut={(e) => { e.currentTarget.style.background = '#111418'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+          <a href="new_project.html" style={{background:'#111418',color:'#fff',textDecoration:'none',padding:'8px 16px',borderRadius:'999px',fontSize:'11px',letterSpacing:'.14em',textTransform:'uppercase',fontWeight:700,transition:'background .15s'}}
+          onMouseOver={e=>e.currentTarget.style.background='#3d6e8a'} onMouseOut={e=>e.currentTarget.style.background='#111418'}>
             + Nieuw project
           </a>
         </div>
