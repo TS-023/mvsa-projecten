@@ -52,38 +52,31 @@ const Employees = {
     return data;
   },
 
-  // Punten toevoegen aan de ingelogde gebruiker
+  // Punten toevoegen aan de ingelogde gebruiker (via profiles)
   async addPoints(points = 1) {
     try {
       const { data: { user } } = await db.auth.getUser();
       if (!user) return;
       const { data: profile } = await db.from('profiles')
-        .select('employee_id').eq('id', user.id).maybeSingle();
-      if (!profile?.employee_id) return;
-      // Haal huidige score op en verhoog
-      const { data: emp } = await db.from('employees')
-        .select('score, projecten').eq('id', profile.employee_id).single();
-      if (!emp) return;
-      await db.from('employees').update({
-        score: (emp.score || 0) + points,
-      }).eq('id', profile.employee_id);
+        .select('score').eq('id', user.id).maybeSingle();
+      if (!profile) return;
+      await db.from('profiles').update({
+        score: (profile.score || 0) + points,
+      }).eq('id', user.id);
     } catch(e) { console.warn('addPoints fout:', e); }
   },
 
-  // Projecten teller verhogen voor de ingelogde gebruiker
+  // Projecten teller verhogen voor de ingelogde gebruiker (via profiles)
   async incrementProjects() {
     try {
       const { data: { user } } = await db.auth.getUser();
       if (!user) return;
       const { data: profile } = await db.from('profiles')
-        .select('employee_id').eq('id', user.id).maybeSingle();
-      if (!profile?.employee_id) return;
-      const { data: emp } = await db.from('employees')
-        .select('projecten').eq('id', profile.employee_id).single();
-      if (!emp) return;
-      await db.from('employees').update({
-        projecten: (emp.projecten || 0) + 1,
-      }).eq('id', profile.employee_id);
+        .select('projecten').eq('id', user.id).maybeSingle();
+      if (!profile) return;
+      await db.from('profiles').update({
+        projecten: (profile.projecten || 0) + 1,
+      }).eq('id', user.id);
     } catch(e) { console.warn('incrementProjects fout:', e); }
   },
 };

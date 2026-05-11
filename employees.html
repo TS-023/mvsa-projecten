@@ -374,25 +374,28 @@ function App(){
   };
   const [empLoading, setEmpLoading] = React.useState(true);
   React.useEffect(() => {
-    Employees.getAll().then(rows => {
-      if (rows && rows.length > 0) {
-        const mapped = rows.map(e => ({
-          id: e.id || ('mock-' + (e.naam||'').toLowerCase().replace(/[\s]+/g,'-')),
-          name: e.naam, role: e.rol, team: e.team || 'Ontwerp',
-          points: e.score || 0, month: e.score_month || 0,
-          year: e.score_year || e.score || 0,
-          fields: e.score || 0, projects: e.projecten || 0,
-          weekDelta: e.week_delta || 0, lastActive: e.last_active || '—',
-        }));
-        setEmployees(mapped);
-        loadPhotos(mapped);
-      } else {
-        // Fallback naar mock als Supabase leeg is
+    db.from('profiles')
+      .select('id, naam, score, projecten, team')
+      .eq('status', 'approved')
+      .order('score', { ascending: false })
+      .then(({ data: rows }) => {
+        if (rows && rows.length > 0) {
+          const mapped = rows.map(e => ({
+            id: e.id,
+            name: e.naam, role: '', team: e.team || 'Ontwerp',
+            points: e.score || 0, month: 0,
+            year: e.score || 0,
+            fields: e.score || 0, projects: e.projecten || 0,
+            weekDelta: 0, lastActive: '—',
+          }));
+          setEmployees(mapped);
+          loadPhotos(mapped);
+        } else {
+          setEmployees(EMPLOYEES);
+        }
+        setEmpLoading(false);
+      }).catch(() => {
         setEmployees(EMPLOYEES);
-      }
-      setEmpLoading(false);
-    }).catch(() => {
-      setEmployees(EMPLOYEES);
       setEmpLoading(false);
     });
   }, []);

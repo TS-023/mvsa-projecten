@@ -1787,12 +1787,14 @@ function App(){
       };
 
       // DATA sectie (grote nummers bovenaan)
-      // Laad werknemers voor leaderboard
-      const empRows = await Employees.getAll();
-      const liveLeaderboard = empRows
-        .sort((a,b) => (b.score||0)-(a.score||0))
-        .slice(0,5)
-        .map(e => ({ name: e.naam, score: e.score||0, id: e.id }));
+      // Laad leaderboard uit profiles tabel
+      const { data: profileRows } = await db.from('profiles')
+        .select('id, naam, score, projecten')
+        .eq('status', 'approved')
+        .order('score', { ascending: false })
+        .limit(10);
+      const liveLeaderboard = (profileRows || [])
+        .map(p => ({ name: p.naam, score: p.score || 0, id: p.id }));
 
       setLiveData({
         ...MOCK.data,
