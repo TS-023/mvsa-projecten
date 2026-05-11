@@ -299,10 +299,12 @@
   .grid-metrage{
     grid-template-columns: 1fr 1fr 1fr;
     grid-template-rows: auto auto;
+    align-items: stretch;
   }
   .grid-metrage .type-prog{ grid-column: 1; grid-row: 1 / span 2; display:flex; flex-direction:column; }
   .grid-metrage .stat{ padding: 18px 22px; }
   .grid-metrage .stat .num{ font-size: 40px; line-height: 1.05; letter-spacing: -.02em; }
+  .grid-metrage > .card:not(.type-prog){ display: flex; flex-direction: column; justify-content: space-between; }
   .type-prog .chart-title{ text-align:center; font-size:12px; font-weight:600; color:var(--ink-2); margin-bottom: 6px; }
   .type-prog .chart-svg{ flex:1; min-height: 200px; }
 
@@ -1088,47 +1090,50 @@ function TypeProgrammaDonut({ data }) {
 }
 
 
-/* ── TotaalGerealiseerd: totaal m² gerealiseerd ── */
-function TotaalGerealiseerd({ waarde }) {
+/* ── MetraagStat: herbruikbare metrage kaart met icoon en accentbalk ── */
+function MetraagStat({ titel, waarde, icoon, kleur, sublabel }) {
   return (
-    <div className="card stat">
-      <h3>Totaal gerealiseerd m²</h3>
-      <div className="num">{fmtM2(waarde)}</div>
+    <div className="card stat" style={{ position: 'relative', overflow: 'hidden', padding: '20px 22px 16px' }}>
+      {/* Kleuraccent linksboven */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, width: 4, height: '100%',
+        background: kleur, borderRadius: '16px 0 0 16px',
+      }} />
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+        <h3 style={{ textAlign: 'left', margin: 0 }}>{titel}</h3>
+        <span style={{
+          fontSize: 22, lineHeight: 1,
+          background: kleur + '18', borderRadius: 10, padding: '6px 8px',
+        }}>{icoon}</span>
+      </div>
+      <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.1, color: 'var(--ink)' }}>
+        {fmtM2(waarde)}
+      </div>
+      {sublabel && (
+        <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6, letterSpacing: '.04em' }}>{sublabel}</div>
+      )}
     </div>
   );
 }
 
+/* ── TotaalGerealiseerd: totaal m² gerealiseerd ── */
+function TotaalGerealiseerd({ waarde }) {
+  return <MetraagStat titel="Totaal gerealiseerd" waarde={waarde} icoon="🏗" kleur="#3d6e8a" sublabel="m² totaal BVO" />;
+}
 
 /* ── GerenoveerDstat: gerenoveerde m² ── */
 function GerenoveerDstat({ waarde }) {
-  return (
-    <div className="card stat">
-      <h3>Gerenoveerd (m²)</h3>
-      <div className="num">{fmtM2(waarde)}</div>
-    </div>
-  );
+  return <MetraagStat titel="Gerenoveerd" waarde={waarde} icoon="🔨" kleur="#8a6e3d" sublabel="m² verbouwd" />;
 }
-
 
 /* ── NieuwStat: nieuwbouw m² ── */
 function NieuwStat({ waarde }) {
-  return (
-    <div className="card stat">
-      <h3>Nieuw</h3>
-      <div className="num">{fmtM2(waarde)}</div>
-    </div>
-  );
+  return <MetraagStat titel="Nieuwbouw" waarde={waarde} icoon="✨" kleur="#3d8a6e" sublabel="m² nieuw gebouwd" />;
 }
-
 
 /* ── GeslooptStat: gesloopte m² ── */
 function GeslooptStat({ waarde }) {
-  return (
-    <div className="card stat">
-      <h3>Gesloopt</h3>
-      <div className="num">{fmtM2(waarde)}</div>
-    </div>
-  );
+  return <MetraagStat titel="Gesloopt" waarde={waarde} icoon="💥" kleur="#8a4a4a" sublabel="m² gesloopt" />;
 }
 
 
