@@ -163,6 +163,21 @@ html,body{ background:var(--bg); color:var(--ink); font-family:'Inter',sans-seri
 .action-btn.danger:hover{ border-color:var(--danger); background:rgba(180,60,60,.06); }
 .action-btn.danger .ab-label{ color:var(--danger); }
 
+.reg-approve{
+  width:36px; height:36px; border-radius:50%; border:none; cursor:pointer;
+  background:#22c55e; color:#fff; font-size:18px; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .15s; flex-shrink:0;
+}
+.reg-approve:hover{ background:#16a34a; transform:scale(1.1); }
+.reg-reject{
+  width:36px; height:36px; border-radius:50%; border:none; cursor:pointer;
+  background:#ef4444; color:#fff; font-size:18px; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .15s; flex-shrink:0;
+}
+.reg-reject:hover{ background:#dc2626; transform:scale(1.1); }
+
 /* ── Activiteiten log ── */
 .log-row{
   display:flex; align-items:center; gap:12px;
@@ -733,11 +748,11 @@ async function loadRegistrations() {
           <div class="reg-meta">${u.email} · ${u.team||'—'} · ${whenLabel}</div>
         </div>
         <div class="reg-actions">
-          <button class="reg-approve" onclick="approveUser('${u.id}', '${u.naam}')">
-            ✓ Goedkeuren
+          <button class="reg-approve" onclick="approveUser('${u.id}', '${u.naam}')" title="Goedkeuren">
+            ✓
           </button>
-          <button class="reg-reject" onclick="rejectUser('${u.id}', '${u.naam}')">
-            ✗ Afwijzen
+          <button class="reg-reject" onclick="rejectUser('${u.id}', '${u.naam}')" title="Afwijzen">
+            ✕
           </button>
         </div>
       </div>`;
