@@ -1,616 +1,83 @@
-<!doctype html>
-<html lang="nl">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Nieuw project · MVSA</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css" />
-<style>
-  :root{
-    --bg: #f4f1ec;
-    --card: #ffffff;
-    --ink: #111418;
-    --ink-2: #2a2f36;
-    --muted: #8a8d93;
-    --line: #e8e4dd;
-    --shadow: 0 1px 0 rgba(20,30,45,.04), 0 8px 24px -12px rgba(20,30,45,.18);
-    --radius: 16px;
-    --accent: #3d6e8a;
-    --good: #1c8c50;
-  }
-  *{ box-sizing: border-box; }
-  html, body{ margin:0; padding:0; background: var(--bg); color: var(--ink); font-family: 'Inter', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
-  .page{ max-width: 920px; margin: 0 auto; padding: 32px 32px 120px; }
-
-  /* Floating back button */
-  .back{
-    position: fixed; top: 24px; left: 24px; z-index: 100;
-    display:inline-flex; align-items:center; gap:8px; color: var(--ink); text-decoration:none;
-    font-size: 12px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600;
-    padding: 10px 16px; border-radius: 999px;
-    background: rgba(255,255,255,.85);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border:1px solid rgba(17,20,24,.08);
-    box-shadow: 0 4px 16px -4px rgba(20,30,45,.18);
-    transition: background .15s ease, transform .15s ease;
-  }
-  .back:hover{ background: #fff; transform: translateY(-1px); }
-
-  /* Header */
-  .header{
-    display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end;
-    margin-bottom: 24px; padding-top: 4px;
-  }
-  .header h1{
-    margin: 0; font-size: clamp(36px, 5vw, 56px);
-    font-weight: 800; letter-spacing: -.035em; line-height: 1;
-  }
-  .header .sub{ font-size: 13px; color: var(--muted); margin-top: 8px; max-width: 520px; line-height: 1.6; }
-
-  /* Progress card (sticky) */
-  .progress-card{
-    position: sticky; top: 16px; z-index: 50;
-    background: var(--card); border-radius: 16px; box-shadow: var(--shadow);
-    padding: 16px 20px; margin-bottom: 18px;
-    display: grid; grid-template-columns: 1fr auto auto; gap: 20px; align-items: center;
-  }
-  .progress-card .meta-line{
-    font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
-  }
-  .progress-card .bar{
-    height: 8px; background: rgba(17,20,24,.06); border-radius: 4px; overflow: hidden;
-  }
-  .progress-card .bar > span{
-    display: block; height: 100%;
-    background: linear-gradient(90deg, var(--accent), #5a8eaa);
-    border-radius: 4px; transition: width .3s ease;
-  }
-  .progress-card .stat{ text-align: right; }
-  .progress-card .stat .num{ font-size: 22px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
-  .progress-card .stat .lbl{ font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
-
-  .save-btn{
-    background: var(--ink); color: #fff; border: 0; padding: 12px 22px; border-radius: 999px;
-    font-family: inherit; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700;
-    cursor: pointer; transition: background .15s ease, transform .15s ease;
-  }
-  .save-btn:hover{ background: var(--accent); transform: translateY(-1px); }
-  .save-btn:disabled{ background: #c4cbd3; cursor: not-allowed; transform: none; }
-
-  /* Section */
-  .section{
-    background: var(--card); border-radius: 16px; box-shadow: var(--shadow);
-    padding: 24px 28px; margin-bottom: 14px;
-  }
-  .section h2{
-    margin: 0 0 18px; font-size: 11px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase;
-    color: var(--accent);
-    display: flex; align-items: center; gap: 12px;
-  }
-  .section h2 .count{
-    margin-left: auto; font-size: 10px; color: var(--muted); letter-spacing: .14em; font-weight: 600;
-  }
-  .section h2 .count.done{ color: var(--good); }
-
-  /* Field row */
-  .field{
-    display: grid; grid-template-columns: 220px 1fr;
-    gap: 20px; padding: 12px 0; border-bottom: 1px solid var(--line);
-    align-items: center;
-  }
-  .field:last-child{ border-bottom: 0; padding-bottom: 0; }
-  .field label{
-    font-size: 13px; color: var(--ink-2); font-weight: 500;
-  }
-  .field label .req{ color: #b43c3c; margin-left: 2px; }
-  .field input, .field select, .field textarea{
-    width: 100%; font-family: inherit; font-size: 13px;
-    background: #fafbfc; border: 1px solid var(--line); border-radius: 8px;
-    padding: 10px 12px; color: var(--ink);
-    transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
-  }
-  .field input:focus, .field select:focus, .field textarea:focus{
-    outline: none; background: #fff; border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(61,110,138,.12);
-  }
-  .field input.filled, .field select.filled, .field textarea.filled{
-    background: #fff; border-color: rgba(28,140,80,.3);
-  }
-  .field .row-2{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .field .row-3{ display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-
-  /* Toast */
-  .toast-stack{
-    position: fixed; bottom: 24px; right: 24px; z-index: 200;
-    display: flex; flex-direction: column; gap: 8px;
-  }
-  .toast{
-    background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 999px;
-    font-size: 12px; letter-spacing: .04em; font-weight: 600;
-    box-shadow: 0 12px 28px -8px rgba(0,0,0,.3);
-    display: flex; align-items: center; gap: 10px;
-    animation: slideIn .25s ease, slideOut .3s ease 1.6s forwards;
-  }
-  .toast.point{ background: var(--good); }
-  .toast.save{ background: var(--accent); }
-  .toast .pts{
-    background: rgba(255,255,255,.2); padding: 2px 8px; border-radius: 999px;
-    font-variant-numeric: tabular-nums; font-weight: 700;
-  }
-  @keyframes slideIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
-  @keyframes slideOut { to { opacity:0; transform: translateX(20px); } }
-
-  /* Save bar at bottom */
-  .save-actions{
-    display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px;
-  }
-  .secondary-btn{
-    background: transparent; color: var(--ink); border: 1px solid rgba(17,20,24,.15);
-    padding: 12px 22px; border-radius: 999px;
-    font-family: inherit; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; font-weight: 600;
-    cursor: pointer; transition: background .15s ease;
-  }
-  .secondary-btn:hover{ background: rgba(255,255,255,.6); }
-
-  @media (max-width: 720px){
-    .field{ grid-template-columns: 1fr; gap: 6px; }
-    .header{ grid-template-columns: 1fr; }
-    .progress-card{ grid-template-columns: 1fr; }
-    .progress-card .stat{ text-align: left; }
-  }
-</style>
-</head>
-<body>
-<a class="back" href="projects_dashboard.html">← Dashboard</a>
-<div class="page" id="root"></div>
-<div class="toast-stack" id="toasts"></div>
-
-<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="supabase.js"></script>
-<script src="auth-check.js"></script>
-<script type="text/babel" data-presets="env,react">
-/* ----------------------------------------------------------------------------
-   FORM SCHEMA — definitive list of sections + fields.
-   Add/remove fields here; everything (form, progress, payload) follows.
----------------------------------------------------------------------------- */
-const SCHEMA = [
-  {
-    id: 'naam', title: 'Naam',
-    fields: [
-      { id: 'projectnummer',     label: 'Projectnummer',         type: 'text', required: true,  placeholder: 'Bijv. 24375' },
-      { id: 'projectnaam',       label: 'Projectnaam',           type: 'text', required: true,  placeholder: 'Bijv. Galgenwaard' },
-      { id: 'alternatieveNaam',  label: 'Alternatieve projectnaam', type: 'text', placeholder: 'n.v.t.' },
-    ],
-  },
-  {
-    id: 'algemeen', title: 'Algemeen',
-    fields: [
-      { id: 'opgave',         label: 'Opgave',           type: 'select', options: ['', 'Stedenbouw', 'Architectuur', 'Interieur', 'Renovatie', 'Onderzoek'] },
-      { id: 'projectType',    label: 'Project type',     type: 'select', options: ['', 'Wonen', 'Kantoor', 'Mixed-Use', 'Commercieel', 'Publiek', 'Onderwijs'] },
-      { id: 'functie',        label: 'Functie',          type: 'select', options: ['', 'Wonen', 'Kantoor', 'Mixed-Use', 'Commercieel', 'Publiek', 'Onderwijs'] },
-      { id: 'verkregenDmv',   label: 'Verkregen d.m.v.', type: 'select', options: ['', 'Tender', 'Directe Opdracht', 'Selectie', 'Prijsvraag'] },
-      { id: 'fase',           label: 'Fase / status',    type: 'select', options: ['', 'SO', 'VO', 'DO', 'TO', 'In uitvoering', 'Opgeleverd'] },
-    ],
-  },
-  {
-    id: 'link', title: 'Link',
-    fields: [
-      { id: 'projectmap',     label: 'Projectmap',       type: 'text', placeholder: 'R:\\…' },
-    ],
-  },
-  {
-    id: 'locatie', title: 'Locatie',
-    fields: [
-      { id: 'land',           label: 'Land',             type: 'text', placeholder: 'Nederland' },
-      { id: 'provincie',      label: 'Provincie',        type: 'select', options: ['', 'Drenthe','Flevoland','Friesland','Gelderland','Groningen','Limburg','Noord-Brabant','Noord-Holland','Overijssel','Utrecht','Zeeland','Zuid-Holland'] },
-      { id: 'stad',           label: 'Stad',             type: 'text' },
-      { id: 'straat',         label: 'Straat',           type: 'text' },
-      { id: 'huisnummer',     label: 'Nummer',           type: 'text' },
-      { id: 'postcode',       label: 'Postcode',         type: 'text', placeholder: '0000 AA' },
-    ],
-  },
-  {
-    id: 'opdrachtgever', title: 'Opdrachtgever',
-    fields: [
-      { id: 'opdrachtgever',           label: 'Opdrachtgever',            type: 'text' },
-      { id: 'gedelegeerdOpdrachtgever',label: 'Gedelegeerd opdrachtgever', type: 'text' },
-      { id: 'contactpersoon',          label: 'Contactpersoon',           type: 'text' },
-      { id: 'telefoon',                label: 'Telefoonnummer',           type: 'tel' },
-      { id: 'email',                   label: 'E-mail',                   type: 'email' },
-    ],
-  },
-  {
-    id: 'metrage', title: 'Metrage',
-    fields: [
-      { id: 'totaalBvo',      label: 'Totaal BVO (m²)',  type: 'number', placeholder: '80000' },
-      { id: 'mWonen',         label: 'Wonen (m²)',       type: 'number' },
-      { id: 'mKantoor',       label: 'Kantoor (m²)',     type: 'number' },
-      { id: 'mCommercieel',   label: 'Commercieel (m²)', type: 'number' },
-      { id: 'mShortstay',     label: 'Shortstay (m²)',   type: 'number' },
-      { id: 'mPubliek',       label: 'Publiek (m²)',     type: 'number' },
-      { id: 'mOnderwijs',     label: 'Onderwijs (m²)',   type: 'number' },
-    ],
-  },
-  {
-    id: 'mobiliteit', title: 'Mobiliteit',
-    fields: [
-      { id: 'autoparkeren',   label: 'Autoparkeerplekken',  type: 'number' },
-      { id: 'fietsparkeren',  label: 'Fietsparkeerplekken', type: 'number' },
-      { id: 'ratioWonen',     label: 'Parkeerratio wonen',  type: 'text', placeholder: '0.8 / unit' },
-    ],
-  },
-  {
-    id: 'duurzaamheid', title: 'Duurzaamheid',
-    fields: [
-      { id: 'npgScore',       label: 'NPG score',         type: 'select', options: ['', 'A+', 'A', 'B', 'C'] },
-      { id: 'daktuin',        label: 'Daktuin (m²)',      type: 'number' },
-      { id: 'zonnepanelen',   label: 'Zonnepanelen (st)', type: 'number' },
-      { id: 'label',          label: 'Duurzaamheidslabel', type: 'select', options: ['', 'BREEAM Pass', 'BREEAM Good', 'BREEAM Very Good', 'BREEAM Excellent', 'BREEAM Outstanding', 'LEED Silver', 'LEED Gold', 'LEED Platinum'] },
-    ],
-  },
-  {
-    id: 'bouw', title: 'Bouw & erkenning',
-    fields: [
-      { id: 'opleverdatum',   label: 'Opleverdatum',      type: 'date' },
-      { id: 'bouwhoogte',     label: 'Bouwhoogte (m)',    type: 'number' },
-      { id: 'tevredenheid',   label: 'Tevredenheid (1–50)', type: 'number' },
-      { id: 'awards',         label: 'Aantal awards',     type: 'number' },
-    ],
-  },
-];
-
-/* All field ids — for progress calc */
-const ALL_FIELDS = SCHEMA.flatMap(s => s.fields.map(f => ({ section: s.id, ...f })));
-const TOTAL_FIELDS = ALL_FIELDS.length;
-const REQUIRED_FIELDS = ALL_FIELDS.filter(f => f.required);
-
-/* Storage via Supabase (zie supabase.js) — Projects.upsert / Projects.getByNumber */
-// Kolom-naam mapping: camelCase → snake_case voor Supabase
-/* ═══════════════════════════════════════
-   NIEUW PROJECT — new_project.html
-   ═══════════════════════════════════════ */
-
-/* ── toSnake: vertaalt camelCase formuliervelden naar Supabase kolomnamen ── */
-function toSnake(obj) {
-  const map = {
-    projectnummer:'projectnummer', projectnaam:'projectnaam', alternatieveNaam:'alternatieve_naam',
-    opgave:'opgave', projectType:'project_type', functie:'functie', verkregenDmv:'verkregen_dmv', fase:'fase',
-    projectmap:'projectmap', land:'land', provincie:'provincie', stad:'stad', straat:'straat',
-    huisnummer:'huisnummer', postcode:'postcode', opdrachtgever:'opdrachtgever',
-    gedelegeerdOpdrachtgever:'gedelegeerd_opdrachtgever', contactpersoon:'contactpersoon',
-    telefoon:'telefoon', email:'email', totaalBvo:'totaal_bvo',
-    mWonen:'m_wonen', mKantoor:'m_kantoor', mCommercieel:'m_commercieel',
-    mShortstay:'m_shortstay', mPubliek:'m_publiek', mOnderwijs:'m_onderwijs',
-    autoparkeren:'autoparkeren', fietsparkeren:'fietsparkeren', ratioWonen:'ratio_wonen',
-    npgScore:'npg_score', daktuin:'daktuin', zonnepanelen:'zonnepanelen', label:'duurzaamheidslabel',
-    bouwhoogte:'bouwhoogte', tevredenheid:'tevredenheid', awards:'awards', opleverdatum:'opleverdatum',
+/* ============================================================
+   RankList — genummerde ranglijst met optionele breakdown-balk
+   Props:
+     items           [{ name, score, breakdown? }]
+     suffix          string (bijv. " m²")
+     breakdown       boolean (hover-balk tonen)
+     scoreFormatter  fn(v) → string
+     linkProjects    boolean (links naar project_page)
+     linkEmployees   boolean (links naar employees)
+     onItemClick     fn(name)
+   ============================================================ */
+function RankList({ items, suffix, breakdown, scoreFormatter, linkProjects = false, linkEmployees = false, onItemClick }) {
+  const [open, setOpen] = React.useState(null);
+  const FUNC_COLORS = {
+    wonen:       '#111418',
+    kantoor:     '#3d6e8a',
+    shortstay:   '#8a7a3d',
+    commercieel: '#3d8a6e',
+    publiek:     '#6e3d8a',
+    zorg:        '#8a4a4a',
+    onderwijs:   '#5a4a8a',
   };
-  const out = {};
-  for (const [k, v] of Object.entries(obj)) {
-    if (map[k]) out[map[k]] = v;
-  }
-  return out;
-}
-/* ── fromSnake: vertaalt Supabase kolomnamen terug naar camelCase voor het formulier ── */
-function fromSnake(obj) {
-  if (!obj) return {};
-  const map = {
-    alternatieve_naam:'alternatieveNaam', project_type:'projectType', verkregen_dmv:'verkregenDmv',
-    gedelegeerd_opdrachtgever:'gedelegeerdOpdrachtgever', totaal_bvo:'totaalBvo',
-    m_wonen:'mWonen', m_kantoor:'mKantoor', m_commercieel:'mCommercieel',
-    m_shortstay:'mShortstay', m_publiek:'mPubliek', m_onderwijs:'mOnderwijs',
-    ratio_wonen:'ratioWonen', npg_score:'npgScore', duurzaamheidslabel:'label',
-  };
-  const out = { ...obj };
-  for (const [k, v] of Object.entries(map)) {
-    if (obj[k] !== undefined) { out[v] = obj[k]; delete out[k]; }
-  }
-  return out;
-}
-
-/* ---------------------------------------------------------------------------
-   Toast helpers
---------------------------------------------------------------------------- */
-function toast(text, kind = 'point', pts){
-  const stack = document.getElementById('toasts');
-  const el = document.createElement('div');
-  el.className = `toast ${kind}`;
-  el.innerHTML = pts != null
-    ? `<span class="pts">+${pts}</span><span>${text}</span>`
-    : `<span>${text}</span>`;
-  stack.appendChild(el);
-  setTimeout(() => el.remove(), 2000);
-}
-
-/* ---------------------------------------------------------------------------
-   App
---------------------------------------------------------------------------- */
-function Field({ field, value, onChange, prevFilled }){
-  const filled = value != null && value !== '';
-  const cls = filled ? 'filled' : '';
-  const handle = (v) => {
-    onChange(field.id, v);
-    // Award point only on filled→empty→filled transition? Just on becoming filled.
-    if (!prevFilled && v !== '' && v != null){
-      toast(`Veld ingevuld · ${field.label}`, 'point', 1);
-    }
-  };
-  if (field.type === 'select'){
-    return (
-      <select className={cls} value={value || ''} onChange={(e) => handle(e.target.value)}>
-        {field.options.map(o => <option key={o} value={o}>{o || '— Kies —'}</option>)}
-      </select>
-    );
-  }
-  return (
-    <input type={field.type} className={cls} value={value || ''}
-           placeholder={field.placeholder || ''}
-           onChange={(e) => handle(e.target.value)} />
-  );
-}
-
-/* ── App: het invulformulier
-   - SECTIONS definieert alle velden gegroepeerd per onderwerp
-   - sla op naar Supabase via Projects.upsert()
-   - ondersteunt bewerken via ?edit=projectnummer in de URL
-   - afbeeldingen uploaden via Images.upload() naar Supabase Storage ── */
-function App(){
-  const editKey = new URLSearchParams(window.location.search).get('edit');
-  const isEdit = !!editKey;
-  const [data, setData] = React.useState({});
-  const [loading, setLoading] = React.useState(!!editKey);
-  React.useEffect(() => {
-    if (!editKey) return;
-    Projects.getByNumber(editKey).then(found => {
-      if (found) setData(fromSnake(found));
-      setLoading(false);
-    });
-  }, []);
-  const filledMap = React.useRef(
-    Object.fromEntries(Object.entries(data).map(([k, v]) => [k, v !== '' && v != null]))
-  );
-
-  const setField = (id, v) => {
-    setData(d => ({ ...d, [id]: v }));
-    filledMap.current[id] = (v !== '' && v != null);
-  };
-
-  const filledCount = ALL_FIELDS.filter(f => data[f.id] != null && data[f.id] !== '').length;
-  const requiredOk = REQUIRED_FIELDS.every(f => data[f.id] != null && data[f.id] !== '');
-  const pct = (filledCount / TOTAL_FIELDS) * 100;
-
-  const sectionFilledCount = (sec) =>
-    sec.fields.filter(f => data[f.id] != null && data[f.id] !== '').length;
-
-  const onSave = async () => {
-    if (!requiredOk){
-      toast('Vul eerst de verplichte velden in', 'save');
-      return;
-    }
-    try {
-      const savedProject = await Projects.upsert(toSnake(data));
-
-      // Punten toekennen: 1 punt per ingevuld veld
-      const filledFields = Object.values(toSnake(data)).filter(v => v !== null && v !== '' && v !== undefined).length;
-      await Employees.addPoints(filledFields);
-
-      // Eerste keer opslaan → projectenteller ophogen
-      if (!isEdit) {
-        await Employees.incrementProjects();
-      }
-
-      // Log activiteit
-      try {
-        const log = JSON.parse(localStorage.getItem('mvsa.log') || '[]');
-        log.unshift({ action: 'save', project: data.projectnaam || data.projectnummer || 'Naamloos', time: new Date().toISOString() });
-        localStorage.setItem('mvsa.log', JSON.stringify(log.slice(0,50)));
-      } catch(e) {}
-      toast(`Project opgeslagen · ${filledFields} velden = ${filledFields} punten`, 'save', filledFields);
-      setTimeout(() => { window.location.href = `project_page.html?nr=${encodeURIComponent(data.projectnummer || '')}&p=${encodeURIComponent(data.projectnaam || '')}`; }, 1200);
-    } catch(e) {
-      toast('Opslaan mislukt: ' + e.message, 'save');
-      console.error('Supabase fout:', e);
-    }
-  };
-
-  const onReset = () => {
-    if (confirm('Formulier leegmaken?')) { setData({}); filledMap.current = {}; }
-  };
-
-  // Afbeeldingen
-  const [images, setImages] = React.useState([]);
-  const [uploading, setUploading] = React.useState(false);
-  const [uploadErr, setUploadErr] = React.useState(null);
-
-  React.useEffect(() => {
-    if (!data.projectnummer) return;
-    Images.getForProject(data.projectnummer).then(setImages).catch(() => {});
-  }, [data.projectnummer]);
-
-  const handleImageUpload = async (e) => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-    if (!data.projectnummer) { setUploadErr('Vul eerst het projectnummer in.'); return; }
-    setUploading(true); setUploadErr(null);
-    try {
-      const urls = await Promise.all(files.map(f => Images.upload(data.projectnummer, f)));
-      setImages(prev => [...prev, ...urls]);
-    } catch(err) {
-      setUploadErr('Upload mislukt: ' + err.message);
-    }
-    setUploading(false);
-    e.target.value = '';
-  };
-
-  const handleRemoveImage = async (url) => {
-    if (!confirm('Afbeelding verwijderen?')) return;
-    await Images.remove(url);
-    setImages(prev => prev.filter(u => u !== url));
-  };
+  const fmt = scoreFormatter || ((v) => v);
 
   return (
-    <>
-      <header className="header">
-        <div>
-          <h1>{isEdit ? 'Project bewerken' : 'Nieuw project'}</h1>
-          <div className="sub">
-            Vul de projectinformatie in. Per ingevuld veld verdien je <strong>1 punt</strong> voor het leaderboard.
-          </div>
-        </div>
-      </header>
-
-      <div className="progress-card">
-        <div>
-          <div className="meta-line">Voortgang · {filledCount} van {TOTAL_FIELDS} velden</div>
-          <div className="bar"><span style={{ width: `${pct}%` }}></span></div>
-        </div>
-        <div className="stat">
-          <div className="num">{filledCount}</div>
-          <div className="lbl">Punten</div>
-        </div>
-        <button className="save-btn" onClick={onSave} disabled={!requiredOk}>
-          Opslaan →
-        </button>
-      </div>
-
-      {SCHEMA.map(sec => {
-        const filled = sectionFilledCount(sec);
-        const allDone = filled === sec.fields.length;
+    <ol className={`ranklist ${breakdown ? 'with-breakdown' : ''}`}>
+      {items.map((it, i) => {
+        const score = it.score ?? it.v;
+        const bd = breakdown && it.breakdown
+          ? Object.entries(it.breakdown).filter(([_, v]) => v && v > 0)
+          : null;
+        const total = bd ? bd.reduce((s, [, v]) => s + v, 0) : 0;
+        const isOpen = open === i;
         return (
-          <section key={sec.id} className="section">
-            <h2>
-              {sec.title}
-              <span className={`count ${allDone ? 'done' : ''}`}>
-                {filled} / {sec.fields.length}
-              </span>
-            </h2>
-            {sec.fields.map(f => (
-              <div key={f.id} className="field">
-                <label>
-                  {f.label}
-                  {f.required && <span className="req">*</span>}
-                </label>
-                <Field
-                  field={f}
-                  value={data[f.id]}
-                  prevFilled={filledMap.current[f.id]}
-                  onChange={setField}
-                />
+          <li key={i} className={isOpen ? 'open' : ''}
+              onMouseEnter={() => { bd && setOpen(i); }}
+              onMouseLeave={() => bd && setOpen(null)}
+              onClick={() => onItemClick && onItemClick(it.name)}
+              style={onItemClick ? { cursor: 'pointer' } : {}}>
+            <span className="rk">{i + 1}.</span>
+            <span className="nm" style={onItemClick ? { color: 'var(--accent)', textDecoration: 'underline', textDecorationStyle: 'dotted' } : {}}>
+              {linkProjects
+                ? <a href={projectHref(it.name)}>{it.name}</a>
+                : linkEmployees
+                  ? <a href={`employees.html?e=${encodeURIComponent(it.name)}`}>{it.name}</a>
+                  : it.name}
+            </span>
+            <span className="sc">{fmt(score)}{suffix || ''}</span>
+            {bd && (
+              <div className="breakdown">
+                <div className="breakdown-bar">
+                  {bd.map(([k, v]) => (
+                    <div key={k} className="seg"
+                         style={{ width: `${(v / total) * 100}%`, background: FUNC_COLORS[k] || '#535a63' }} />
+                  ))}
+                </div>
+                <div className="breakdown-legend">
+                  {bd.map(([k, v]) => (
+                    <span key={k} className="item">
+                      <span className="sw" style={{ background: FUNC_COLORS[k] || '#535a63' }}></span>
+                      <span className="lb">{k}</span>
+                      <span className="vl">{fmt(v)}</span>
+                    </span>
+                  ))}
+                </div>
               </div>
-            ))}
-          </section>
+            )}
+          </li>
         );
       })}
-
-      {/* AFBEELDINGEN SECTIE */}
-      <section className="section">
-        <h2 style={{color:'#3d6e8a', fontSize:'11px', fontWeight:700, letterSpacing:'.22em', textTransform:'uppercase', margin:'0 0 18px', display:'flex', alignItems:'center', gap:'12px'}}>
-          Afbeeldingen
-          <span style={{marginLeft:'auto', fontSize:'10px', color:'#6b7480', fontWeight:600}}>{images.length} bestand{images.length !== 1 ? 'en' : ''}</span>
-        </h2>
-
-        {/* Uploadknop */}
-        <div style={{padding:'12px 0', borderBottom:'1px solid #e6ecf2'}}>
-          <label style={{
-            display:'inline-flex', alignItems:'center', gap:'8px',
-            background:'#111418', color:'#fff', padding:'10px 18px', borderRadius:'999px',
-            fontSize:'11px', letterSpacing:'.14em', textTransform:'uppercase', fontWeight:700,
-            cursor: data.projectnummer ? 'pointer' : 'not-allowed',
-            opacity: data.projectnummer ? 1 : 0.5,
-          }}>
-            {uploading ? '⏳ Uploaden…' : '+ Afbeeldingen toevoegen'}
-            <input type="file" accept="image/*" multiple onChange={handleImageUpload}
-              disabled={!data.projectnummer || uploading}
-              style={{display:'none'}} />
-          </label>
-          {!data.projectnummer && <span style={{marginLeft:'12px', fontSize:'12px', color:'#6b7480'}}>Vul eerst het projectnummer in</span>}
-          {uploadErr && <span style={{marginLeft:'12px', fontSize:'12px', color:'#b43c3c'}}>{uploadErr}</span>}
-        </div>
-
-        {/* Preview grid */}
-        {images.length > 0 && (
-          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(160px, 1fr))', gap:'10px', marginTop:'16px'}}>
-            {images.map((url, i) => (
-              <div key={url} style={{position:'relative', borderRadius:'10px', overflow:'hidden', aspectRatio:'4/3', background:'#e6ecf2'}}>
-                {i === 0 && <span style={{position:'absolute', top:'8px', left:'8px', background:'#111418', color:'#fff', fontSize:'9px', letterSpacing:'.12em', textTransform:'uppercase', fontWeight:700, padding:'3px 8px', borderRadius:'999px', zIndex:2}}>Cover</span>}
-                <img src={url} alt="" style={{width:'100%', height:'100%', objectFit:'cover', display:'block'}} />
-                <button onClick={() => handleRemoveImage(url)} style={{
-                  position:'absolute', top:'6px', right:'6px', background:'rgba(180,60,60,.9)',
-                  color:'#fff', border:'none', borderRadius:'50%', width:'24px', height:'24px',
-                  cursor:'pointer', fontSize:'12px', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2
-                }}>×</button>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <div className="save-actions">
-        <button className="secondary-btn" onClick={onReset}>Leegmaken</button>
-        <button className="save-btn" onClick={onSave} disabled={!requiredOk}>
-          Project opslaan →
-        </button>
-      </div>
-    </>
+    </ol>
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-</script>
-<script src="dark-mode.js"></script>
-<script src="transitions.js"></script>
-
-<style>
-
-[data-theme="dark"] 
-
-</style>
-<div class="auth-bar" id="auth-bar" style="display:none;"></div>
-<script>
-(async function(){
-  const bar = document.getElementById('auth-bar');
-  if (!bar || typeof db === 'undefined') return;
-  try {
-    const { data: { user } } = await db.auth.getUser();
-    if (!user) {
-      bar.innerHTML = '<a class="ab-login" href="login.html">Inloggen →</a>';
-      bar.style.display = 'flex';
-      return;
-    }
-    const { data: profile } = await db.from('profiles').select('naam,status,employee_id').eq('id', user.id).maybeSingle();
-    if (!profile || profile.status !== 'approved') {
-      bar.innerHTML = '<a class="ab-login" href="login.html">Inloggen →</a>';
-      bar.style.display = 'flex';
-      return;
-    }
-    const initials = (profile.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
-    // Probeer foto te laden
-    let photoHtml = initials;
-    if (profile.employee_id) {
-      try {
-        const url = await EmployeeImages.getForEmployee(profile.employee_id);
-        if (url) photoHtml = '<img src="' + url + '" alt="">';
-      } catch(e) {}
-    }
-    bar.innerHTML = '<a href="profile.html" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;" title="Mijn profiel"><div class="ab-avatar">' + photoHtml + '</div>'
-      + '<span class="ab-name">' + profile.naam + '</span></a>'
-      + '<button class="ab-logout" onclick="Auth.logout().then(()=>location.reload())">Uitloggen</button>';
-    bar.style.display = 'flex';
-  } catch(e) {
-    bar.style.display = 'flex';
-  }
-})();
-</script>
-
-<div class="auth-bar" id="auth-bar"></div>
-<script src="auth-bar.js"></script>
-</body>
-</html>
+/* ── SectionTitle — kopje met lijn ── */
+function SectionTitle({ children }) {
+  return (
+    <div className="section-title">
+      <span>{children}</span>
+      <span className="rule"></span>
+    </div>
+  );
+}
