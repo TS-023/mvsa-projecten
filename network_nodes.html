@@ -481,7 +481,7 @@
       }
 
       // Verdeel ze in een strak kransje rondom het project
-      const orbitR = proj.r * 2.8 + people.length * 3;
+      const orbitR = proj.r * 5 + people.length * 6;
       people.forEach((pi, k) => {
         const angle = (k / people.length) * Math.PI * 2;
         nodes[pi].x = proj.x + Math.cos(angle) * orbitR;
@@ -657,7 +657,7 @@
       for (let i = 1; i < nodes.length; i++) {
         const n = nodes[i];
         const d2 = (n.x - mouse.x) ** 2 + (n.y - mouse.y) ** 2;
-        const reach = (n.type === 'project' ? 20 : 13) ** 2;
+        const reach = (n.type === 'project' ? 20 : 18) ** 2; // personen groter hitgebied
         if (d2 < reach && d2 < bestD) { bestD = d2; best = i; }
       }
       mouse.hover = best;
