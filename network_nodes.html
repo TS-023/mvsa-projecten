@@ -246,9 +246,10 @@
     let selectedIndex = -1; // persistent selection (click)
 
     // Zoom & pan state
-    let zoom = 0.75; // start iets uitgezoomd maar niet te ver
+    let zoom = 1.4; // start ingezoomd op hub-niveau
     const MIN_ZOOM = 0.15;
     const MAX_ZOOM = 3.0;
+    let targetZoom = 1.4; // voor vloeiende zoom-animatie
     let panX = 0, panY = 0; // world-space pan offset
 
     function resize() {
@@ -379,6 +380,9 @@
 
     canvas.addEventListener('mousedown', (e) => {
       const w = screenToWorld(e.clientX, e.clientY);
+      // Hub blokkeren van panning
+      const hubDist = Math.hypot(w.x - nodes[HUB_IDX].x, w.y - nodes[HUB_IDX].y);
+      if (hubDist < HUB_R + 8) return;
       let hitNode = false;
       for (let i = 1; i < nodes.length; i++) {
         const n = nodes[i];
@@ -398,11 +402,26 @@
     canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
       const factor = e.deltaY < 0 ? 1.1 : 0.9;
-      zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * factor));
+      targetZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, targetZoom * factor));
     }, { passive: false });
 
     canvas.addEventListener('click', (e) => {
       if (panMoved > 5) return; // was een sleep, geen click
+
+      // Check of de hub geklikt is
+      const wHub = screenToWorld(e.clientX, e.clientY);
+      const hubDx = wHub.x - nodes[HUB_IDX].x;
+      const hubDy = wHub.y - nodes[HUB_IDX].y;
+      if (Math.hypot(hubDx, hubDy) < HUB_R + 8) {
+        // Zoom uit naar overzicht
+        targetZoom = 0.55;
+        panX = 0; panY = 0;
+        selectedIndex = -1;
+        resetDepth();
+        updateInfoCard();
+        return;
+      }
+
       // Convert screen → world coords
       const { x: wx, y: wy } = screenToWorld(e.clientX, e.clientY);
       // find hit
@@ -493,6 +512,16 @@
     function updateHover() {
       if (isPanning || panMoved > 5) return;
       if (!mouse.active) { mouse.hover = -1; canvas.style.cursor = 'default'; return; }
+
+      // Check hub hover
+      const hubDx = mouse.x - nodes[HUB_IDX].x;
+      const hubDy = mouse.y - nodes[HUB_IDX].y;
+      if (Math.hypot(hubDx, hubDy) < HUB_R + 8) {
+        canvas.style.cursor = 'pointer';
+        mouse.hover = -1;
+        return;
+      }
+
       let best = -1, bestD = Infinity;
       for (let i = 1; i < nodes.length; i++) {
         const n = nodes[i];
@@ -533,6 +562,9 @@
       fpsSmoothed = fpsSmoothed * 0.9 + (1000 / Math.max(1, dt)) * 0.1;
       const sp = CONFIG.speed;
 
+      // Vloeiende zoom-animatie
+      zoom += (targetZoom - zoom) * 0.1;
+
       updateHover();
 
       const SPRING = CONFIG.spring;
@@ -561,12 +593,24 @@
         }
       }
 
-      // Duw nodes buiten hub-cirkel
+      // Duw nodes hard buiten hub-cirkel — sterke kracht + positie-clamp
       for (let i = 1; i < nodes.length; i++) {
         const n = nodes[i];
-        const dx=n.x-nodes[HUB_IDX].x, dy=n.y-nodes[HUB_IDX].y;
-        const d=Math.hypot(dx,dy)||1, minD=HUB_R+n.r+20;
-        if (d<minD) { const push=(minD-d)*0.08; n.vx+=(dx/d)*push; n.vy+=(dy/d)*push; }
+        const dx = n.x - nodes[HUB_IDX].x, dy = n.y - nodes[HUB_IDX].y;
+        const d = Math.hypot(dx, dy) || 1;
+        const minD = HUB_R + n.r + 22;
+        if (d < minD) {
+          // Sterke veer-kracht
+          const push = (minD - d) * 0.35;
+          n.vx += (dx / d) * push;
+          n.vy += (dy / d) * push;
+          // Hard clamp: zet de node direct buiten de cirkel
+          n.x = nodes[HUB_IDX].x + (dx / d) * minD;
+          n.y = nodes[HUB_IDX].y + (dy / d) * minD;
+          // Damp inwaartse snelheid
+          const dot = n.vx * (dx / d) + n.vy * (dy / d);
+          if (dot < 0) { n.vx -= (dx / d) * dot; n.vy -= (dy / d) * dot; }
+        }
       }
 
       for (const [a, b] of edges) {
@@ -680,10 +724,49 @@
       const edgeOrder = edges.map(([a,b], i) => [i, (nodes[a].z + nodes[b].z) / 2])
         .sort((x, y) => x[1] - y[1]);
 
+      // Helper: knipt een lijnstuk zodat het niet door de hub-cirkel gaat.
+      // Geeft { ax, ay, bx, by } terug — het geknipt stuk.
+      // Als de hele lijn bínnen de cirkel valt → null.
+      function clipToHub(ax, ay, bx, by) {
+        const hx = nodes[HUB_IDX].x, hy = nodes[HUB_IDX].y;
+        const R = HUB_R + 4; // kleine marge
+        // Bereken snijpunten van lijnstuk met cirkel via parametrische vergelijking
+        const dx = bx - ax, dy = by - ay;
+        const fx = ax - hx, fy = ay - hy;
+        const a2 = dx*dx + dy*dy;
+        const b2 = 2*(fx*dx + fy*dy);
+        const c2 = fx*fx + fy*fy - R*R;
+        const disc = b2*b2 - 4*a2*c2;
+        if (disc < 0 || a2 < 0.001) return { ax, ay, bx, by }; // geen snijpunt
+        const sq = Math.sqrt(disc);
+        const t1 = (-b2 - sq) / (2*a2);
+        const t2 = (-b2 + sq) / (2*a2);
+        // Startpunt A binnen cirkel? Schuif naar t2
+        const aInside = (fx*fx + fy*fy) < R*R;
+        // Eindpunt B binnen cirkel?
+        const gx = bx-hx, gy = by-hy;
+        const bInside = (gx*gx + gy*gy) < R*R;
+        if (aInside && bInside) return null; // hele lijn binnen cirkel
+        let rax = ax, ray = ay, rbx = bx, rby = by;
+        if (aInside && t2 >= 0 && t2 <= 1) {
+          rax = ax + t2*dx; ray = ay + t2*dy;
+        } else if (!aInside && t1 >= 0 && t1 <= 1) {
+          // lijn gaat door cirkel: knipt het midden weg → teken twee stukken
+          // Hier teken we alleen het deel voor het snijpunt (buiten → cirkel)
+          rbx = ax + t1*dx; rby = ay + t1*dy;
+        }
+        if (bInside && t1 >= 0 && t1 <= 1) {
+          rbx = ax + t1*dx; rby = ay + t1*dy;
+        }
+        return { ax: rax, ay: ray, bx: rbx, by: rby };
+      }
+
       for (const [ei] of edgeOrder) {
         const [a, b] = edges[ei];
         if (a === HUB_IDX || b === HUB_IDX) continue; // spokes al getekend
         const A = nodes[a], B = nodes[b];
+        const clip = clipToHub(A.x, A.y, B.x, B.y);
+        if (!clip) continue; // lijn volledig binnen hub
         const isLit = hasSel && (hl.has(a) && hl.has(b));
         const avgZ = (A.z + B.z) / 2;
         const depthFade = zAlpha(avgZ);
@@ -695,8 +778,8 @@
         ctx.strokeStyle = grad;
         ctx.lineWidth = (isLit ? 1.5 : 0.7) * zScale(avgZ);
         ctx.beginPath();
-        ctx.moveTo(A.x, A.y);
-        ctx.lineTo(B.x, B.y);
+        ctx.moveTo(clip.ax, clip.ay);
+        ctx.lineTo(clip.bx, clip.by);
         ctx.stroke();
       }
 
@@ -713,6 +796,9 @@
           const A = nodes[p.from], B = nodes[p.to];
           const x = A.x + (B.x - A.x) * p.t;
           const y = A.y + (B.y - A.y) * p.t;
+          // Sla over als puls binnen hub-cirkel valt
+          const pdx = x - nodes[HUB_IDX].x, pdy = y - nodes[HUB_IDX].y;
+          if (pdx*pdx + pdy*pdy < (HUB_R+4)*(HUB_R+4)) continue;
           const pz = A.z + (B.z - A.z) * p.t;
           const litA = (!hasSel || (hl.has(p.from) && hl.has(p.to))) ? 0.95 : 0.15;
           const da = zAlpha(pz) * litA;
@@ -891,10 +977,11 @@
       selectedIndex = idx;
       pushDepth(idx);
       updateInfoCard();
-      // Pan naar de node
+      // Pan naar de node en zoom in
       const n = nodes[idx];
       panX = W / 2 - n.x;
       panY = H / 2 - n.y;
+      targetZoom = 1.4;
     }
 
     function renderResults(q) {
