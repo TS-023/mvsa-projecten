@@ -1149,11 +1149,7 @@
         const c = colorFor(n);
         const breathe = 0.85 + Math.sin(n.phase) * 0.22;
         const isProj = n.type === 'project';
-        // Schaal: geselecteerde node 1.7×, directe buren 1.25×, rest 1×
-        const isSel = i === selectedIndex;
-        const isNeighbor = selectedIndex >= 0 && !isSel && hl.has(i) && i !== HUB_IDX;
-        const sizeScale = isSel ? 1.7 : isNeighbor ? 1.25 : 1.0;
-        const baseR = n.r * sc * sizeScale;
+        const baseR = n.r * sc;
 
         if (CONFIG.glow) {
           const glowR = baseR * (isProj ? 5 : 4) * (lit ? 1 : 0.5);
@@ -1211,15 +1207,28 @@
             ctx.arc(n.x, n.y, baseR + 22 * sc, 0, Math.PI * 2);
             ctx.stroke();
           }
-          // Filter-rings
+          // Filter bolletjes rondom project
           { const rings = getProjectRings(n.name);
+            const dotR = 3.5 * sc;
+            const orbitBase = baseR + 18 * sc;
             rings.forEach((k, ri) => {
-              const ringDist = baseR + (32 + ri * 8) * sc;
-              ctx.strokeStyle = FILTER_COLORS[k] + Math.round(alpha * 200).toString(16).padStart(2,'0');
-              ctx.lineWidth = 2 * sc;
-              ctx.beginPath();
-              ctx.arc(n.x, n.y, ringDist, 0, Math.PI * 2);
-              ctx.stroke();
+              const angle = (ri / Math.max(rings.length, 1)) * Math.PI * 2 + n.phase * 0.3;
+              const orbit = orbitBase + ri * 9 * sc;
+              const bx = n.x + Math.cos(angle) * orbit;
+              const by = n.y + Math.sin(angle) * orbit;
+              const fa = alpha * 0.85;
+              // Glow
+              const g = ctx.createRadialGradient(bx, by, 0, bx, by, dotR * 3);
+              g.addColorStop(0, FILTER_COLORS[k] + Math.round(fa * 120).toString(16).padStart(2,'0'));
+              g.addColorStop(1, FILTER_COLORS[k] + '00');
+              ctx.fillStyle = g;
+              ctx.beginPath(); ctx.arc(bx, by, dotR * 3, 0, Math.PI * 2); ctx.fill();
+              // Dot
+              ctx.fillStyle = FILTER_COLORS[k] + Math.round(fa * 230).toString(16).padStart(2,'0');
+              ctx.beginPath(); ctx.arc(bx, by, dotR, 0, Math.PI * 2); ctx.fill();
+              // Wit puntje
+              ctx.fillStyle = `rgba(255,255,255,${fa * 0.7})`;
+              ctx.beginPath(); ctx.arc(bx, by, dotR * 0.35, 0, Math.PI * 2); ctx.fill();
             });
           }
         } else {
