@@ -272,57 +272,63 @@
       return a;
     }
 
+    // Hub node is altijd index 0, vast in het midden
+    const HUB_IDX = 0;
+    const HUB_R   = 52;
+
     function buildGraph() {
       nodes = []; edges = []; pulses = [];
       const projN = Math.min(CONFIG.projects, PROJECT_POOL.length);
       const peopleN = Math.min(CONFIG.people, PERSON_POOL.length);
       const projNames = shuffle(PROJECT_POOL).slice(0, projN);
       const peopleNames = shuffle(PERSON_POOL).slice(0, peopleN);
-
       const cx = W / 2, cy = H / 2;
-      const ringR = Math.min(W, H) * 0.18; // kleinere ring
+
+      // Hub (index 0) — altijd vastgepind
+      nodes.push({ type:'hub', name:'MVSA', x:cx, y:cy, vx:0, vy:0, r:HUB_R,
+        phase:0, edges:[], z:0.5, tz:0.5, vz:0, pinned:true });
+
+      // Projecten in ring
+      const ringR = HUB_R + Math.min(W,H) * 0.14;
       for (let i = 0; i < projN; i++) {
-        const a = (i / projN) * Math.PI * 2 + rand(-0.15, 0.15);
-        const r = ringR * rand(0.7, 1.0);
-        nodes.push({
-          type: 'project', name: projNames[i],
-          x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r,
-          vx: 0, vy: 0, r: rand(6.5, 9), c: i % 3,
-          phase: Math.random() * Math.PI * 2, edges: [],
-          z: rand(-0.3, 0.1),   // diepte: -1 = ver weg, +1 = dichtbij
-          tz: rand(-0.3, 0.1),  // target z (geanimeerd)
-          vz: 0,
-        });
+        const a = (i / projN) * Math.PI * 2;
+        const r = ringR * rand(0.88, 1.12);
+        nodes.push({ type:'project', name:projNames[i],
+          x:cx+Math.cos(a)*r, y:cy+Math.sin(a)*r,
+          vx:0, vy:0, r:rand(6.5,9), c:i%3,
+          phase:Math.random()*Math.PI*2, edges:[],
+          z:rand(-0.2,0.15), tz:rand(-0.2,0.15), vz:0 });
       }
+      // Hub ↔ project spokes
+      for (let p = 1; p <= projN; p++) {
+        const ei = edges.length;
+        edges.push([HUB_IDX, p]);
+        nodes[HUB_IDX].edges.push(ei);
+        nodes[p].edges.push(ei);
+      }
+      // Personen
       for (let i = 0; i < peopleN; i++) {
-        nodes.push({
-          type: 'person', name: peopleNames[i],
-          x: cx + rand(-W * 0.22, W * 0.22),
-          y: cy + rand(-H * 0.22, H * 0.22),
-          vx: 0, vy: 0, r: rand(2.2, 3.2), c: i % 3,
-          phase: Math.random() * Math.PI * 2, edges: [],
-          z: rand(-0.6, -0.1),
-          tz: rand(-0.6, -0.1),
-          vz: 0,
-        });
+        nodes.push({ type:'person', name:peopleNames[i],
+          x:cx+rand(-W*0.25,W*0.25), y:cy+rand(-H*0.25,H*0.25),
+          vx:0, vy:0, r:rand(2.2,3.2), c:i%3,
+          phase:Math.random()*Math.PI*2, edges:[],
+          z:rand(-0.6,-0.1), tz:rand(-0.6,-0.1), vz:0 });
         const personIdx = nodes.length - 1;
         const avg = CONFIG.avgPerPerson;
         let count = 1;
-        while (count < projN && Math.random() < (avg - 1) / Math.max(1, count)) count++;
+        while (count < projN && Math.random() < (avg-1)/Math.max(1,count)) count++;
         count = Math.min(count, Math.max(1, projN));
         const used = new Set();
         for (let k = 0; k < count; k++) {
           let pool = [];
-          for (let p = 0; p < projN; p++) {
+          for (let p = 1; p <= projN; p++) {
             if (used.has(p)) continue;
-            const deg = nodes[p].edges.length;
-            pool.push({ p, w: 1 / (1 + deg * 0.4) });
+            pool.push({ p, w: 1/(1+nodes[p].edges.length*0.4) });
           }
           if (!pool.length) break;
-          let total = pool.reduce((s, x) => s + x.w, 0);
-          let pick = Math.random() * total;
-          let chosen = pool[0].p;
-          for (const x of pool) { pick -= x.w; if (pick <= 0) { chosen = x.p; break; } }
+          let total = pool.reduce((s,x)=>s+x.w, 0);
+          let pick = Math.random()*total, chosen = pool[0].p;
+          for (const x of pool) { pick -= x.w; if (pick<=0){chosen=x.p;break;} }
           used.add(chosen);
           const ei = edges.length;
           edges.push([personIdx, chosen]);
@@ -330,13 +336,13 @@
           nodes[chosen].edges.push(ei);
         }
       }
-      for (let p = 0; p < projN; p++) {
-        if (nodes[p].edges.length === 0) {
-          const pi = projN + Math.floor(Math.random() * peopleN);
+      // Elk project minstens één persoon
+      for (let p = 1; p <= projN; p++) {
+        if (nodes[p].edges.length <= 1) {
+          const pi = 1 + projN + Math.floor(Math.random()*peopleN);
           const ei = edges.length;
           edges.push([pi, p]);
-          nodes[pi].edges.push(ei);
-          nodes[p].edges.push(ei);
+          nodes[pi].edges.push(ei); nodes[p].edges.push(ei);
         }
       }
     }
@@ -374,7 +380,7 @@
     canvas.addEventListener('mousedown', (e) => {
       const w = screenToWorld(e.clientX, e.clientY);
       let hitNode = false;
-      for (let i = 0; i < nodes.length; i++) {
+      for (let i = 1; i < nodes.length; i++) {
         const n = nodes[i];
         const d2 = (n.x - w.x) ** 2 + (n.y - w.y) ** 2;
         const reach = (n.type === 'project' ? 22 : 14) ** 2;
@@ -401,7 +407,7 @@
       const { x: wx, y: wy } = screenToWorld(e.clientX, e.clientY);
       // find hit
       let best = -1, bestD = Infinity;
-      for (let i = 0; i < nodes.length; i++) {
+      for (let i = 1; i < nodes.length; i++) {
         const n = nodes[i];
         const d2 = (n.x - wx) ** 2 + (n.y - wy) ** 2;
         const reach = (n.type === 'project' ? 22 : 14) ** 2;
@@ -424,8 +430,6 @@
 
     // 2.5D diepte-animatie
     function pushDepth(focusIdx) {
-      const projN = nodes.filter(n => n.type === 'project').length;
-      // Bouw een set van directe buren
       const neighbors = new Set();
       neighbors.add(focusIdx);
       for (const ei of nodes[focusIdx].edges) {
@@ -433,18 +437,16 @@
         neighbors.add(a); neighbors.add(b);
       }
       for (let i = 0; i < nodes.length; i++) {
-        if (i === focusIdx) {
-          nodes[i].tz = 1.0;   // helemaal naar voren
-        } else if (neighbors.has(i)) {
-          nodes[i].tz = 0.35;  // buren ook iets naar voren
-        } else {
-          nodes[i].tz = -0.75; // rest naar achteren
-        }
+        if (i === HUB_IDX) { nodes[i].tz = 0.5; continue; }
+        if (i === focusIdx) nodes[i].tz = 1.0;
+        else if (neighbors.has(i)) nodes[i].tz = 0.35;
+        else nodes[i].tz = -0.75;
       }
     }
     function resetDepth() {
-      for (const n of nodes) {
-        n.tz = n.type === 'project' ? rand(-0.2, 0.1) : rand(-0.6, -0.1);
+      for (let i = 0; i < nodes.length; i++) {
+        if (i === HUB_IDX) { nodes[i].tz = 0.5; continue; }
+        nodes[i].tz = nodes[i].type === 'project' ? rand(-0.2, 0.1) : rand(-0.6, -0.1);
       }
     }
 
@@ -492,7 +494,7 @@
       if (isPanning || panMoved > 5) return;
       if (!mouse.active) { mouse.hover = -1; canvas.style.cursor = 'default'; return; }
       let best = -1, bestD = Infinity;
-      for (let i = 0; i < nodes.length; i++) {
+      for (let i = 1; i < nodes.length; i++) {
         const n = nodes[i];
         const d2 = (n.x - mouse.x) ** 2 + (n.y - mouse.y) ** 2;
         const reach = (n.type === 'project' ? 20 : 13) ** 2;
@@ -534,33 +536,41 @@
       updateHover();
 
       const SPRING = CONFIG.spring;
-      const REST = 65; // kortere rustlengte → compacter netwerk
+      const REST = 65;
       const REPEL_PROJ = 2800 * CONFIG.repel;
       const REPEL_PERS = 400 * CONFIG.repel;
       const CENTER_PULL = 0.0006;
 
-      for (let i = 0; i < nodes.length; i++) {
+      // Hub altijd vast in midden
+      nodes[HUB_IDX].x = W / 2; nodes[HUB_IDX].y = H / 2;
+      nodes[HUB_IDX].vx = 0;    nodes[HUB_IDX].vy = 0;
+
+      for (let i = 1; i < nodes.length; i++) {
         const A = nodes[i];
         for (let j = i + 1; j < nodes.length; j++) {
           const B = nodes[j];
-          const dx = A.x - B.x;
-          const dy = A.y - B.y;
-          let d2 = dx * dx + dy * dy;
-          if (d2 < 4) d2 = 4;
+          const dx = A.x - B.x, dy = A.y - B.y;
+          let d2 = dx*dx + dy*dy; if (d2<4) d2=4;
           const d = Math.sqrt(d2);
           let strength;
-          if (A.type === 'project' && B.type === 'project') strength = REPEL_PROJ;
-          else if (A.type === 'person' && B.type === 'person') strength = REPEL_PERS;
-          else strength = 2200;
-          const f = strength / d2;
-          const fx = (dx / d) * f;
-          const fy = (dy / d) * f;
-          A.vx += fx; A.vy += fy;
-          B.vx -= fx; B.vy -= fy;
+          if (A.type==='project'&&B.type==='project') strength=REPEL_PROJ;
+          else if (A.type==='person'&&B.type==='person') strength=REPEL_PERS;
+          else strength=2200;
+          const f=strength/d2, fx=(dx/d)*f, fy=(dy/d)*f;
+          A.vx+=fx; A.vy+=fy; B.vx-=fx; B.vy-=fy;
         }
       }
 
+      // Duw nodes buiten hub-cirkel
+      for (let i = 1; i < nodes.length; i++) {
+        const n = nodes[i];
+        const dx=n.x-nodes[HUB_IDX].x, dy=n.y-nodes[HUB_IDX].y;
+        const d=Math.hypot(dx,dy)||1, minD=HUB_R+n.r+20;
+        if (d<minD) { const push=(minD-d)*0.08; n.vx+=(dx/d)*push; n.vy+=(dy/d)*push; }
+      }
+
       for (const [a, b] of edges) {
+        if (a === HUB_IDX || b === HUB_IDX) continue;
         const A = nodes[a], B = nodes[b];
         const dx = B.x - A.x;
         const dy = B.y - A.y;
@@ -648,12 +658,31 @@
 
       ctx.lineCap = 'round';
 
-      // Edges gesorteerd op gemiddelde z
+      // Hub-spokes: subtiele lijnen van hub naar projecten
+      { const h = nodes[HUB_IDX];
+        for (const ei of h.edges) {
+          const [a, b] = edges[ei];
+          const pidx = a===HUB_IDX ? b : a;
+          const proj = nodes[pidx];
+          const isLit = hasSel && hl.has(pidx);
+          const alpha = isLit ? 0.22 : (hasSel ? 0.04 : 0.12);
+          const dx=proj.x-h.x, dy=proj.y-h.y, d=Math.hypot(dx,dy)||1;
+          const sx=h.x+(dx/d)*HUB_R, sy=h.y+(dy/d)*HUB_R;
+          const gr=ctx.createLinearGradient(sx,sy,proj.x,proj.y);
+          gr.addColorStop(0,`rgba(216,222,233,${alpha})`);
+          gr.addColorStop(1,'rgba(216,222,233,0)');
+          ctx.strokeStyle=gr; ctx.lineWidth=isLit?1.2:0.5;
+          ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(proj.x,proj.y); ctx.stroke();
+        }
+      }
+
+      // Overige edges gesorteerd op gemiddelde z
       const edgeOrder = edges.map(([a,b], i) => [i, (nodes[a].z + nodes[b].z) / 2])
         .sort((x, y) => x[1] - y[1]);
 
       for (const [ei] of edgeOrder) {
         const [a, b] = edges[ei];
+        if (a === HUB_IDX || b === HUB_IDX) continue; // spokes al getekend
         const A = nodes[a], B = nodes[b];
         const isLit = hasSel && (hl.has(a) && hl.has(b));
         const avgZ = (A.z + B.z) / 2;
@@ -707,8 +736,9 @@
         pulses = pulses.filter(p => p.t < 1);
       } else { pulses.length = 0; }
 
-      // Nodes van achter naar voor
+      // Nodes van achter naar voor (hub overgeslagen)
       for (const i of sortedIdx) {
+        if (i === HUB_IDX) continue;
         const n = nodes[i];
         const lit = !hasSel || hl.has(i);
         const sc = zScale(n.z);
@@ -792,6 +822,28 @@
             ctx.stroke();
           }
         }
+      }
+
+      // Hub cirkel — altijd bovenop
+      { const h=nodes[HUB_IDX]; const t=performance.now()/1000;
+        const pulse=1+Math.sin(t*0.8)*0.015; const r=HUB_R*pulse;
+        const og=ctx.createRadialGradient(h.x,h.y,r*0.7,h.x,h.y,r*1.7);
+        og.addColorStop(0,'rgba(255,255,255,0.07)'); og.addColorStop(1,'rgba(255,255,255,0)');
+        ctx.fillStyle=og; ctx.beginPath(); ctx.arc(h.x,h.y,r*1.7,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='rgba(7,8,11,0.88)'; ctx.beginPath(); ctx.arc(h.x,h.y,r,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle='rgba(232,238,247,0.9)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.arc(h.x,h.y,r,0,Math.PI*2); ctx.stroke();
+        ctx.save(); ctx.strokeStyle='rgba(232,238,247,0.16)'; ctx.lineWidth=0.7;
+        ctx.setLineDash([4,8]); ctx.lineDashOffset=-t*12;
+        ctx.beginPath(); ctx.arc(h.x,h.y,r+11,0,Math.PI*2); ctx.stroke();
+        ctx.setLineDash([]); ctx.restore();
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillStyle='rgba(232,238,247,0.92)';
+        ctx.font="600 18px 'Space Grotesk', system-ui, sans-serif";
+        ctx.fillText('MVSA',h.x,h.y-7);
+        ctx.fillStyle='rgba(216,222,233,0.45)';
+        ctx.font="400 9px 'JetBrains Mono', monospace";
+        ctx.fillText('ARCHITECTS',h.x,h.y+9);
       }
 
       if (CONFIG.showLabels) {
