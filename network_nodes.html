@@ -101,20 +101,20 @@
 
   /* Zoekbalk */
   .search-wrap {
-    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
     z-index: 10; width: 320px;
   }
   .search-input {
     width: 100%; box-sizing: border-box;
-    background: rgba(12,14,18,0.82); border: 1px solid rgba(216,222,233,0.18);
+    background: rgba(12,14,18,0.45); border: 1px solid rgba(216,222,233,0.12);
     border-radius: 999px; color: rgba(232,238,247,0.92);
     font-family: 'Space Grotesk', system-ui, sans-serif;
     font-size: 13px; padding: 9px 18px 9px 38px;
-    outline: none; backdrop-filter: blur(12px);
-    transition: border-color .15s, background .15s;
+    outline: none; backdrop-filter: blur(20px);
+    transition: border-color .15s, background .2s;
   }
-  .search-input::placeholder { color: rgba(216,222,233,0.35); }
-  .search-input:focus { border-color: rgba(216,222,233,0.45); background: rgba(12,14,18,0.95); }
+  .search-input::placeholder { color: rgba(216,222,233,0.3); }
+  .search-input:focus { border-color: rgba(216,222,233,0.35); background: rgba(12,14,18,0.82); }
   .search-icon {
     position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
     color: rgba(216,222,233,0.4); pointer-events: none; font-size: 14px;
@@ -249,8 +249,8 @@
     let zoom = 1.4; // start ingezoomd op hub-niveau
     const MIN_ZOOM = 0.15;
     const MAX_ZOOM = 3.0;
-    let targetZoom = 1.4; // voor vloeiende zoom-animatie
-    let panX = 0, panY = 0; // world-space pan offset
+    let targetZoom = 1.4;
+    let panX = 0, panY = 120; // logo omhoog, dichter bij zoekbalk
 
     function resize() {
       DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -550,11 +550,18 @@
         n.pinned = !n.pinned;
         if (n.pinned) { n.vx = 0; n.vy = 0; }
         selectedIndex = best;
-        pushDepth(best); // 2.5D: vlieg naar voren
+        pushDepth(best);
       } else {
         selectedIndex = (selectedIndex === best) ? -1 : best;
         if (selectedIndex >= 0) pushDepth(best);
         else resetDepth();
+      }
+      // Breng camera naar de node
+      if (selectedIndex >= 0) {
+        const newZoom = n.type === 'person' ? 1.8 : 1.5;
+        targetZoom = newZoom;
+        panX = W / 2 - n.x + 180 / newZoom;
+        panY = H / 2 - n.y;
       }
       updateInfoCard();
     });
@@ -1174,13 +1181,14 @@
       pushDepth(idx);
       updateInfoCard();
       const n = nodes[idx];
-      // Zet node exact in het midden van het scherm
-      // screenX = (worldX + panX - W/2) * zoom + W/2
-      // Voor screenX = W/2: panX = W/2 - n.x
-      // Onafhankelijk van zoom want we willen node centreren
-      panX = W / 2 - n.x;
+      const newZoom = nodes[idx].type === 'person' ? 1.8 : 1.5;
+      targetZoom = newZoom;
+      // screenX van node = (n.x + panX - W/2) * zoom + W/2
+      // we willen screenX = W/2 → panX = W/2 - n.x
+      // maar infokaart staat links (±300px breed) dus verschuif node iets naar rechts
+      const infoOffset = 180; // pixels, helft van kaartbreedte
+      panX = W / 2 - n.x + infoOffset / newZoom;
       panY = H / 2 - n.y;
-      targetZoom = nodes[idx].type === 'person' ? 1.8 : 1.5;
     }
 
     function renderResults(q) {
