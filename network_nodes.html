@@ -311,7 +311,7 @@
       for (let i = 0; i < peopleN; i++) {
         nodes.push({ type:'person', name:peopleNames[i],
           x:cx+rand(-W*0.25,W*0.25), y:cy+rand(-H*0.25,H*0.25),
-          vx:0, vy:0, r:rand(2.2,3.2), c:i%3,
+          vx:0, vy:0, r:rand(2.2,3.2), c:i%6,
           phase:Math.random()*Math.PI*2, edges:[],
           z:rand(-0.6,-0.1), tz:rand(-0.6,-0.1), vz:0 });
         const personIdx = nodes.length - 1;
@@ -616,9 +616,21 @@
       const [r, g, b] = hexToRgb(hex);
       return `rgba(${r},${g},${b},${a})`;
     }
+    // 6 subtiele kleuren voor personen — passen bij het donkere ontwerp
+    const PERSON_COLORS = [
+      '#7eb8c9', // stofig blauw
+      '#9fa8c0', // lavende grijs
+      '#b8a89a', // warm zand
+      '#8fbfa8', // salie groen
+      '#c4a882', // amber
+      '#b096b8', // mauve
+    ];
+    // Projecten blijven neutraal wit/grijs
+    const PROJECT_COLOR = '#d8dde8';
+
     function colorFor(node) {
-      const p = CONFIG.palette;
-      return p[node.c % p.length] || p[0];
+      if (node.type === 'project' || node.type === 'hub') return PROJECT_COLOR;
+      return PERSON_COLORS[node.c % PERSON_COLORS.length];
     }
 
     function updateHover() {
@@ -821,7 +833,11 @@
 
       const hl = highlightSet();
       const hasSel = mouse.hover >= 0 || selectedIndex >= 0;
-      const dimA = hasSel ? 0.10 : 1;
+      const dimA = hasSel ? 0.28 : 1;
+
+      // Persoon hover: toon lijnen naar projecten in kleur van die persoon
+      const hoverIsPerson = mouse.hover >= 0 && nodes[mouse.hover].type === 'person';
+      const hoverPersonColor = hoverIsPerson ? colorFor(nodes[mouse.hover]) : null;
 
       // 2.5D helpers — z loopt van -1 (ver weg) tot +1 (dichtbij)
       function zScale(z) { return 0.52 + 0.48 * ((z + 1) / 2); }
@@ -907,15 +923,25 @@
         const segs = segmentsAroundHub(A.x, A.y, B.x, B.y);
         if (!segs.length) continue;
         const isLit = hasSel && (hl.has(a) && hl.has(b));
+        // Persoon-hover: lijn in kleur van de persoon
+        const involvesPerson = hoverIsPerson && (a === mouse.hover || b === mouse.hover);
         const avgZ = (A.z + B.z) / 2;
         const depthFade = zAlpha(avgZ);
-        const baseA = CONFIG.lineOpacity * (isLit ? 1.0 : dimA) * depthFade;
-        const cA = colorFor(A), cB = colorFor(B);
-        ctx.lineWidth = (isLit ? 1.5 : 0.7) * zScale(avgZ);
+        let lineAlpha, lineColor1, lineColor2;
+        if (involvesPerson) {
+          lineAlpha = 0.85 * depthFade;
+          lineColor1 = hoverPersonColor;
+          lineColor2 = PROJECT_COLOR;
+        } else {
+          lineAlpha = CONFIG.lineOpacity * (isLit ? 1.0 : dimA) * depthFade;
+          lineColor1 = colorFor(A);
+          lineColor2 = colorFor(B);
+        }
+        ctx.lineWidth = (involvesPerson ? 1.8 : isLit ? 1.5 : 0.7) * zScale(avgZ);
         for (const [sx, sy, ex, ey] of segs) {
           const grad = ctx.createLinearGradient(A.x, A.y, B.x, B.y);
-          grad.addColorStop(0, rgba(cA, baseA));
-          grad.addColorStop(1, rgba(cB, baseA));
+          grad.addColorStop(0, rgba(lineColor1, lineAlpha));
+          grad.addColorStop(1, rgba(lineColor2, lineAlpha));
           ctx.strokeStyle = grad;
           ctx.beginPath();
           ctx.moveTo(sx, sy);
@@ -1033,11 +1059,25 @@
             ctx.stroke();
           }
         } else {
-          ctx.fillStyle = rgba(c, 0.92 * alpha);
+          const isHovered = i === mouse.hover;
+          // Glow — sterker en in eigen kleur bij hover
+          if (CONFIG.glow || isHovered) {
+            const glowR = baseR * (isHovered ? 7 : 4) * (lit ? 1 : 0.5);
+            const glowA = isHovered ? 0.55 : (0.35 * breathe * alpha);
+            const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, glowR);
+            g.addColorStop(0, rgba(c, glowA));
+            g.addColorStop(0.4, rgba(c, glowA * 0.3));
+            g.addColorStop(1, rgba(c, 0));
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, glowR, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.fillStyle = rgba(c, isHovered ? 1 : 0.92 * alpha);
           ctx.beginPath();
           ctx.arc(n.x, n.y, baseR, 0, Math.PI * 2);
           ctx.fill();
-          ctx.fillStyle = `rgba(255,255,255,${0.85 * alpha})`;
+          ctx.fillStyle = `rgba(255,255,255,${isHovered ? 0.95 : 0.85 * alpha})`;
           ctx.beginPath();
           ctx.arc(n.x, n.y, Math.max(0.4, baseR * 0.35), 0, Math.PI * 2);
           ctx.fill();
@@ -1082,9 +1122,7 @@
           const isProj = n.type === 'project';
           const sc = zScale(n.z);
           const fog = zAlpha(n.z);
-          const alpha = (lit ? (isProj ? 0.92 : 0.85) : 0.18) * fog;
-          const offset = (isProj ? n.r + 10 : n.r + 8) * sc;
-          ctx.textAlign = 'left';
+          const alpha = (lit ? (isProj ? 0.92 : 0.85) : 0.22) * fog;
           const text = n.name;
           const padX = 6, padY = 2;
           const fsize = isProj ? Math.round(11.5 * sc) : Math.round(10.5 * sc);
@@ -1092,10 +1130,25 @@
             ? `500 ${fsize}px 'Space Grotesk', system-ui, sans-serif`
             : `400 ${fsize}px 'JetBrains Mono', monospace`;
           const tw = ctx.measureText(text).width;
-          const tx = n.x + offset;
-          const ty = n.y;
-          ctx.fillStyle = `rgba(7,8,11,${0.6 * alpha})`;
-          ctx.fillRect(tx - padX / 2, ty - 8 * sc - padY, tw + padX, 16 * sc + padY * 2);
+
+          // Label links of rechts op basis van positie t.o.v. canvas-midden
+          const nodeScreenX = n.x + panX; // world x + pan
+          const toRight = nodeScreenX >= W / 2;
+          const offset = (isProj ? n.r + 10 : n.r + 7) * sc;
+
+          let tx, ty = n.y;
+          if (toRight) {
+            ctx.textAlign = 'left';
+            tx = n.x + offset;
+          } else {
+            ctx.textAlign = 'right';
+            tx = n.x - offset;
+          }
+
+          // Achtergrond
+          const bgX = toRight ? tx - padX / 2 : tx - tw - padX / 2;
+          ctx.fillStyle = `rgba(7,8,11,${0.55 * alpha})`;
+          ctx.fillRect(bgX, ty - 8 * sc - padY, tw + padX, 16 * sc + padY * 2);
           ctx.fillStyle = isProj
             ? `rgba(232,238,247,${alpha})`
             : `rgba(216,222,233,${alpha * 0.85})`;
