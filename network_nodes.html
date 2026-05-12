@@ -221,6 +221,9 @@
           x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r,
           vx: 0, vy: 0, r: rand(6.5, 9), c: i % 3,
           phase: Math.random() * Math.PI * 2, edges: [],
+          z: rand(-0.3, 0.1),   // diepte: -1 = ver weg, +1 = dichtbij
+          tz: rand(-0.3, 0.1),  // target z (geanimeerd)
+          vz: 0,
         });
       }
       for (let i = 0; i < peopleN; i++) {
@@ -230,6 +233,9 @@
           y: cy + rand(-H * 0.22, H * 0.22),
           vx: 0, vy: 0, r: rand(2.2, 3.2), c: i % 3,
           phase: Math.random() * Math.PI * 2, edges: [],
+          z: rand(-0.6, -0.1),
+          tz: rand(-0.6, -0.1),
+          vz: 0,
         });
         const personIdx = nodes.length - 1;
         const avg = CONFIG.avgPerPerson;
@@ -329,17 +335,46 @@
         const reach = (n.type === 'project' ? 22 : 14) ** 2;
         if (d2 < reach && d2 < bestD) { bestD = d2; best = i; }
       }
-      if (best < 0) { selectedIndex = -1; updateInfoCard(); return; }
+      if (best < 0) { selectedIndex = -1; updateInfoCard(); resetDepth(); return; }
       const n = nodes[best];
       if (n.type === 'project') {
         n.pinned = !n.pinned;
         if (n.pinned) { n.vx = 0; n.vy = 0; }
         selectedIndex = best;
+        pushDepth(best); // 2.5D: vlieg naar voren
       } else {
         selectedIndex = (selectedIndex === best) ? -1 : best;
+        if (selectedIndex >= 0) pushDepth(best);
+        else resetDepth();
       }
       updateInfoCard();
     });
+
+    // 2.5D diepte-animatie
+    function pushDepth(focusIdx) {
+      const projN = nodes.filter(n => n.type === 'project').length;
+      // Bouw een set van directe buren
+      const neighbors = new Set();
+      neighbors.add(focusIdx);
+      for (const ei of nodes[focusIdx].edges) {
+        const [a, b] = edges[ei];
+        neighbors.add(a); neighbors.add(b);
+      }
+      for (let i = 0; i < nodes.length; i++) {
+        if (i === focusIdx) {
+          nodes[i].tz = 1.0;   // helemaal naar voren
+        } else if (neighbors.has(i)) {
+          nodes[i].tz = 0.35;  // buren ook iets naar voren
+        } else {
+          nodes[i].tz = -0.75; // rest naar achteren
+        }
+      }
+    }
+    function resetDepth() {
+      for (const n of nodes) {
+        n.tz = n.type === 'project' ? rand(-0.2, 0.1) : rand(-0.6, -0.1);
+      }
+    }
 
     function updateInfoCard() {
       const el = document.getElementById('selected-info');
@@ -470,40 +505,45 @@
 
       const cx = W / 2, cy = H / 2;
       for (const n of nodes) {
-        if (n.pinned) { n.vx = 0; n.vy = 0; n.phase += dt * 0.002; continue; }
-        n.vx += (cx - n.x) * CENTER_PULL;
-        n.vy += (cy - n.y) * CENTER_PULL;
+        if (n.pinned) { n.vx = 0; n.vy = 0; n.phase += dt * 0.002; }
+        else {
+          n.vx += (cx - n.x) * CENTER_PULL;
+          n.vy += (cy - n.y) * CENTER_PULL;
 
-        if (CONFIG.cursorPull && mouse.active) {
-          const dx = mouse.x - n.x;
-          const dy = mouse.y - n.y;
-          const d2 = dx * dx + dy * dy;
-          const R = 180;
-          if (d2 < R * R && d2 > 1) {
-            const d = Math.sqrt(d2);
-            const f = (1 - d / R) * 0.35;
-            n.vx -= (dx / d) * f;
-            n.vy -= (dy / d) * f;
+          if (CONFIG.cursorPull && mouse.active) {
+            const dx = mouse.x - n.x;
+            const dy = mouse.y - n.y;
+            const d2 = dx * dx + dy * dy;
+            const R = 180;
+            if (d2 < R * R && d2 > 1) {
+              const d = Math.sqrt(d2);
+              const f = (1 - d / R) * 0.35;
+              n.vx -= (dx / d) * f;
+              n.vy -= (dy / d) * f;
+            }
           }
+
+          n.vx *= 0.74; n.vy *= 0.74;
+          const vmax = 5;
+          const v = Math.hypot(n.vx, n.vy);
+          if (v > vmax) { n.vx = n.vx / v * vmax; n.vy = n.vy / v * vmax; }
+          if (Math.abs(n.vx) < 0.04) n.vx = 0;
+          if (Math.abs(n.vy) < 0.04) n.vy = 0;
+
+          n.x += n.vx * sp * dt * 0.045;
+          n.y += n.vy * sp * dt * 0.045;
+
+          const m = 60;
+          if (n.x < m) n.vx += (m - n.x) * 0.02;
+          if (n.x > W - m) n.vx -= (n.x - (W - m)) * 0.02;
+          if (n.y < m) n.vy += (m - n.y) * 0.02;
+          if (n.y > H - m) n.vy -= (n.y - (H - m)) * 0.02;
         }
 
-        // Strong damping → settles quickly into a near-static layout
-        n.vx *= 0.74; n.vy *= 0.74;
-        const vmax = 5;
-        const v = Math.hypot(n.vx, n.vy);
-        if (v > vmax) { n.vx = n.vx / v * vmax; n.vy = n.vy / v * vmax; }
-        // Zero out micro-jitter so the graph truly comes to rest
-        if (Math.abs(n.vx) < 0.04) n.vx = 0;
-        if (Math.abs(n.vy) < 0.04) n.vy = 0;
-
-        n.x += n.vx * sp * dt * 0.045;
-        n.y += n.vy * sp * dt * 0.045;
-
-        const m = 60;
-        if (n.x < m) n.vx += (m - n.x) * 0.02;
-        if (n.x > W - m) n.vx -= (n.x - (W - m)) * 0.02;
-        if (n.y < m) n.vy += (m - n.y) * 0.02;
-        if (n.y > H - m) n.vy -= (n.y - (H - m)) * 0.02;
+        // Z-animatie: spring naar target
+        const dz = n.tz - n.z;
+        n.vz = (n.vz + dz * 0.04) * 0.82;
+        n.z += n.vz;
 
         n.phase += dt * 0.002;
       }
@@ -526,17 +566,33 @@
       const hasSel = mouse.hover >= 0 || selectedIndex >= 0;
       const dimA = hasSel ? 0.10 : 1;
 
+      // 2.5D helpers — z loopt van -1 (ver weg) tot +1 (dichtbij)
+      function zScale(z) { return 0.52 + 0.48 * ((z + 1) / 2); }
+      function zAlpha(z) { return 0.22 + 0.78 * ((z + 1) / 2); }
+
+      // Sorteer indices van achter naar voor
+      const sortedIdx = Array.from({length: nodes.length}, (_, i) => i)
+        .sort((a, b) => nodes[a].z - nodes[b].z);
+
       ctx.lineCap = 'round';
-      for (const [a, b] of edges) {
+
+      // Edges gesorteerd op gemiddelde z
+      const edgeOrder = edges.map(([a,b], i) => [i, (nodes[a].z + nodes[b].z) / 2])
+        .sort((x, y) => x[1] - y[1]);
+
+      for (const [ei] of edgeOrder) {
+        const [a, b] = edges[ei];
         const A = nodes[a], B = nodes[b];
         const isLit = hasSel && (hl.has(a) && hl.has(b));
-        const baseA = CONFIG.lineOpacity * (isLit ? 1.0 : dimA);
+        const avgZ = (A.z + B.z) / 2;
+        const depthFade = zAlpha(avgZ);
+        const baseA = CONFIG.lineOpacity * (isLit ? 1.0 : dimA) * depthFade;
         const cA = colorFor(A), cB = colorFor(B);
         const grad = ctx.createLinearGradient(A.x, A.y, B.x, B.y);
         grad.addColorStop(0, rgba(cA, baseA));
         grad.addColorStop(1, rgba(cB, baseA));
         ctx.strokeStyle = grad;
-        ctx.lineWidth = isLit ? 1.5 : 0.7;
+        ctx.lineWidth = (isLit ? 1.5 : 0.7) * zScale(avgZ);
         ctx.beginPath();
         ctx.moveTo(A.x, A.y);
         ctx.lineTo(B.x, B.y);
@@ -556,18 +612,21 @@
           const A = nodes[p.from], B = nodes[p.to];
           const x = A.x + (B.x - A.x) * p.t;
           const y = A.y + (B.y - A.y) * p.t;
+          const pz = A.z + (B.z - A.z) * p.t;
           const litA = (!hasSel || (hl.has(p.from) && hl.has(p.to))) ? 0.95 : 0.15;
-          ctx.fillStyle = rgba(p.c, litA);
+          const da = zAlpha(pz) * litA;
+          const ps = zScale(pz);
+          ctx.fillStyle = rgba(p.c, da);
           ctx.beginPath();
-          ctx.arc(x, y, 2.4, 0, Math.PI * 2);
+          ctx.arc(x, y, 2.4 * ps, 0, Math.PI * 2);
           ctx.fill();
           const trailX = A.x + (B.x - A.x) * Math.max(0, p.t - 0.22);
           const trailY = A.y + (B.y - A.y) * Math.max(0, p.t - 0.22);
           const tg = ctx.createLinearGradient(trailX, trailY, x, y);
           tg.addColorStop(0, rgba(p.c, 0));
-          tg.addColorStop(1, rgba(p.c, litA * 0.75));
+          tg.addColorStop(1, rgba(p.c, da * 0.75));
           ctx.strokeStyle = tg;
-          ctx.lineWidth = 1.8;
+          ctx.lineWidth = 1.8 * ps;
           ctx.beginPath();
           ctx.moveTo(trailX, trailY);
           ctx.lineTo(x, y);
@@ -576,17 +635,20 @@
         pulses = pulses.filter(p => p.t < 1);
       } else { pulses.length = 0; }
 
-      for (let i = 0; i < nodes.length; i++) {
+      // Nodes van achter naar voor
+      for (const i of sortedIdx) {
         const n = nodes[i];
         const lit = !hasSel || hl.has(i);
-        const alpha = lit ? 1 : 0.15;
+        const sc = zScale(n.z);
+        const fog = zAlpha(n.z);
+        const alpha = (lit ? 1 : 0.12) * fog;
         const c = colorFor(n);
         const breathe = 0.85 + Math.sin(n.phase) * 0.22;
         const isProj = n.type === 'project';
-        const baseR = n.r;
+        const baseR = n.r * sc;
 
         if (CONFIG.glow) {
-          const glowR = baseR * (isProj ? 5 : 4) * (lit ? 1 : 0.6);
+          const glowR = baseR * (isProj ? 5 : 4) * (lit ? 1 : 0.5);
           const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, glowR);
           g.addColorStop(0, rgba(c, (isProj ? 0.45 : 0.35) * breathe * alpha));
           g.addColorStop(0.4, rgba(c, (isProj ? 0.16 : 0.10) * breathe * alpha));
@@ -598,10 +660,17 @@
         }
 
         if (isProj) {
+          // Schaduw als node naar voren komt
+          if (n.z > 0.3) {
+            ctx.save();
+            ctx.shadowColor = rgba(c, 0.4 * n.z);
+            ctx.shadowBlur = 20 * n.z;
+            ctx.shadowOffsetY = 5 * n.z;
+          }
           ctx.strokeStyle = rgba(c, 0.85 * alpha);
-          ctx.lineWidth = 1.2;
+          ctx.lineWidth = 1.2 * sc;
           ctx.beginPath();
-          ctx.arc(n.x, n.y, baseR + 2.5, 0, Math.PI * 2);
+          ctx.arc(n.x, n.y, baseR + 2.5 * sc, 0, Math.PI * 2);
           ctx.stroke();
           ctx.fillStyle = rgba(c, 0.95 * alpha);
           ctx.beginPath();
@@ -611,22 +680,27 @@
           ctx.beginPath();
           ctx.arc(n.x, n.y, baseR * 0.45, 0, Math.PI * 2);
           ctx.fill();
-          // Pin indicator — concentric dashed ring
+          if (n.z > 0.3) ctx.restore();
+
           if (n.pinned) {
             ctx.strokeStyle = rgba(c, 0.55 * alpha);
             ctx.lineWidth = 1;
             ctx.setLineDash([3, 3]);
             ctx.beginPath();
-            ctx.arc(n.x, n.y, baseR + 8, 0, Math.PI * 2);
+            ctx.arc(n.x, n.y, baseR + 8 * sc, 0, Math.PI * 2);
             ctx.stroke();
             ctx.setLineDash([]);
           }
-          // Selected indicator — solid outer ring
           if (i === selectedIndex) {
             ctx.strokeStyle = rgba(c, 0.95 * alpha);
-            ctx.lineWidth = 1.4;
+            ctx.lineWidth = 1.8 * sc;
             ctx.beginPath();
-            ctx.arc(n.x, n.y, baseR + 12, 0, Math.PI * 2);
+            ctx.arc(n.x, n.y, baseR + 14 * sc, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.strokeStyle = rgba(c, 0.3 * alpha);
+            ctx.lineWidth = 0.8 * sc;
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, baseR + 22 * sc, 0, Math.PI * 2);
             ctx.stroke();
           }
         } else {
@@ -640,9 +714,9 @@
           ctx.fill();
           if (i === selectedIndex) {
             ctx.strokeStyle = rgba(c, 0.95);
-            ctx.lineWidth = 1.2;
+            ctx.lineWidth = 1.2 * sc;
             ctx.beginPath();
-            ctx.arc(n.x, n.y, baseR + 6, 0, Math.PI * 2);
+            ctx.arc(n.x, n.y, baseR + 6 * sc, 0, Math.PI * 2);
             ctx.stroke();
           }
         }
@@ -650,24 +724,27 @@
 
       if (CONFIG.showLabels) {
         ctx.textBaseline = 'middle';
-        for (let i = 0; i < nodes.length; i++) {
+        for (const i of sortedIdx) {
           const n = nodes[i];
           if (n.type !== 'project' && !(hasSel && hl.has(i))) continue;
           const lit = !hasSel || hl.has(i);
           const isProj = n.type === 'project';
-          const alpha = lit ? (isProj ? 0.92 : 0.85) : 0.22;
-          const offset = isProj ? n.r + 10 : n.r + 8;
+          const sc = zScale(n.z);
+          const fog = zAlpha(n.z);
+          const alpha = (lit ? (isProj ? 0.92 : 0.85) : 0.18) * fog;
+          const offset = (isProj ? n.r + 10 : n.r + 8) * sc;
           ctx.textAlign = 'left';
           const text = n.name;
           const padX = 6, padY = 2;
+          const fsize = isProj ? Math.round(11.5 * sc) : Math.round(10.5 * sc);
           ctx.font = isProj
-            ? "500 11.5px 'Space Grotesk', system-ui, sans-serif"
-            : "400 10.5px 'JetBrains Mono', monospace";
-          const w = ctx.measureText(text).width;
+            ? `500 ${fsize}px 'Space Grotesk', system-ui, sans-serif`
+            : `400 ${fsize}px 'JetBrains Mono', monospace`;
+          const tw = ctx.measureText(text).width;
           const tx = n.x + offset;
           const ty = n.y;
           ctx.fillStyle = `rgba(7,8,11,${0.6 * alpha})`;
-          ctx.fillRect(tx - padX / 2, ty - 8 - padY, w + padX, 16 + padY * 2);
+          ctx.fillRect(tx - padX / 2, ty - 8 * sc - padY, tw + padX, 16 * sc + padY * 2);
           ctx.fillStyle = isProj
             ? `rgba(232,238,247,${alpha})`
             : `rgba(216,222,233,${alpha * 0.85})`;
