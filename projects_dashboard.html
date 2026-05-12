@@ -470,6 +470,7 @@
   .fase-tab.active .fase-tab-count{ color:rgba(255,255,255,.6); }
 
 </style>
+<script src="nav.js" defer></script>
 </head>
 <body>
 <div class="page" id="root"></div>
@@ -2050,31 +2051,7 @@ function App(){
 
         {/* NAVIGATIE KNOPPEN — rechts */}
         <div className="meta">
-          <a href="projects_list.html" style={{background:'#fff',color:'#111418',textDecoration:'none',padding:'8px 14px',borderRadius:'999px',fontSize:'11px',letterSpacing:'.1em',textTransform:'uppercase',fontWeight:700,border:'1px solid rgba(17,20,24,.12)',display:'flex',alignItems:'center',gap:6,transition:'background .15s'}}
-          onMouseOver={e=>e.currentTarget.style.background='#f3f7fa'} onMouseOut={e=>e.currentTarget.style.background='#fff'}>
-            📋 Projecten
-          </a>
-          <a href="projects_map.html" style={{background:'#fff',color:'#111418',textDecoration:'none',padding:'8px 14px',borderRadius:'999px',fontSize:'11px',letterSpacing:'.1em',textTransform:'uppercase',fontWeight:700,border:'1px solid rgba(17,20,24,.12)',display:'flex',alignItems:'center',gap:6,transition:'background .15s'}}
-          onMouseOver={e=>e.currentTarget.style.background='#f3f7fa'} onMouseOut={e=>e.currentTarget.style.background='#fff'}>
-            🗺 Kaart
-          </a>
-          <a href="employees.html" style={{background:'#fff',color:'#111418',textDecoration:'none',padding:'8px 14px',borderRadius:'999px',fontSize:'11px',letterSpacing:'.1em',textTransform:'uppercase',fontWeight:700,border:'1px solid rgba(17,20,24,.12)',display:'flex',alignItems:'center',gap:6,transition:'background .15s'}}
-          onMouseOver={e=>e.currentTarget.style.background='#f3f7fa'} onMouseOut={e=>e.currentTarget.style.background='#fff'}>
-            👥 Team
-          </a>
 
-          <button onClick={() => setNetworkOpen(true)} style={{background:'#fff',color:'#111418',padding:'8px 14px',borderRadius:'999px',fontSize:'11px',letterSpacing:'.1em',textTransform:'uppercase',fontWeight:700,border:'1px solid rgba(17,20,24,.12)',display:'flex',alignItems:'center',gap:6,transition:'background .15s',cursor:'pointer'}}
-          onMouseOver={e=>e.currentTarget.style.background='#f3f7fa'} onMouseOut={e=>e.currentTarget.style.background='#fff'}>
-            🕸 Netwerk
-          </button>
-
-          {/* Auth — dynamisch ingevuld */}
-          <div id="auth-bar-inline" style={{display:'flex',alignItems:'center',gap:8}}></div>
-
-          <a href="new_project.html" style={{background:'#111418',color:'#fff',textDecoration:'none',padding:'8px 16px',borderRadius:'999px',fontSize:'11px',letterSpacing:'.14em',textTransform:'uppercase',fontWeight:700,transition:'background .15s'}}
-          onMouseOver={e=>e.currentTarget.style.background='#3d6e8a'} onMouseOut={e=>e.currentTarget.style.background='#111418'}>
-            + Nieuw project
-          </a>
         </div>
       </header>
 
