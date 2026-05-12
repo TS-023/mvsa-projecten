@@ -360,9 +360,24 @@
     // Drag-to-pan state
     let isPanning = false;
     let panStart = { mx: 0, my: 0, px: 0, py: 0 };
-    let panMoved = 0; // totale sleepafstand in pixels
+    let panMoved = 0;
+
+    // Node drag state
+    let dragNodeIdx = -1;
+    let groupedIndex = -1; // project waarop gegroepeerd is
 
     window.addEventListener('mousemove', (e) => {
+      if (dragNodeIdx >= 0) {
+        // Sleep de node mee in world-coords
+        const w = screenToWorld(e.clientX, e.clientY);
+        nodes[dragNodeIdx].x = w.x;
+        nodes[dragNodeIdx].y = w.y;
+        nodes[dragNodeIdx].vx = 0;
+        nodes[dragNodeIdx].vy = 0;
+        panMoved = 999; // voorkom dat mouseup een click triggert
+        canvas.style.cursor = 'grabbing';
+        return;
+      }
       if (isPanning) {
         const dx = e.clientX - panStart.mx;
         const dy = e.clientY - panStart.my;
@@ -375,19 +390,57 @@
       const w = screenToWorld(e.clientX, e.clientY);
       mouse.x = w.x; mouse.y = w.y; mouse.active = true;
     });
-    window.addEventListener('mouseleave', () => { mouse.active = false; mouse.hover = -1; isPanning = false; });
-    window.addEventListener('mouseup', () => { isPanning = false; canvas.style.cursor = 'default'; });
+
+    window.addEventListener('mouseleave', () => {
+      mouse.active = false; mouse.hover = -1;
+      isPanning = false; dragNodeIdx = -1;
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (dragNodeIdx >= 0) {
+        nodes[dragNodeIdx].pinned = true;
+        nodes[dragNodeIdx].vx = 0;
+        nodes[dragNodeIdx].vy = 0;
+      }
+      dragNodeIdx = -1;
+      isPanning = false;
+      canvas.style.cursor = 'default';
+    });
 
     canvas.addEventListener('mousedown', (e) => {
       const w = screenToWorld(e.clientX, e.clientY);
-      // Hub blokkeren van panning
+      // Hub blokkeren
       const hubDist = Math.hypot(w.x - nodes[HUB_IDX].x, w.y - nodes[HUB_IDX].y);
       if (hubDist < HUB_R + 8) return;
+
+      // Check of we een project raken → drag
+      if (selectedIndex >= 0 && nodes[selectedIndex].type === 'project') {
+        const n = nodes[selectedIndex];
+        const d2 = (n.x - w.x)**2 + (n.y - w.y)**2;
+        if (d2 < (n.r + 18)**2) {
+          dragNodeIdx = selectedIndex;
+          panMoved = 0;
+          return;
+        }
+      }
+      // Check elk project bij selectie = -1
+      for (let i = 1; i < nodes.length; i++) {
+        if (nodes[i].type !== 'project') continue;
+        const n = nodes[i];
+        const d2 = (n.x - w.x)**2 + (n.y - w.y)**2;
+        if (d2 < (n.r + 18)**2) {
+          dragNodeIdx = i;
+          panMoved = 0;
+          return;
+        }
+      }
+
+      // Anders: pan
       let hitNode = false;
       for (let i = 1; i < nodes.length; i++) {
         const n = nodes[i];
-        const d2 = (n.x - w.x) ** 2 + (n.y - w.y) ** 2;
-        const reach = (n.type === 'project' ? 22 : 14) ** 2;
+        const d2 = (n.x - w.x)**2 + (n.y - w.y)**2;
+        const reach = (n.type === 'project' ? 22 : 14)**2;
         if (d2 < reach) { hitNode = true; break; }
       }
       if (!hitNode) {
@@ -396,6 +449,46 @@
         panStart = { mx: e.clientX, my: e.clientY, px: panX, py: panY };
         canvas.style.cursor = 'grabbing';
       }
+    });
+
+    // Dubbel-klik: groupeer personen compact rondom project
+    canvas.addEventListener('dblclick', (e) => {
+      const { x: wx, y: wy } = screenToWorld(e.clientX, e.clientY);
+      let best = -1, bestD = Infinity;
+      for (let i = 1; i < nodes.length; i++) {
+        if (nodes[i].type !== 'project') continue;
+        const n = nodes[i];
+        const d2 = (n.x - wx)**2 + (n.y - wy)**2;
+        if (d2 < (n.r + 22)**2 && d2 < bestD) { bestD = d2; best = i; }
+      }
+      if (best < 0) return;
+
+      if (groupedIndex === best) {
+        // Al gegroepeerd op dit project → degroeperen
+        groupedIndex = -1;
+        return;
+      }
+      groupedIndex = best;
+      const proj = nodes[best];
+
+      // Verzamel verbonden personen
+      const people = [];
+      for (const ei of proj.edges) {
+        const [a, b] = edges[ei];
+        if (a === HUB_IDX || b === HUB_IDX) continue;
+        const pi = a === best ? b : a;
+        if (nodes[pi].type === 'person') people.push(pi);
+      }
+
+      // Verdeel ze in een strak kransje rondom het project
+      const orbitR = proj.r * 2.8 + people.length * 3;
+      people.forEach((pi, k) => {
+        const angle = (k / people.length) * Math.PI * 2;
+        nodes[pi].x = proj.x + Math.cos(angle) * orbitR;
+        nodes[pi].y = proj.y + Math.sin(angle) * orbitR;
+        nodes[pi].vx = 0; nodes[pi].vy = 0;
+        nodes[pi].pinned = true;
+      });
     });
 
     // Scroll to zoom
@@ -413,12 +506,17 @@
       const hubDx = wHub.x - nodes[HUB_IDX].x;
       const hubDy = wHub.y - nodes[HUB_IDX].y;
       if (Math.hypot(hubDx, hubDy) < HUB_R + 8) {
-        // Zoom uit naar overzicht
-        targetZoom = 0.55;
-        panX = 0; panY = 0;
-        selectedIndex = -1;
-        resetDepth();
-        updateInfoCard();
+        // Toggle: uitgezoomd → inzoomen, ingezoomd → uitzoomen
+        if (targetZoom > 0.9) {
+          targetZoom = 0.55;
+          panX = 0; panY = 0;
+          selectedIndex = -1;
+          resetDepth();
+          updateInfoCard();
+        } else {
+          targetZoom = 1.4;
+          panX = 0; panY = 0;
+        }
         return;
       }
 
@@ -432,7 +530,21 @@
         const reach = (n.type === 'project' ? 22 : 14) ** 2;
         if (d2 < reach && d2 < bestD) { bestD = d2; best = i; }
       }
-      if (best < 0) { selectedIndex = -1; updateInfoCard(); resetDepth(); return; }
+      if (best < 0) {
+        selectedIndex = -1; updateInfoCard(); resetDepth();
+        // Maak eventueel gegroepeerde nodes los
+        if (groupedIndex >= 0) {
+          const proj = nodes[groupedIndex];
+          for (const ei of proj.edges) {
+            const [a, b] = edges[ei];
+            if (a === HUB_IDX || b === HUB_IDX) continue;
+            const pi = a === groupedIndex ? b : a;
+            if (nodes[pi].type === 'person') nodes[pi].pinned = false;
+          }
+          groupedIndex = -1;
+        }
+        return;
+      }
       const n = nodes[best];
       if (n.type === 'project') {
         n.pinned = !n.pinned;
@@ -530,7 +642,11 @@
         if (d2 < reach && d2 < bestD) { bestD = d2; best = i; }
       }
       mouse.hover = best;
-      canvas.style.cursor = best >= 0 ? 'pointer' : 'grab';
+      if (best >= 0 && nodes[best].type === 'project') {
+        canvas.style.cursor = 'grab';
+      } else {
+        canvas.style.cursor = best >= 0 ? 'pointer' : 'grab';
+      }
     }
     function addNeighbors(out, idx) {
       if (idx < 0) return;
@@ -566,6 +682,9 @@
       zoom += (targetZoom - zoom) * 0.1;
 
       updateHover();
+
+      // Physics — alleen als niets geselecteerd is
+      if (selectedIndex < 0) {
 
       const SPRING = CONFIG.spring;
       const REST = 65;
@@ -674,6 +793,18 @@
         n.phase += dt * 0.002;
       }
 
+      } // einde physics-blok (alleen actief zonder selectie)
+
+      // Z-animatie en phase altijd doorgaan (ook bij selectie)
+      if (selectedIndex >= 0) {
+        for (const n of nodes) {
+          const dz = n.tz - n.z;
+          n.vz = (n.vz + dz * 0.04) * 0.82;
+          n.z += n.vz;
+          n.phase += dt * 0.002;
+        }
+      }
+
       ctx.fillStyle = CONFIG.background;
       ctx.fillRect(0, 0, W, H);
       const vg = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.7);
@@ -727,60 +858,70 @@
       // Helper: knipt een lijnstuk zodat het niet door de hub-cirkel gaat.
       // Geeft { ax, ay, bx, by } terug — het geknipt stuk.
       // Als de hele lijn bínnen de cirkel valt → null.
-      function clipToHub(ax, ay, bx, by) {
+      // Geeft array van te tekenen segmenten terug (0, 1 of 2 stukken)
+      // zodat lijnen die door de hub gaan in twee losse stukken worden gesplitst.
+      function segmentsAroundHub(ax, ay, bx, by) {
         const hx = nodes[HUB_IDX].x, hy = nodes[HUB_IDX].y;
-        const R = HUB_R + 4; // kleine marge
-        // Bereken snijpunten van lijnstuk met cirkel via parametrische vergelijking
+        const R = HUB_R + 6;
         const dx = bx - ax, dy = by - ay;
         const fx = ax - hx, fy = ay - hy;
         const a2 = dx*dx + dy*dy;
+        if (a2 < 0.001) return [];
         const b2 = 2*(fx*dx + fy*dy);
         const c2 = fx*fx + fy*fy - R*R;
         const disc = b2*b2 - 4*a2*c2;
-        if (disc < 0 || a2 < 0.001) return { ax, ay, bx, by }; // geen snijpunt
+        // Geen snijpunt met cirkel → gewoon de hele lijn
+        if (disc < 0) return [[ax, ay, bx, by]];
         const sq = Math.sqrt(disc);
-        const t1 = (-b2 - sq) / (2*a2);
-        const t2 = (-b2 + sq) / (2*a2);
-        // Startpunt A binnen cirkel? Schuif naar t2
+        const t1 = (-b2 - sq) / (2*a2); // eerste snijpunt
+        const t2 = (-b2 + sq) / (2*a2); // tweede snijpunt
         const aInside = (fx*fx + fy*fy) < R*R;
-        // Eindpunt B binnen cirkel?
         const gx = bx-hx, gy = by-hy;
         const bInside = (gx*gx + gy*gy) < R*R;
-        if (aInside && bInside) return null; // hele lijn binnen cirkel
-        let rax = ax, ray = ay, rbx = bx, rby = by;
-        if (aInside && t2 >= 0 && t2 <= 1) {
-          rax = ax + t2*dx; ray = ay + t2*dy;
-        } else if (!aInside && t1 >= 0 && t1 <= 1) {
-          // lijn gaat door cirkel: knipt het midden weg → teken twee stukken
-          // Hier teken we alleen het deel voor het snijpunt (buiten → cirkel)
-          rbx = ax + t1*dx; rby = ay + t1*dy;
+        if (aInside && bInside) return []; // allebei binnen — niets tekenen
+        if (aInside) {
+          // A binnen, B buiten: begin bij t2
+          if (t2 >= 0 && t2 <= 1) return [[ax+t2*dx, ay+t2*dy, bx, by]];
+          return [[ax, ay, bx, by]];
         }
-        if (bInside && t1 >= 0 && t1 <= 1) {
-          rbx = ax + t1*dx; rby = ay + t1*dy;
+        if (bInside) {
+          // A buiten, B binnen: eindig bij t1
+          if (t1 >= 0 && t1 <= 1) return [[ax, ay, ax+t1*dx, ay+t1*dy]];
+          return [[ax, ay, bx, by]];
         }
-        return { ax: rax, ay: ray, bx: rbx, by: rby };
+        // Beide buiten: lijn gaat eventueel door de cirkel heen
+        if (t1 >= 0 && t1 <= 1 && t2 >= 0 && t2 <= 1) {
+          // Twee segmenten: voor t1 en na t2
+          return [
+            [ax, ay, ax+t1*dx, ay+t1*dy],
+            [ax+t2*dx, ay+t2*dy, bx, by],
+          ];
+        }
+        return [[ax, ay, bx, by]];
       }
 
       for (const [ei] of edgeOrder) {
         const [a, b] = edges[ei];
-        if (a === HUB_IDX || b === HUB_IDX) continue; // spokes al getekend
+        if (a === HUB_IDX || b === HUB_IDX) continue;
         const A = nodes[a], B = nodes[b];
-        const clip = clipToHub(A.x, A.y, B.x, B.y);
-        if (!clip) continue; // lijn volledig binnen hub
+        const segs = segmentsAroundHub(A.x, A.y, B.x, B.y);
+        if (!segs.length) continue;
         const isLit = hasSel && (hl.has(a) && hl.has(b));
         const avgZ = (A.z + B.z) / 2;
         const depthFade = zAlpha(avgZ);
         const baseA = CONFIG.lineOpacity * (isLit ? 1.0 : dimA) * depthFade;
         const cA = colorFor(A), cB = colorFor(B);
-        const grad = ctx.createLinearGradient(A.x, A.y, B.x, B.y);
-        grad.addColorStop(0, rgba(cA, baseA));
-        grad.addColorStop(1, rgba(cB, baseA));
-        ctx.strokeStyle = grad;
         ctx.lineWidth = (isLit ? 1.5 : 0.7) * zScale(avgZ);
-        ctx.beginPath();
-        ctx.moveTo(clip.ax, clip.ay);
-        ctx.lineTo(clip.bx, clip.by);
-        ctx.stroke();
+        for (const [sx, sy, ex, ey] of segs) {
+          const grad = ctx.createLinearGradient(A.x, A.y, B.x, B.y);
+          grad.addColorStop(0, rgba(cA, baseA));
+          grad.addColorStop(1, rgba(cB, baseA));
+          ctx.strokeStyle = grad;
+          ctx.beginPath();
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(ex, ey);
+          ctx.stroke();
+        }
       }
 
       if (CONFIG.pulses) {
