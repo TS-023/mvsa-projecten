@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Network Nodes — Projects & People</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; padding: 0; height: 100%; background: #07080b; overflow: hidden; }
+  body { font-family: 'Space Grotesk', system-ui, sans-serif; color: #d8dee9; }
+  #scene { position: fixed; inset: 0; }
+  canvas { display: block; width: 100%; height: 100%; cursor: default; }
+
+  .hud {
+    position: fixed; top: 24px; left: 28px; z-index: 5;
+    display: flex; flex-direction: column; gap: 6px;
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
+  .hud .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: rgba(216, 222, 233, 0.55);
+  }
+  .hud .title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 500; font-size: 22px; letter-spacing: -0.01em;
+    color: rgba(232, 238, 247, 0.92);
+  }
+  .hud .sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: rgba(216, 222, 233, 0.4);
+    margin-top: 2px;
+  }
+
+  .legend {
+    position: fixed; top: 26px; right: 28px; z-index: 5;
+    display: flex; gap: 22px; align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: rgba(216, 222, 233, 0.55);
+    pointer-events: none;
+  }
+  .legend .swatch { display: inline-flex; align-items: center; gap: 8px; }
+  .legend .dot { width: 9px; height: 9px; border-radius: 50%; background: #e5e7eb; box-shadow: 0 0 10px currentColor; }
+  .legend .dot.proj { width: 12px; height: 12px; background: #94a3b8; }
+
+  .readout {
+    position: fixed; bottom: 22px; left: 28px; z-index: 5;
+    display: flex; gap: 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: rgba(216, 222, 233, 0.45);
+    pointer-events: none;
+  }
+  .readout b { font-weight: 500; color: rgba(232, 238, 247, 0.85); margin-left: 6px; }
+
+  .corner {
+    position: fixed; width: 18px; height: 18px; opacity: 0.35;
+    border-color: rgba(216, 222, 233, 0.5);
+    pointer-events: none;
+  }
+  .corner.tl { top: 14px; left: 14px; border-top: 1px solid; border-left: 1px solid; }
+  .corner.tr { top: 14px; right: 14px; border-top: 1px solid; border-right: 1px solid; }
+  .corner.bl { bottom: 14px; left: 14px; border-bottom: 1px solid; border-left: 1px solid; }
+  .corner.br { bottom: 14px; right: 14px; border-bottom: 1px solid; border-right: 1px solid; }
+
+  .selected-info {
+    position: fixed; top: 70px; right: 28px; z-index: 5;
+    max-width: 320px;
+    padding: 12px 14px;
+    border: 1px solid rgba(216, 222, 233, 0.15);
+    background: rgba(12, 14, 18, 0.72);
+    backdrop-filter: blur(8px);
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    color: rgba(216, 222, 233, 0.7);
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity .22s ease, transform .22s ease;
+  }
+  .selected-info.visible { opacity: 1; transform: translateY(0); }
+  .selected-info .who {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px; font-weight: 500; letter-spacing: -0.005em;
+    color: rgba(232, 238, 247, 0.95);
+    margin-bottom: 8px; text-transform: none;
+  }
+  .selected-info .kind { text-transform: uppercase; color: rgba(216,222,233,0.4); font-size: 9.5px; letter-spacing: 0.18em; }
+  .selected-info ul { list-style: none; margin: 6px 0 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .selected-info li { color: rgba(232, 238, 247, 0.85); font-size: 11px; letter-spacing: 0.02em; text-transform: none; }
+  .selected-info li::before { content: "— "; color: rgba(216,222,233,0.4); }
+  .selected-info .hint { margin-top: 10px; color: rgba(216,222,233,0.35); font-size: 9.5px; letter-spacing: 0.14em; }
+</style>
+</head>
+<body>
+  <div id="scene">
+    <canvas id="net"></canvas>
+  </div>
+
+  <div class="hud">
+    <div class="tag">// collaboration graph · live</div>
+    <div class="title">Wie werkt waaraan</div>
+    <div class="sub">hover op een node om verbindingen op te lichten</div>
+  </div>
+
+  <div class="legend">
+    <span class="swatch"><span class="dot proj"></span>project</span>
+    <span class="swatch"><span class="dot"></span>persoon</span>
+  </div>
+
+  <div class="readout">
+    <div>projects<b id="r-projects">—</b></div>
+    <div>people<b id="r-people">—</b></div>
+    <div>links<b id="r-links">—</b></div>
+    <div>fps<b id="r-fps">—</b></div>
+  </div>
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+
+  <div class="selected-info" id="selected-info"></div>
+
+  <div id="tweaks-root"></div>
+
+  <script>
+    const PROJECT_POOL = [
+      'Zuidplein Tower', 'Atrium West', 'Kade 12', 'Pavilion Noord',
+      'Helix Office', 'Riverside Lofts', 'Station Plaza', 'Lumen House',
+      'The Greenway', 'Mercato Hall', 'Solis Campus', 'Nieuw Park',
+      'Belvedere', 'Maashaven', 'Oosterdok', 'Vondel Studio',
+      'Polder House', 'Stadshart', 'Brouwerij 8', 'Kraanspoor',
+      'Westergas Lab', 'De Kade', 'Noord-Zuid Hub', 'Veerkracht',
+    ];
+    const PERSON_POOL = [
+      'Mila', 'Joris', 'Sanne', 'Bram', 'Anouk', 'Tijn', 'Eva', 'Daan',
+      'Lotte', 'Sem', 'Fenna', 'Lars', 'Iris', 'Pim', 'Noor', 'Bas',
+      'Loes', 'Thijs', 'Romy', 'Jens', 'Femke', 'Stijn', 'Lieke', 'Niels',
+      'Sara', 'Mees', 'Floor', 'Koen', 'Yara', 'Ruben', 'Hugo', 'Maud',
+      'Tess', 'Cas', 'Vera', 'Jasper', 'Esmee', 'Olaf', 'Lieve', 'Wout',
+    ];
+
+    const CONFIG = /*EDITMODE-BEGIN*/{
+      "projects": 12,
+      "people": 32,
+      "avgPerPerson": 2.5,
+      "palette": [
+        "#e5e7eb",
+        "#94a3b8",
+        "#cbd5e1"
+      ],
+      "background": "#07080b",
+      "speed": 0.1,
+      "lineOpacity": 0.35,
+      "glow": true,
+      "showLabels": true,
+      "cursorPull": true,
+      "pulses": true,
+      "spring": 0.012,
+      "repel": 0.7
+    }/*EDITMODE-END*/;
+
+    const canvas = document.getElementById('net');
+    const ctx = canvas.getContext('2d');
+    let W = 0, H = 0, DPR = 1;
+    let nodes = [];
+    let edges = [];
+    let pulses = [];
+    const mouse = { x: -9999, y: -9999, active: false, hover: -1 };
+    let selectedIndex = -1; // persistent selection (click)
+
+    function resize() {
+      DPR = Math.min(window.devicePixelRatio || 1, 2);
+      W = canvas.clientWidth = window.innerWidth;
+      H = canvas.clientHeight = window.innerHeight;
+      canvas.width = W * DPR;
+      canvas.height = H * DPR;
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function rand(a, b) { return a + Math.random() * (b - a); }
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function buildGraph() {
+      nodes = []; edges = []; pulses = [];
+      const projN = Math.min(CONFIG.projects, PROJECT_POOL.length);
+      const peopleN = Math.min(CONFIG.people, PERSON_POOL.length);
+      const projNames = shuffle(PROJECT_POOL).slice(0, projN);
+      const peopleNames = shuffle(PERSON_POOL).slice(0, peopleN);
+
+      const cx = W / 2, cy = H / 2;
+      const ringR = Math.min(W, H) * 0.32;
+      for (let i = 0; i < projN; i++) {
+        const a = (i / projN) * Math.PI * 2 + rand(-0.15, 0.15);
+        const r = ringR * rand(0.6, 1.05);
+        nodes.push({
+          type: 'project', name: projNames[i],
+          x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r,
+          vx: 0, vy: 0, r: rand(6.5, 9), c: i % 3,
+          phase: Math.random() * Math.PI * 2, edges: [],
+        });
+      }
+      for (let i = 0; i < peopleN; i++) {
+        nodes.push({
+          type: 'person', name: peopleNames[i],
+          x: cx + rand(-W * 0.4, W * 0.4),
+          y: cy + rand(-H * 0.4, H * 0.4),
+          vx: 0, vy: 0, r: rand(2.2, 3.2), c: i % 3,
+          phase: Math.random() * Math.PI * 2, edges: [],
+        });
+        const personIdx = nodes.length - 1;
+        const avg = CONFIG.avgPerPerson;
+        let count = 1;
+        while (count < projN && Math.random() < (avg - 1) / Math.max(1, count)) count++;
+        count = Math.min(count, Math.max(1, projN));
+        const used = new Set();
+        for (let k = 0; k < count; k++) {
+          let pool = [];
+          for (let p = 0; p < projN; p++) {
+            if (used.has(p)) continue;
+            const deg = nodes[p].edges.length;
+            pool.push({ p, w: 1 / (1 + deg * 0.4) });
+          }
+          if (!pool.length) break;
+          let total = pool.reduce((s, x) => s + x.w, 0);
+          let pick = Math.random() * total;
+          let chosen = pool[0].p;
+          for (const x of pool) { pick -= x.w; if (pick <= 0) { chosen = x.p; break; } }
+          used.add(chosen);
+          const ei = edges.length;
+          edges.push([personIdx, chosen]);
+          nodes[personIdx].edges.push(ei);
+          nodes[chosen].edges.push(ei);
+        }
+      }
+      for (let p = 0; p < projN; p++) {
+        if (nodes[p].edges.length === 0) {
+          const pi = projN + Math.floor(Math.random() * peopleN);
+          const ei = edges.length;
+          edges.push([pi, p]);
+          nodes[pi].edges.push(ei);
+          nodes[p].edges.push(ei);
+        }
+      }
+    }
+    buildGraph();
+
+    window.addEventListener('mousemove', (e) => {
+      mouse.x = e.clientX; mouse.y = e.clientY; mouse.active = true;
+    });
+    window.addEventListener('mouseleave', () => { mouse.active = false; mouse.hover = -1; });
+
+    canvas.addEventListener('click', (e) => {
+      // find hit
+      let best = -1, bestD = Infinity;
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i];
+        const d2 = (n.x - e.clientX) ** 2 + (n.y - e.clientY) ** 2;
+        const reach = (n.type === 'project' ? 22 : 14) ** 2;
+        if (d2 < reach && d2 < bestD) { bestD = d2; best = i; }
+      }
+      if (best < 0) { selectedIndex = -1; updateInfoCard(); return; }
+      const n = nodes[best];
+      if (n.type === 'project') {
+        n.pinned = !n.pinned;
+        if (n.pinned) { n.vx = 0; n.vy = 0; }
+        selectedIndex = best;
+      } else {
+        selectedIndex = (selectedIndex === best) ? -1 : best;
+      }
+      updateInfoCard();
+    });
+
+    function updateInfoCard() {
+      const el = document.getElementById('selected-info');
+      if (selectedIndex < 0) { el.classList.remove('visible'); return; }
+      const n = nodes[selectedIndex];
+      const linked = n.edges.map(ei => {
+        const [a, b] = edges[ei];
+        return nodes[a === selectedIndex ? b : a];
+      });
+      if (n.type === 'person') {
+        const projs = linked.filter(x => x.type === 'project').map(x => x.name);
+        el.innerHTML = `<div class="kind">persoon</div>
+          <div class="who">${n.name}</div>
+          <div class="kind">${projs.length} project${projs.length===1?'':'en'}</div>
+          <ul>${projs.map(p => `<li>${p}</li>`).join('')}</ul>
+          <div class="hint">click elders om te sluiten</div>`;
+      } else {
+        const people = linked.filter(x => x.type === 'person').map(x => x.name);
+        el.innerHTML = `<div class="kind">project ${n.pinned ? '· pinned' : ''}</div>
+          <div class="who">${n.name}</div>
+          <div class="kind">${people.length} team member${people.length===1?'':'s'}</div>
+          <ul>${people.map(p => `<li>${p}</li>`).join('')}</ul>
+          <div class="hint">click opnieuw om los te maken</div>`;
+      }
+      el.classList.add('visible');
+    }
+
+    function hexToRgb(hex) {
+      const h = hex.replace('#', '');
+      const v = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+      return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+    }
+    function rgba(hex, a) {
+      const [r, g, b] = hexToRgb(hex);
+      return `rgba(${r},${g},${b},${a})`;
+    }
+    function colorFor(node) {
+      const p = CONFIG.palette;
+      return p[node.c % p.length] || p[0];
+    }
+
+    function updateHover() {
+      if (!mouse.active) { mouse.hover = -1; canvas.style.cursor = 'default'; return; }
+      let best = -1, bestD = Infinity;
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i];
+        const d2 = (n.x - mouse.x) ** 2 + (n.y - mouse.y) ** 2;
+        const reach = (n.type === 'project' ? 20 : 13) ** 2;
+        if (d2 < reach && d2 < bestD) { bestD = d2; best = i; }
+      }
+      mouse.hover = best;
+      canvas.style.cursor = best >= 0 ? 'pointer' : 'default';
+    }
+    function addNeighbors(out, idx) {
+      if (idx < 0) return;
+      out.add(idx);
+      const n = nodes[idx];
+      for (const ei of n.edges) {
+        const [a, b] = edges[ei];
+        out.add(a); out.add(b);
+      }
+    }
+    function highlightSet() {
+      const out = new Set();
+      addNeighbors(out, selectedIndex);
+      addNeighbors(out, mouse.hover);
+      return out;
+    }
+    function pinnedSet() {
+      const out = new Set();
+      for (let i = 0; i < nodes.length; i++) if (nodes[i].pinned) out.add(i);
+      return out;
+    }
+
+    let lastFrame = performance.now();
+    let fpsSmoothed = 60;
+
+    function step(now) {
+      const dt = Math.min(40, now - lastFrame);
+      lastFrame = now;
+      fpsSmoothed = fpsSmoothed * 0.9 + (1000 / Math.max(1, dt)) * 0.1;
+      const sp = CONFIG.speed;
+
+      updateHover();
+
+      const SPRING = CONFIG.spring;
+      const REST = 110;
+      const REPEL_PROJ = 5500 * CONFIG.repel;
+      const REPEL_PERS = 800 * CONFIG.repel;
+      const CENTER_PULL = 0.0006;
+
+      for (let i = 0; i < nodes.length; i++) {
+        const A = nodes[i];
+        for (let j = i + 1; j < nodes.length; j++) {
+          const B = nodes[j];
+          const dx = A.x - B.x;
+          const dy = A.y - B.y;
+          let d2 = dx * dx + dy * dy;
+          if (d2 < 4) d2 = 4;
+          const d = Math.sqrt(d2);
+          let strength;
+          if (A.type === 'project' && B.type === 'project') strength = REPEL_PROJ;
+          else if (A.type === 'person' && B.type === 'person') strength = REPEL_PERS;
+          else strength = 2200;
+          const f = strength / d2;
+          const fx = (dx / d) * f;
+          const fy = (dy / d) * f;
+          A.vx += fx; A.vy += fy;
+          B.vx -= fx; B.vy -= fy;
+        }
+      }
+
+      for (const [a, b] of edges) {
+        const A = nodes[a], B = nodes[b];
+        const dx = B.x - A.x;
+        const dy = B.y - A.y;
+        const d = Math.hypot(dx, dy) || 1;
+        const diff = d - REST;
+        const f = diff * SPRING;
+        const fx = (dx / d) * f;
+        const fy = (dy / d) * f;
+        const wA = A.type === 'project' ? 0.35 : 1;
+        const wB = B.type === 'project' ? 0.35 : 1;
+        A.vx += fx * wA; A.vy += fy * wA;
+        B.vx -= fx * wB; B.vy -= fy * wB;
+      }
+
+      const cx = W / 2, cy = H / 2;
+      for (const n of nodes) {
+        if (n.pinned) { n.vx = 0; n.vy = 0; n.phase += dt * 0.002; continue; }
+        n.vx += (cx - n.x) * CENTER_PULL;
+        n.vy += (cy - n.y) * CENTER_PULL;
+
+        if (CONFIG.cursorPull && mouse.active) {
+          const dx = mouse.x - n.x;
+          const dy = mouse.y - n.y;
+          const d2 = dx * dx + dy * dy;
+          const R = 180;
+          if (d2 < R * R && d2 > 1) {
+            const d = Math.sqrt(d2);
+            const f = (1 - d / R) * 0.35;
+            n.vx -= (dx / d) * f;
+            n.vy -= (dy / d) * f;
+          }
+        }
+
+        // Strong damping → settles quickly into a near-static layout
+        n.vx *= 0.74; n.vy *= 0.74;
+        const vmax = 5;
+        const v = Math.hypot(n.vx, n.vy);
+        if (v > vmax) { n.vx = n.vx / v * vmax; n.vy = n.vy / v * vmax; }
+        // Zero out micro-jitter so the graph truly comes to rest
+        if (Math.abs(n.vx) < 0.04) n.vx = 0;
+        if (Math.abs(n.vy) < 0.04) n.vy = 0;
+
+        n.x += n.vx * sp * dt * 0.045;
+        n.y += n.vy * sp * dt * 0.045;
+
+        const m = 60;
+        if (n.x < m) n.vx += (m - n.x) * 0.02;
+        if (n.x > W - m) n.vx -= (n.x - (W - m)) * 0.02;
+        if (n.y < m) n.vy += (m - n.y) * 0.02;
+        if (n.y > H - m) n.vy -= (n.y - (H - m)) * 0.02;
+
+        n.phase += dt * 0.002;
+      }
+
+      ctx.fillStyle = CONFIG.background;
+      ctx.fillRect(0, 0, W, H);
+      const vg = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.7);
+      vg.addColorStop(0, 'rgba(255,255,255,0.025)');
+      vg.addColorStop(1, 'rgba(0,0,0,0.4)');
+      ctx.fillStyle = vg;
+      ctx.fillRect(0, 0, W, H);
+
+      const hl = highlightSet();
+      const hasSel = mouse.hover >= 0 || selectedIndex >= 0;
+      const dimA = hasSel ? 0.10 : 1;
+
+      ctx.lineCap = 'round';
+      for (const [a, b] of edges) {
+        const A = nodes[a], B = nodes[b];
+        const isLit = hasSel && (hl.has(a) && hl.has(b));
+        const baseA = CONFIG.lineOpacity * (isLit ? 1.0 : dimA);
+        const cA = colorFor(A), cB = colorFor(B);
+        const grad = ctx.createLinearGradient(A.x, A.y, B.x, B.y);
+        grad.addColorStop(0, rgba(cA, baseA));
+        grad.addColorStop(1, rgba(cB, baseA));
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = isLit ? 1.5 : 0.7;
+        ctx.beginPath();
+        ctx.moveTo(A.x, A.y);
+        ctx.lineTo(B.x, B.y);
+        ctx.stroke();
+      }
+
+      if (CONFIG.pulses) {
+        if (Math.random() < 0.12 && pulses.length < 18 && edges.length) {
+          const ei = Math.floor(Math.random() * edges.length);
+          const [pi, pj] = edges[ei];
+          const fromP = nodes[pi].type === 'person' ? pi : pj;
+          const toP = fromP === pi ? pj : pi;
+          pulses.push({ from: fromP, to: toP, t: 0, c: colorFor(nodes[toP]) });
+        }
+        for (const p of pulses) {
+          p.t += dt * 0.0014 * (sp / 0.5);
+          const A = nodes[p.from], B = nodes[p.to];
+          const x = A.x + (B.x - A.x) * p.t;
+          const y = A.y + (B.y - A.y) * p.t;
+          const litA = (!hasSel || (hl.has(p.from) && hl.has(p.to))) ? 0.95 : 0.15;
+          ctx.fillStyle = rgba(p.c, litA);
+          ctx.beginPath();
+          ctx.arc(x, y, 2.4, 0, Math.PI * 2);
+          ctx.fill();
+          const trailX = A.x + (B.x - A.x) * Math.max(0, p.t - 0.22);
+          const trailY = A.y + (B.y - A.y) * Math.max(0, p.t - 0.22);
+          const tg = ctx.createLinearGradient(trailX, trailY, x, y);
+          tg.addColorStop(0, rgba(p.c, 0));
+          tg.addColorStop(1, rgba(p.c, litA * 0.75));
+          ctx.strokeStyle = tg;
+          ctx.lineWidth = 1.8;
+          ctx.beginPath();
+          ctx.moveTo(trailX, trailY);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+        }
+        pulses = pulses.filter(p => p.t < 1);
+      } else { pulses.length = 0; }
+
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i];
+        const lit = !hasSel || hl.has(i);
+        const alpha = lit ? 1 : 0.15;
+        const c = colorFor(n);
+        const breathe = 0.85 + Math.sin(n.phase) * 0.22;
+        const isProj = n.type === 'project';
+        const baseR = n.r;
+
+        if (CONFIG.glow) {
+          const glowR = baseR * (isProj ? 5 : 4) * (lit ? 1 : 0.6);
+          const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, glowR);
+          g.addColorStop(0, rgba(c, (isProj ? 0.45 : 0.35) * breathe * alpha));
+          g.addColorStop(0.4, rgba(c, (isProj ? 0.16 : 0.10) * breathe * alpha));
+          g.addColorStop(1, rgba(c, 0));
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, glowR, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        if (isProj) {
+          ctx.strokeStyle = rgba(c, 0.85 * alpha);
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, baseR + 2.5, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.fillStyle = rgba(c, 0.95 * alpha);
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, baseR, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = `rgba(7,8,11,${0.85 * alpha})`;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, baseR * 0.45, 0, Math.PI * 2);
+          ctx.fill();
+          // Pin indicator — concentric dashed ring
+          if (n.pinned) {
+            ctx.strokeStyle = rgba(c, 0.55 * alpha);
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, baseR + 8, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+          // Selected indicator — solid outer ring
+          if (i === selectedIndex) {
+            ctx.strokeStyle = rgba(c, 0.95 * alpha);
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, baseR + 12, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        } else {
+          ctx.fillStyle = rgba(c, 0.92 * alpha);
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, baseR, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = `rgba(255,255,255,${0.85 * alpha})`;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, Math.max(0.4, baseR * 0.35), 0, Math.PI * 2);
+          ctx.fill();
+          if (i === selectedIndex) {
+            ctx.strokeStyle = rgba(c, 0.95);
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, baseR + 6, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+      }
+
+      if (CONFIG.showLabels) {
+        ctx.textBaseline = 'middle';
+        for (let i = 0; i < nodes.length; i++) {
+          const n = nodes[i];
+          if (n.type !== 'project' && !(hasSel && hl.has(i))) continue;
+          const lit = !hasSel || hl.has(i);
+          const isProj = n.type === 'project';
+          const alpha = lit ? (isProj ? 0.92 : 0.85) : 0.22;
+          const offset = isProj ? n.r + 10 : n.r + 8;
+          ctx.textAlign = 'left';
+          const text = n.name;
+          const padX = 6, padY = 2;
+          ctx.font = isProj
+            ? "500 11.5px 'Space Grotesk', system-ui, sans-serif"
+            : "400 10.5px 'JetBrains Mono', monospace";
+          const w = ctx.measureText(text).width;
+          const tx = n.x + offset;
+          const ty = n.y;
+          ctx.fillStyle = `rgba(7,8,11,${0.6 * alpha})`;
+          ctx.fillRect(tx - padX / 2, ty - 8 - padY, w + padX, 16 + padY * 2);
+          ctx.fillStyle = isProj
+            ? `rgba(232,238,247,${alpha})`
+            : `rgba(216,222,233,${alpha * 0.85})`;
+          ctx.fillText(text, tx, ty);
+        }
+      }
+
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+
+    setInterval(() => {
+      const projN = nodes.filter(n => n.type === 'project').length;
+      const persN = nodes.length - projN;
+      document.getElementById('r-projects').textContent = String(projN).padStart(2, '0');
+      document.getElementById('r-people').textContent = String(persN).padStart(2, '0');
+      document.getElementById('r-links').textContent = String(edges.length).padStart(3, '0');
+      document.getElementById('r-fps').textContent = Math.round(fpsSmoothed);
+    }, 300);
+
+    window.__NET = {
+      get config() { return CONFIG; },
+      apply(patch) {
+        const rebuild = ('projects' in patch) || ('people' in patch) || ('avgPerPerson' in patch);
+        Object.assign(CONFIG, patch);
+        if (rebuild) buildGraph();
+      },
+      rebuild: buildGraph,
+    };
+  </script>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel">
+    const PALETTES = [
+      ['#e5e7eb', '#94a3b8', '#cbd5e1'],
+      ['#7dd3fc', '#a5b4fc', '#f0abfc'],
+      ['#fb923c', '#f472b6', '#fbbf24'],
+      ['#34d399', '#22d3ee', '#a3e635'],
+      ['#f87171', '#fb7185', '#fda4af'],
+    ];
+
+    function App() {
+      const [t, setTweak] = useTweaks(window.__NET.config);
+      React.useEffect(() => { window.__NET.apply(t); }, [t]);
+      const set = (k) => (v) => setTweak(k, v);
+
+      return (
+        <TweaksPanel title="Network">
+          <TweakSection label="Graph" />
+          <TweakSlider label="Projects" value={t.projects} min={4} max={20} step={1}
+            onChange={set('projects')} />
+          <TweakSlider label="People" value={t.people} min={6} max={40} step={1}
+            onChange={set('people')} />
+          <TweakSlider label="Avg / person"
+            value={Math.round(t.avgPerPerson * 10) / 10}
+            min={1} max={5} step={0.1}
+            onChange={set('avgPerPerson')} />
+          <TweakButton onClick={() => window.__NET.rebuild()}>Re-roll graph</TweakButton>
+
+          <TweakSection label="Motion" />
+          <TweakSlider label="Speed" value={Math.round(t.speed * 100)} min={10} max={200} step={5} unit="%"
+            onChange={(v) => setTweak('speed', v / 100)} />
+          <TweakSlider label="Repulsion" value={Math.round(t.repel * 100)} min={20} max={250} step={5} unit="%"
+            onChange={(v) => setTweak('repel', v / 100)} />
+          <TweakSlider label="Spring" value={Math.round(t.spring * 1000)} min={5} max={60} step={1}
+            onChange={(v) => setTweak('spring', v / 1000)} />
+
+          <TweakSection label="Appearance" />
+          <TweakColor label="Palette" value={t.palette} options={PALETTES}
+            onChange={set('palette')} />
+          <TweakSlider label="Lines" value={Math.round(t.lineOpacity * 100)} min={0} max={100} unit="%"
+            onChange={(v) => setTweak('lineOpacity', v / 100)} />
+          <TweakToggle label="Glow" value={t.glow} onChange={set('glow')} />
+          <TweakToggle label="Labels" value={t.showLabels} onChange={set('showLabels')} />
+
+          <TweakSection label="Signals" />
+          <TweakToggle label="Pulses" value={t.pulses} onChange={set('pulses')} />
+          <TweakToggle label="Cursor pull" value={t.cursorPull} onChange={set('cursorPull')} />
+        </TweaksPanel>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('tweaks-root')).render(<App />);
+  </script>
+</body>
+</html>

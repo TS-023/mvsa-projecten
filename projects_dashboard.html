@@ -1695,6 +1695,7 @@ function App(){
   /* ── State: zoekbalk ── */
   const [searchQ, setSearchQ] = React.useState('');
   const [searchOpen, setSearchOpen] = React.useState(false);
+  const [networkOpen, setNetworkOpen] = React.useState(false);
   const [thumbCache, setThumbCache] = React.useState({});
   const [recentProjects, setRecentProjects] = React.useState([]);
   const searchRef = React.useRef(null);
@@ -2064,6 +2065,11 @@ function App(){
             👥 Team
           </a>
 
+          <button onClick={() => setNetworkOpen(true)} style={{background:'#fff',color:'#111418',padding:'8px 14px',borderRadius:'999px',fontSize:'11px',letterSpacing:'.1em',textTransform:'uppercase',fontWeight:700,border:'1px solid rgba(17,20,24,.12)',display:'flex',alignItems:'center',gap:6,transition:'background .15s',cursor:'pointer'}}
+          onMouseOver={e=>e.currentTarget.style.background='#f3f7fa'} onMouseOut={e=>e.currentTarget.style.background='#fff'}>
+            🕸 Netwerk
+          </button>
+
           {/* Auth — dynamisch ingevuld */}
           <div id="auth-bar-inline" style={{display:'flex',alignItems:'center',gap:8}}></div>
 
@@ -2180,6 +2186,24 @@ function App(){
             </div>
           </div>
         </>,
+        document.body
+      )}
+
+      {/* NETWERK OVERLAY */}
+      {networkOpen && ReactDOM.createPortal(
+        <div style={{position:'fixed',inset:0,zIndex:9999,background:'#07080b',display:'flex',flexDirection:'column'}}>
+          <div style={{position:'absolute',top:16,right:20,zIndex:10}}>
+            <button onClick={() => setNetworkOpen(false)}
+              style={{background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.2)',borderRadius:'999px',color:'#e8eef7',fontFamily:'inherit',fontSize:'11px',letterSpacing:'.1em',textTransform:'uppercase',fontWeight:700,padding:'8px 16px',cursor:'pointer',backdropFilter:'blur(8px)'}}>
+              ✕ Sluiten
+            </button>
+          </div>
+          <iframe
+            src="network_nodes.html"
+            style={{flex:1,border:'none',width:'100%',height:'100%'}}
+            title="Netwerk – Wie werkt waaraan"
+          />
+        </div>,
         document.body
       )}
     </>
