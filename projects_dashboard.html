@@ -1792,14 +1792,12 @@ function App(){
         return Object.entries(freq).sort((a,b) => b[1]-a[1])[0]?.[0] || '—';
       };
 
-      // DATA sectie (grote nummers bovenaan)
-      // Laad leaderboard uit profiles tabel
-      const { data: profileRows } = await db.from('profiles')
+      // Leaderboard uit employees tabel (heeft echte score kolom)
+      const { data: employeeRows } = await db.from('employees')
         .select('id, naam, score, projecten')
-        .eq('status', 'approved')
         .order('score', { ascending: false })
         .limit(10);
-      const liveLeaderboard = (profileRows || [])
+      const liveLeaderboard = (employeeRows || [])
         .map(p => ({ name: p.naam, score: p.score || 0, id: p.id }));
 
       setLiveData({
