@@ -70,34 +70,34 @@
   .corner.br { bottom: 14px; right: 14px; border-bottom: 1px solid; border-right: 1px solid; }
 
   .selected-info {
-    position: fixed; top: 70px; right: 28px; z-index: 5;
-    max-width: 320px;
-    padding: 12px 14px;
-    border: 1px solid rgba(216, 222, 233, 0.15);
-    background: rgba(12, 14, 18, 0.72);
-    backdrop-filter: blur(8px);
-    border-radius: 4px;
+    position: fixed; top: 70px; left: 28px; z-index: 5;
+    min-width: 240px; max-width: 340px;
+    padding: 18px 20px;
+    border: 1px solid rgba(216, 222, 233, 0.25);
+    background: rgba(10, 12, 16, 0.88);
+    backdrop-filter: blur(12px);
+    border-radius: 6px;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 10.5px;
-    letter-spacing: 0.08em;
-    color: rgba(216, 222, 233, 0.7);
+    font-size: 11px;
+    letter-spacing: 0.07em;
+    color: rgba(216, 222, 233, 0.85);
     pointer-events: none;
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(-6px);
     transition: opacity .22s ease, transform .22s ease;
   }
   .selected-info.visible { opacity: 1; transform: translateY(0); }
   .selected-info .who {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 15px; font-weight: 500; letter-spacing: -0.005em;
-    color: rgba(232, 238, 247, 0.95);
-    margin-bottom: 8px; text-transform: none;
+    font-size: 20px; font-weight: 600; letter-spacing: -0.01em;
+    color: rgba(232, 238, 247, 1);
+    margin-bottom: 10px; text-transform: none;
   }
-  .selected-info .kind { text-transform: uppercase; color: rgba(216,222,233,0.4); font-size: 9.5px; letter-spacing: 0.18em; }
-  .selected-info ul { list-style: none; margin: 6px 0 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-  .selected-info li { color: rgba(232, 238, 247, 0.85); font-size: 11px; letter-spacing: 0.02em; text-transform: none; }
+  .selected-info .kind { text-transform: uppercase; color: rgba(216,222,233,0.55); font-size: 9.5px; letter-spacing: 0.2em; }
+  .selected-info ul { list-style: none; margin: 8px 0 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+  .selected-info li { color: rgba(232, 238, 247, 0.92); font-size: 12px; letter-spacing: 0.02em; text-transform: none; }
   .selected-info li::before { content: "— "; color: rgba(216,222,233,0.4); }
-  .selected-info .hint { margin-top: 10px; color: rgba(216,222,233,0.35); font-size: 9.5px; letter-spacing: 0.14em; }
+  .selected-info .hint { margin-top: 12px; color: rgba(216,222,233,0.4); font-size: 9px; letter-spacing: 0.14em; }
 
   /* Zoekbalk */
   .search-wrap {
@@ -849,8 +849,10 @@
 
       ctx.lineCap = 'round';
 
-      // Hub-spokes: subtiele lijnen van hub naar projecten
-      { const h = nodes[HUB_IDX];
+      // Hub-spokes: verberg als persoon geselecteerd
+      const personSelected = selectedIndex >= 0 && nodes[selectedIndex].type === 'person';
+      if (!personSelected) {
+        const h = nodes[HUB_IDX];
         for (const ei of h.edges) {
           const [a, b] = edges[ei];
           const pidx = a===HUB_IDX ? b : a;
