@@ -96,26 +96,30 @@
   }
 
   function init() {
-    // Netwerk knop — open iframe overlay als die bestaat, anders navigeer
+    // Netwerk knop — overlay op andere pagina's, actief op network_nodes zelf
     const netwerkBtn = document.getElementById('nav-netwerk');
     if (netwerkBtn) {
-      netwerkBtn.addEventListener('click', () => {
-        const existing = document.getElementById('mvsa-network-overlay');
-        if (existing) { existing.remove(); return; }
-        const overlay = document.createElement('div');
-        overlay.id = 'mvsa-network-overlay';
-        overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#07080b;display:flex;flex-direction:column;';
-        overlay.innerHTML = `
-          <div style="position:absolute;top:16px;right:20px;z-index:10;">
-            <button onclick="document.getElementById('mvsa-network-overlay').remove()"
-              style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:999px;color:#e8eef7;font-family:inherit;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:8px 16px;cursor:pointer;backdrop-filter:blur(8px);">
-              ✕ Sluiten
-            </button>
-          </div>
-          <iframe src="network_nodes.html" style="flex:1;border:none;width:100%;height:100%;" title="Netwerk"></iframe>
-        `;
-        document.body.appendChild(overlay);
-      });
+      if (current === 'network_nodes.html') {
+        netwerkBtn.classList.add('active');
+      } else {
+        netwerkBtn.addEventListener('click', () => {
+          const existing = document.getElementById('mvsa-network-overlay');
+          if (existing) { existing.remove(); return; }
+          const overlay = document.createElement('div');
+          overlay.id = 'mvsa-network-overlay';
+          overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#07080b;display:flex;flex-direction:column;';
+          overlay.innerHTML = `
+            <div style="position:absolute;top:16px;right:20px;z-index:10;">
+              <button onclick="document.getElementById('mvsa-network-overlay').remove()"
+                style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:999px;color:#e8eef7;font-family:inherit;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:8px 16px;cursor:pointer;backdrop-filter:blur(8px);">
+                ✕ Sluiten
+              </button>
+            </div>
+            <iframe src="network_nodes.html" style="flex:1;border:none;width:100%;height:100%;" title="Netwerk"></iframe>
+          `;
+          document.body.appendChild(overlay);
+        });
+      }
     }
 
     // Auth slot vullen

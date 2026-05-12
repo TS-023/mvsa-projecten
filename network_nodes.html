@@ -15,7 +15,7 @@
   canvas { display: block; width: 100%; height: 100%; cursor: grab; }
 
   .hud {
-    position: fixed; top: 16px; left: 16px; z-index: 5;
+    position: fixed; top: 58px; left: 16px; z-index: 5;
     display: flex; flex-direction: column; gap: 3px;
     pointer-events: none;
     background: rgba(12,14,18,0.42); backdrop-filter: blur(16px);
@@ -40,7 +40,7 @@
   }
 
   .legend {
-    position: fixed; top: 16px; right: 16px; z-index: 5;
+    position: fixed; top: 58px; right: 16px; z-index: 5;
     display: flex; gap: 16px; align-items: center;
     font-family: 'JetBrains Mono', monospace;
     font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase;
@@ -78,7 +78,7 @@
   .corner.br { bottom: 14px; right: 14px; border-bottom: 1px solid; border-right: 1px solid; }
 
   .selected-info {
-    position: fixed; top: 70px; left: 28px; z-index: 5;
+    position: fixed; top: 112px; left: 28px; z-index: 5;
     min-width: 240px; max-width: 340px;
     padding: 18px 20px;
     border: 1px solid rgba(216, 222, 233, 0.25);
@@ -109,7 +109,7 @@
 
   /* Zoekbalk */
   .search-wrap {
-    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    position: fixed; top: 58px; left: 50%; transform: translateX(-50%);
     z-index: 10; width: 320px;
   }
   .search-input {
@@ -195,6 +195,21 @@
     letter-spacing: 0.04em; transition: color .15s;
   }
   .filter-item.off .filter-label { color: rgba(216,222,233,0.35); }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase.js"></script>
+<script src="nav.js" defer></script>
+<style>
+  /* Nav zweeft over canvas — geen padding nodig */
+  body { padding-top: 0 !important; }
+  #mvsa-nav { background: rgba(7,8,11,0.75) !important; border-bottom-color: rgba(255,255,255,0.07) !important; }
+  #mvsa-nav .nav-logo,
+  #mvsa-nav .nav-pill,
+  #mvsa-nav .nav-new { color: rgba(232,238,247,0.85) !important; }
+  #mvsa-nav .nav-pill:hover { background: rgba(255,255,255,0.08) !important; color: #fff !important; }
+  #mvsa-nav .nav-pill.active { background: rgba(232,238,247,0.15) !important; color: #fff !important; }
+  #mvsa-nav .nav-new { background: rgba(232,238,247,0.12) !important; border: 1px solid rgba(232,238,247,0.2) !important; }
+  #mvsa-nav .nav-new:hover { background: rgba(232,238,247,0.22) !important; opacity: 1 !important; }
 </style>
 </head>
 <body>
@@ -514,22 +529,24 @@
       const hubDist = Math.hypot(w.x - nodes[HUB_IDX].x, w.y - nodes[HUB_IDX].y);
       if (hubDist < HUB_R + 8) return;
 
-      // Check of we een project raken → drag
-      if (selectedIndex >= 0 && nodes[selectedIndex].type === 'project') {
+      // Check of we een node raken → drag (projecten én personen)
+      // Geselecteerde node eerst checken
+      if (selectedIndex >= 0) {
         const n = nodes[selectedIndex];
+        const reach = (n.type === 'project' ? n.r + 18 : n.r + 14);
         const d2 = (n.x - w.x)**2 + (n.y - w.y)**2;
-        if (d2 < (n.r + 18)**2) {
+        if (d2 < reach**2) {
           dragNodeIdx = selectedIndex;
           panMoved = 0;
           return;
         }
       }
-      // Check elk project bij selectie = -1
+      // Dan alle andere nodes
       for (let i = 1; i < nodes.length; i++) {
-        if (nodes[i].type !== 'project') continue;
         const n = nodes[i];
+        const reach = (n.type === 'project' ? n.r + 18 : n.r + 14);
         const d2 = (n.x - w.x)**2 + (n.y - w.y)**2;
-        if (d2 < (n.r + 18)**2) {
+        if (d2 < reach**2) {
           dragNodeIdx = i;
           panMoved = 0;
           return;
@@ -784,8 +801,25 @@
     }
     function highlightSet() {
       const out = new Set();
-      addNeighbors(out, selectedIndex);
-      addNeighbors(out, mouse.hover);
+      if (selectedIndex >= 0) {
+        // Selectie actief: alleen geselecteerde + directe buren
+        addNeighbors(out, selectedIndex);
+        // Hover alleen toevoegen als het een directe buur is
+        if (mouse.hover >= 0) {
+          const selEdges = nodes[selectedIndex].edges;
+          for (const ei of selEdges) {
+            const [a, b] = edges[ei];
+            const neighbor = a === selectedIndex ? b : a;
+            if (neighbor === mouse.hover) {
+              out.add(mouse.hover);
+              break;
+            }
+          }
+        }
+      } else {
+        // Geen selectie: hover licht buren op
+        addNeighbors(out, mouse.hover);
+      }
       return out;
     }
     function pinnedSet() {
@@ -1115,7 +1149,11 @@
         const c = colorFor(n);
         const breathe = 0.85 + Math.sin(n.phase) * 0.22;
         const isProj = n.type === 'project';
-        const baseR = n.r * sc;
+        // Schaal: geselecteerde node 1.7×, directe buren 1.25×, rest 1×
+        const isSel = i === selectedIndex;
+        const isNeighbor = selectedIndex >= 0 && !isSel && hl.has(i) && i !== HUB_IDX;
+        const sizeScale = isSel ? 1.7 : isNeighbor ? 1.25 : 1.0;
+        const baseR = n.r * sc * sizeScale;
 
         if (CONFIG.glow) {
           const glowR = baseR * (isProj ? 5 : 4) * (lit ? 1 : 0.5);
