@@ -1173,11 +1173,14 @@
       selectedIndex = idx;
       pushDepth(idx);
       updateInfoCard();
-      // Pan naar de node en zoom in
       const n = nodes[idx];
+      // Zet node exact in het midden van het scherm
+      // screenX = (worldX + panX - W/2) * zoom + W/2
+      // Voor screenX = W/2: panX = W/2 - n.x
+      // Onafhankelijk van zoom want we willen node centreren
       panX = W / 2 - n.x;
       panY = H / 2 - n.y;
-      targetZoom = 1.4;
+      targetZoom = nodes[idx].type === 'person' ? 1.8 : 1.5;
     }
 
     function renderResults(q) {
@@ -1208,6 +1211,7 @@
           searchInput.value = nodes[+el.dataset.idx].name;
           searchResults.classList.remove('visible');
           searchClear.style.display = 'block';
+          searchInput.blur(); // geef focus terug aan canvas
         });
       });
     }
