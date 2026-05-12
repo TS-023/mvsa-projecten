@@ -167,6 +167,34 @@
     padding: 12px 16px; font-family: 'JetBrains Mono', monospace;
     font-size: 10.5px; color: rgba(216,222,233,0.35); letter-spacing: .08em;
   }
+
+  /* ── Filter panel ────────────────────────────────────────────── */
+  .filter-panel {
+    position: fixed; bottom: 70px; right: 16px; z-index: 6;
+    background: rgba(10,12,16,0.88); backdrop-filter: blur(16px);
+    border: 1px solid rgba(216,222,233,0.12); border-radius: 12px;
+    padding: 14px 16px; min-width: 180px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .filter-title {
+    font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: rgba(216,222,233,0.4); margin-bottom: 10px;
+  }
+  .filter-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 5px 0; cursor: pointer; user-select: none;
+  }
+  .filter-item:hover .filter-label { color: rgba(232,238,247,1); }
+  .filter-swatch {
+    width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0;
+    border: 2px solid transparent; transition: opacity .15s;
+  }
+  .filter-item.off .filter-swatch { opacity: 0.25; }
+  .filter-label {
+    font-size: 11px; color: rgba(216,222,233,0.75);
+    letter-spacing: 0.04em; transition: color .15s;
+  }
+  .filter-item.off .filter-label { color: rgba(216,222,233,0.35); }
 </style>
 </head>
 <body>
@@ -196,6 +224,31 @@
     <div>projects<b id="r-projects">—</b></div>
     <div>people<b id="r-people">—</b></div>
   </div>
+
+  <div class="filter-panel" id="filter-panel">
+    <div class="filter-title">Zichtbaarheid</div>
+    <div class="filter-item" data-filter="bedrijf">
+      <div class="filter-swatch" style="background:#e8a87c;border-color:#e8a87c"></div>
+      <span class="filter-label">Bedrijven</span>
+    </div>
+    <div class="filter-item" data-filter="contact">
+      <div class="filter-swatch" style="background:#7ec8c8;border-color:#7ec8c8"></div>
+      <span class="filter-label">Contacten</span>
+    </div>
+    <div class="filter-item" data-filter="software">
+      <div class="filter-swatch" style="background:#a78bfa;border-color:#a78bfa"></div>
+      <span class="filter-label">Software</span>
+    </div>
+    <div class="filter-item" data-filter="award">
+      <div class="filter-swatch" style="background:#fbbf24;border-color:#fbbf24"></div>
+      <span class="filter-label">Awards</span>
+    </div>
+    <div class="filter-item" data-filter="label">
+      <div class="filter-swatch" style="background:#6ee7b7;border-color:#6ee7b7"></div>
+      <span class="filter-label">Labels</span>
+    </div>
+  </div>
+
   <div class="selected-info" id="selected-info"></div>
 
   <div id="tweaks-root" style="display:none"></div>
@@ -216,6 +269,52 @@
       'Sara', 'Mees', 'Floor', 'Koen', 'Yara', 'Ruben', 'Hugo', 'Maud',
       'Tess', 'Cas', 'Vera', 'Jasper', 'Esmee', 'Olaf', 'Lieve', 'Wout',
     ];
+
+
+    // Dummy tags per project
+    const DUMMY_TAGS = {
+      bedrijf:  ['Arcadis','Royal HaskoningDHV','Witteveen+Bos','Arup','Goudappel','Movares','Sweco','Atelier PRO','OMA','MVRDV','UNStudio','Mecanoo'],
+      contact:  ['Jan de Vries','Petra Smit','Mark Bakker','Lisa van den Berg','Tom Jansen','Emma Visser','Bas Mulder','Sophie Hendriks','Rick Bosman','Anne Dekker','Daan Kok','Miriam Prins'],
+      software: ['Revit','AutoCAD','SketchUp','Rhino','ArchiCAD','BIM 360','Grasshopper','Lumion','Enscape','Adobe CC','Bluebeam','Navisworks'],
+      award:    ['ARC Award 2023','BNA Beste Gebouw','Green Building Award','BREEAM Excellent','Rietveld Prijs','Architectuur Lokaal','Dutch Design Award','Gouden Piramide'],
+      label:    ['Woningbouw','Kantoor','Publiek','Herbestemming','Duurzaam','BIM','Flagship','In uitvoering','Concept','Internationaal'],
+    };
+
+    // Wijs willekeurig tags toe aan projecten (bij buildGraph)
+    let projectTags = {}; // { projectName: { bedrijf, contact, software, award, label } }
+
+    function assignDummyTags(projNames) {
+      projectTags = {};
+      projNames.forEach(name => {
+        projectTags[name] = {
+          bedrijf:  rand01() > 0.3 ? [pick(DUMMY_TAGS.bedrijf)]  : [],
+          contact:  rand01() > 0.2 ? [pick(DUMMY_TAGS.contact), rand01()>0.5 ? pick(DUMMY_TAGS.contact) : null].filter(Boolean) : [],
+          software: rand01() > 0.25 ? shuffle([...DUMMY_TAGS.software]).slice(0, Math.floor(rand(1,4))) : [],
+          award:    rand01() > 0.6  ? [pick(DUMMY_TAGS.award)]   : [],
+          label:    shuffle([...DUMMY_TAGS.label]).slice(0, Math.floor(rand(1,3))),
+        };
+      });
+    }
+    function pick(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+    function rand01() { return Math.random(); }
+
+    // Filter state
+    const activeFilters = new Set(['bedrijf','contact','software','award','label']);
+
+    // Filter colors
+    const FILTER_COLORS = {
+      bedrijf:  '#e8a87c',
+      contact:  '#7ec8c8',
+      software: '#a78bfa',
+      award:    '#fbbf24',
+      label:    '#6ee7b7',
+    };
+
+    function getProjectRings(name) {
+      const tags = projectTags[name];
+      if (!tags) return [];
+      return Object.keys(FILTER_COLORS).filter(k => activeFilters.has(k) && tags[k] && tags[k].length > 0);
+    }
 
     const CONFIG = /*EDITMODE-BEGIN*/{
       "projects": 12,
@@ -283,6 +382,7 @@
       const projN = Math.min(CONFIG.projects, PROJECT_POOL.length);
       const peopleN = Math.min(CONFIG.people, PERSON_POOL.length);
       const projNames = shuffle(PROJECT_POOL).slice(0, projN);
+      assignDummyTags(projNames);
       const peopleNames = shuffle(PERSON_POOL).slice(0, peopleN);
       const cx = W / 2, cy = H / 2;
 
@@ -606,10 +706,15 @@
           <div class="hint">click elders om te sluiten</div>`;
       } else {
         const people = linked.filter(x => x.type === 'person').map(x => x.name);
+        const tags = projectTags[n.name] || {};
+        const tagHTML = Object.entries(tags).filter(([k,v]) => v && v.length).map(([k,v]) =>
+          `<div style="margin-top:8px;"><span style="font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:${FILTER_COLORS[k]};opacity:.9;">${k}</span><div style="color:rgba(232,238,247,.75);font-size:11px;margin-top:2px;">${v.join(', ')}</div></div>`
+        ).join('');
         el.innerHTML = `<div class="kind">project ${n.pinned ? '· pinned' : ''}</div>
           <div class="who">${n.name}</div>
           <div class="kind">${people.length} team member${people.length===1?'':'s'}</div>
           <ul>${people.map(p => `<li>${p}</li>`).join('')}</ul>
+          ${tagHTML}
           <div class="hint">click opnieuw om los te maken</div>`;
       }
       el.classList.add('visible');
@@ -1068,6 +1173,17 @@
             ctx.arc(n.x, n.y, baseR + 22 * sc, 0, Math.PI * 2);
             ctx.stroke();
           }
+          // Filter-rings
+          { const rings = getProjectRings(n.name);
+            rings.forEach((k, ri) => {
+              const ringDist = baseR + (32 + ri * 8) * sc;
+              ctx.strokeStyle = FILTER_COLORS[k] + Math.round(alpha * 200).toString(16).padStart(2,'0');
+              ctx.lineWidth = 2 * sc;
+              ctx.beginPath();
+              ctx.arc(n.x, n.y, ringDist, 0, Math.PI * 2);
+              ctx.stroke();
+            });
+          }
         } else {
           const isHovered = i === mouse.hover;
           // Glow — sterker en in eigen kleur bij hover
@@ -1245,6 +1361,16 @@
       renderResults('');
       searchClear.style.display = 'none';
       searchInput.focus();
+    });
+
+    // ── Filter panel ────────────────────────────────────────────────────
+    document.querySelectorAll('.filter-item').forEach(el => {
+      const key = el.dataset.filter;
+      el.addEventListener('click', () => {
+        if (activeFilters.has(key)) activeFilters.delete(key);
+        else activeFilters.add(key);
+        el.classList.toggle('off', !activeFilters.has(key));
+      });
     });
 
     // Klik buiten zoekresultaten → sluit
