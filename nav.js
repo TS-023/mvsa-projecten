@@ -1,11 +1,12 @@
 /* ── Gedeelde navigatiebalk voor alle MVSA pagina's ──────────────────────── */
 (function() {
   const NAV_ITEMS = [
-    { label: '🗺 Kaart',       href: 'projects_map.html' },
-    { label: '📊 Dashboard',   href: 'projects_dashboard.html' },
-    { label: '📋 Projecten',   href: 'projects_list.html' },
-    { label: '👥 Team',        href: 'employees.html' },
-    { label: '🕸 Netwerk',     href: '#netwerk', id: 'nav-netwerk' },
+    { label: '🗺 Kaart',         href: 'projects_map.html' },
+    { label: '📊 Dashboard',     href: 'projects_dashboard.html' },
+    { label: '📋 Projecten',     href: 'projects_list.html' },
+    { label: '👥 Team',          href: 'employees.html' },
+    { label: '📇 Adressenboek',  href: 'contacts.html' },
+    { label: '🕸 Netwerk',       href: '#netwerk', id: 'nav-netwerk' },
   ];
 
   const current = location.pathname.split('/').pop() || 'projects_map.html';

@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Adressenboek · MVSA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase.js"></script>
+<script src="nav.js" defer></script>
+<style>
+  :root{
+    --bg: #f4f1ec; --card: #ffffff; --ink: #111418; --ink-2: #2a2f36;
+    --muted: #8a8d93; --line: #e8e4dd;
+    --shadow: 0 1px 0 rgba(20,30,45,.04), 0 8px 24px -12px rgba(20,30,45,.18);
+    --radius: 16px; --accent: #3d6e8a;
+  }
+  *{ box-sizing: border-box; }
+  html, body{ margin:0; padding:0; background: var(--bg); color: var(--ink); font-family: 'Inter', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  .page{ max-width: 1200px; margin: 0 auto; padding: 32px 32px 80px; }
+
+  /* Header */
+  .ab-header{ display:flex; align-items:center; gap:16px; margin-bottom:28px; flex-wrap:wrap; }
+  .ab-header h1{ font-size:24px; font-weight:800; letter-spacing:-.02em; margin:0; flex:1; }
+  .ab-count{ font-size:12px; color:var(--muted); letter-spacing:.08em; text-transform:uppercase; }
+  .new-btn{ background:var(--ink); color:#fff; border:none; border-radius:999px; padding:10px 20px; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; cursor:pointer; transition:opacity .12s; }
+  .new-btn:hover{ opacity:.8; }
+
+  /* Search + filters */
+  .ab-toolbar{ display:flex; gap:10px; align-items:center; margin-bottom:20px; flex-wrap:wrap; }
+  .ab-search{ flex:1; min-width:220px; border:1px solid var(--line); border-radius:999px; padding:9px 18px; font-size:13px; background:#fff; color:var(--ink); outline:none; transition:border-color .15s; }
+  .ab-search:focus{ border-color:var(--ink); }
+  .filter-pills{ display:flex; gap:6px; flex-wrap:wrap; }
+  .fpill{ padding:6px 14px; border-radius:999px; font-size:11px; font-weight:600; letter-spacing:.06em; border:1px solid var(--line); cursor:pointer; background:#fff; color:var(--muted); transition:all .12s; }
+  .fpill:hover{ border-color:var(--ink); color:var(--ink); }
+  .fpill.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+
+  /* Grid */
+  .cards-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px; }
+
+  /* Visitekaartje */
+  .vcard{
+    background:#fff; border-radius:var(--radius); padding:20px;
+    border:1px solid var(--line); cursor:pointer;
+    transition:box-shadow .15s, transform .15s, border-color .15s;
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .vcard:hover{ box-shadow:var(--shadow); transform:translateY(-2px); border-color:rgba(17,20,24,.15); }
+  .vcard-top{ display:flex; align-items:center; gap:14px; }
+  .vcard-avatar{
+    width:48px; height:48px; border-radius:50%;
+    background:linear-gradient(135deg, #3d6e8a, #2a4f6a);
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; font-weight:800; color:#fff; flex-shrink:0; letter-spacing:-.02em;
+  }
+  .vcard-avatar img{ width:100%; height:100%; border-radius:50%; object-fit:cover; }
+  .vcard-naam{ font-weight:700; font-size:15px; letter-spacing:-.01em; }
+  .vcard-bedrijf{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .vcard-rol{
+    display:inline-block; padding:3px 10px; border-radius:999px;
+    font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+    background:var(--bg); border:1px solid var(--line); color:var(--muted);
+  }
+  .vcard-contact{ display:flex; flex-direction:column; gap:4px; }
+  .vcard-contact a{
+    font-size:12px; color:var(--muted); text-decoration:none;
+    display:flex; align-items:center; gap:6px; transition:color .12s;
+  }
+  .vcard-contact a:hover{ color:var(--ink); }
+  .vcard-tags{ display:flex; flex-wrap:wrap; gap:4px; }
+  .vtag{
+    padding:2px 8px; border-radius:999px; font-size:10px; font-weight:600;
+    background:#edf2f7; color:#4a5568; letter-spacing:.04em;
+  }
+  .vcard-projects{ font-size:11px; color:var(--muted); border-top:1px solid var(--line); padding-top:10px; margin-top:2px; }
+  .vcard-projects strong{ color:var(--ink); }
+
+  /* Detail modal */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:800; background:rgba(0,0,0,.4);
+    backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .2s;
+  }
+  .modal-overlay.open{ opacity:1; pointer-events:all; }
+  .modal{
+    background:#fff; border-radius:20px; width:480px; max-width:92vw; max-height:85vh;
+    overflow-y:auto; padding:32px; box-shadow:0 20px 60px rgba(0,0,0,.2);
+    transform:scale(.96); transition:transform .2s;
+  }
+  .modal-overlay.open .modal{ transform:scale(1); }
+  .modal-head{ display:flex; align-items:flex-start; gap:16px; margin-bottom:24px; }
+  .modal-avatar{
+    width:64px; height:64px; border-radius:50%; flex-shrink:0;
+    background:linear-gradient(135deg, #3d6e8a, #2a4f6a);
+    display:flex; align-items:center; justify-content:center;
+    font-size:22px; font-weight:800; color:#fff;
+  }
+  .modal-avatar img{ width:100%; height:100%; border-radius:50%; object-fit:cover; }
+  .modal-title{ flex:1; }
+  .modal-naam{ font-size:20px; font-weight:800; letter-spacing:-.02em; }
+  .modal-sub{ font-size:13px; color:var(--muted); margin-top:4px; }
+  .modal-close{ background:none; border:1px solid var(--line); border-radius:999px; padding:6px 14px; cursor:pointer; font-size:12px; font-weight:600; color:var(--muted); }
+  .modal-section{ margin-bottom:20px; }
+  .modal-label{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+  .modal-row{ display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; }
+  .modal-row:last-child{ border-bottom:none; }
+  .modal-row a{ color:var(--ink); text-decoration:none; }
+  .modal-row a:hover{ text-decoration:underline; }
+  .proj-chip{
+    display:inline-block; padding:4px 10px; border-radius:999px; font-size:11px; font-weight:600;
+    background:var(--bg); border:1px solid var(--line); color:var(--ink-2); margin:2px;
+    text-decoration:none; transition:background .12s;
+  }
+  .proj-chip:hover{ background:#e8e4dd; }
+  .stars{ color:#f59e0b; font-size:16px; letter-spacing:2px; }
+
+  /* Nieuw contact modal */
+  .new-modal{ width:520px; }
+  .new-modal .field{ display:flex; flex-direction:column; gap:4px; margin-bottom:14px; }
+  .new-modal label{ font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+  .new-modal input, .new-modal textarea, .new-modal select{
+    border:1px solid var(--line); border-radius:10px; padding:9px 14px;
+    font-size:13px; background:#fff; color:var(--ink); outline:none;
+    font-family:inherit; transition:border-color .15s;
+  }
+  .new-modal input:focus, .new-modal textarea:focus, .new-modal select:focus{ border-color:var(--ink); }
+  .new-modal .tags-input{ display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+  .new-modal .tag-pill{
+    padding:4px 10px; border-radius:999px; font-size:11px; font-weight:600;
+    border:1px solid var(--line); cursor:pointer; background:#fff; color:var(--muted); transition:all .12s;
+  }
+  .new-modal .tag-pill.on{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .form-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+  .btn-secondary{ background:none; border:1px solid var(--line); border-radius:999px; padding:10px 20px; font-size:12px; font-weight:600; cursor:pointer; color:var(--muted); }
+  .btn-primary{ background:var(--ink); color:#fff; border:none; border-radius:999px; padding:10px 22px; font-size:12px; font-weight:700; cursor:pointer; letter-spacing:.08em; text-transform:uppercase; }
+
+  /* Empty state */
+  .empty{ text-align:center; padding:60px 20px; color:var(--muted); }
+  .empty h3{ font-size:18px; font-weight:700; margin-bottom:8px; color:var(--ink); }
+  .empty p{ font-size:14px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="ab-header">
+    <div>
+      <h1>📇 Adressenboek</h1>
+      <div class="ab-count" id="count-label">— contacten</div>
+    </div>
+    <button class="new-btn" id="open-new-btn">+ Nieuw contact</button>
+  </div>
+
+  <div class="ab-toolbar">
+    <input class="ab-search" id="ab-search" type="search" placeholder="Zoek naam, bedrijf of rol…" />
+    <div class="filter-pills" id="filter-pills"></div>
+  </div>
+
+  <div class="cards-grid" id="cards-grid"></div>
+</div>
+
+<!-- Detail modal -->
+<div class="modal-overlay" id="detail-overlay">
+  <div class="modal" id="detail-modal"></div>
+</div>
+
+<!-- Nieuw contact modal -->
+<div class="modal-overlay" id="new-overlay">
+  <div class="modal new-modal">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+      <h2 style="flex:1;font-size:18px;font-weight:800;margin:0;">Nieuw visitekaartje</h2>
+      <button class="modal-close" id="close-new-btn">✕</button>
+    </div>
+    <div class="field"><label>Naam *</label><input id="nc-naam" placeholder="Voor- en achternaam" /></div>
+    <div class="field"><label>Bedrijf</label><input id="nc-bedrijf" placeholder="Bedrijfsnaam" /></div>
+    <div class="field"><label>Rol</label>
+      <select id="nc-rol">
+        <option value="">Selecteer rol…</option>
+        <option>Architect</option><option>Adviseur</option><option>Aannemer</option>
+        <option>Opdrachtgever</option><option>Overheid</option><option>Installateur</option>
+        <option>Financieel</option><option>Constructeur</option><option>Civiel ingenieur</option>
+        <option>Projectleider</option><option>Uitvoerder</option><option>Anders</option>
+      </select>
+    </div>
+    <div class="field"><label>E-mail</label><input id="nc-email" type="email" placeholder="naam@bedrijf.nl" /></div>
+    <div class="field"><label>Telefoon</label><input id="nc-telefoon" type="tel" placeholder="+31 6 …" /></div>
+    <div class="field"><label>Website</label><input id="nc-website" placeholder="https://…" /></div>
+    <div class="field"><label>LinkedIn</label><input id="nc-linkedin" placeholder="https://linkedin.com/in/…" /></div>
+    <div class="field"><label>Tags</label>
+      <div class="tags-input" id="nc-tags">
+        <span class="tag-pill" data-tag="architect">architect</span>
+        <span class="tag-pill" data-tag="adviseur">adviseur</span>
+        <span class="tag-pill" data-tag="aannemer">aannemer</span>
+        <span class="tag-pill" data-tag="opdrachtgever">opdrachtgever</span>
+        <span class="tag-pill" data-tag="overheid">overheid</span>
+        <span class="tag-pill" data-tag="installateur">installateur</span>
+        <span class="tag-pill" data-tag="financieel">financieel</span>
+        <span class="tag-pill" data-tag="civiel">civiel</span>
+        <span class="tag-pill" data-tag="extern">extern</span>
+      </div>
+    </div>
+    <div class="field"><label>Notities</label><textarea id="nc-notities" rows="3" placeholder="Optionele notitie…"></textarea></div>
+    <div class="form-actions">
+      <button class="btn-secondary" id="cancel-new-btn">Annuleren</button>
+      <button class="btn-primary" id="save-new-btn">Opslaan →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const FILTERS = ['architect','adviseur','aannemer','opdrachtgever','overheid','installateur','financieel','civiel'];
+let contacts = [];
+let projects = {};  // contact_id → [project names]
+let activeFilter = '';
+let searchQ = '';
+
+// ── Laad data ────────────────────────────────────────────────
+async function loadContacts() {
+  try {
+    const { data, error } = await db.from('contacts')
+      .select('*')
+      .order('naam');
+    if (error) throw error;
+    contacts = data || [];
+
+    // Laad gekoppelde projecten per contact
+    const { data: pc } = await db.from('project_contacts')
+      .select('contact_id, projects(projectnaam, projectnummer, id)');
+    (pc || []).forEach(row => {
+      if (!projects[row.contact_id]) projects[row.contact_id] = [];
+      if (row.projects) projects[row.contact_id].push(row.projects);
+    });
+
+    renderAll();
+  } catch(e) {
+    console.error(e);
+    document.getElementById('cards-grid').innerHTML =
+      '<div class="empty"><h3>Kon contacten niet laden</h3><p>Controleer de Supabase verbinding.</p></div>';
+  }
+}
+
+// ── Render ───────────────────────────────────────────────────
+function renderAll() {
+  const q = searchQ.toLowerCase();
+  const filtered = contacts.filter(c => {
+    const mQ = !q || c.naam?.toLowerCase().includes(q) || c.bedrijf?.toLowerCase().includes(q) || c.rol?.toLowerCase().includes(q);
+    const mF = !activeFilter || (c.tags||[]).includes(activeFilter) || c.rol?.toLowerCase().includes(activeFilter.toLowerCase());
+    return mQ && mF;
+  });
+
+  document.getElementById('count-label').textContent = `${filtered.length} contact${filtered.length !== 1 ? 'en' : ''}`;
+
+  const grid = document.getElementById('cards-grid');
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="empty"><h3>Geen contacten gevonden</h3><p>Pas de zoekopdracht of filters aan.</p></div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(c => {
+    const initials = (c.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+    const projs = projects[c.id] || [];
+    const avatarHTML = c.foto_url
+      ? `<img src="${c.foto_url}" alt="${c.naam}" />`
+      : initials;
+    return `
+      <div class="vcard" onclick="openDetail('${c.id}')">
+        <div class="vcard-top">
+          <div class="vcard-avatar">${avatarHTML}</div>
+          <div>
+            <div class="vcard-naam">${c.naam}</div>
+            <div class="vcard-bedrijf">${c.bedrijf || '—'}</div>
+          </div>
+        </div>
+        ${c.rol ? `<div><span class="vcard-rol">${c.rol}</span></div>` : ''}
+        <div class="vcard-contact">
+          ${c.email ? `<a href="mailto:${c.email}" onclick="event.stopPropagation()">✉ ${c.email}</a>` : ''}
+          ${c.telefoon ? `<a href="tel:${c.telefoon}" onclick="event.stopPropagation()">📞 ${c.telefoon}</a>` : ''}
+        </div>
+        ${(c.tags||[]).length ? `<div class="vcard-tags">${(c.tags).map(t=>`<span class="vtag">${t}</span>`).join('')}</div>` : ''}
+        ${projs.length ? `<div class="vcard-projects">${projs.length} project${projs.length!==1?'en':''}: <strong>${projs.map(p=>p.projectnaam).slice(0,2).join(', ')}${projs.length>2?` +${projs.length-2}`:''}</strong></div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+// ── Detail modal ─────────────────────────────────────────────
+function openDetail(id) {
+  const c = contacts.find(x => x.id === id);
+  if (!c) return;
+  const projs = projects[c.id] || [];
+  const initials = (c.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+  const avatarHTML = c.foto_url ? `<img src="${c.foto_url}" alt="" />` : initials;
+
+  document.getElementById('detail-modal').innerHTML = `
+    <div class="modal-head">
+      <div class="modal-avatar">${avatarHTML}</div>
+      <div class="modal-title">
+        <div class="modal-naam">${c.naam}</div>
+        <div class="modal-sub">${[c.rol, c.bedrijf].filter(Boolean).join(' · ')}</div>
+      </div>
+      <button class="modal-close" onclick="closeDetail()">✕</button>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-label">Contact</div>
+      ${c.email ? `<div class="modal-row">✉ &nbsp;<a href="mailto:${c.email}">${c.email}</a></div>` : ''}
+      ${c.telefoon ? `<div class="modal-row">📞 &nbsp;<a href="tel:${c.telefoon}">${c.telefoon}</a></div>` : ''}
+      ${c.website ? `<div class="modal-row">🌐 &nbsp;<a href="${c.website}" target="_blank" rel="noopener">${c.website}</a></div>` : ''}
+      ${c.linkedin ? `<div class="modal-row">🔗 &nbsp;<a href="${c.linkedin}" target="_blank" rel="noopener">LinkedIn profiel</a></div>` : ''}
+    </div>
+
+    ${(c.tags||[]).length ? `
+    <div class="modal-section">
+      <div class="modal-label">Tags</div>
+      <div class="vcard-tags" style="margin-top:4px;">${(c.tags).map(t=>`<span class="vtag">${t}</span>`).join('')}</div>
+    </div>` : ''}
+
+    ${projs.length ? `
+    <div class="modal-section">
+      <div class="modal-label">Projecten (${projs.length})</div>
+      <div style="margin-top:6px;">
+        ${projs.map(p=>`<a class="proj-chip" href="project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}">${p.projectnaam}</a>`).join('')}
+      </div>
+    </div>` : ''}
+
+    ${c.notities ? `
+    <div class="modal-section">
+      <div class="modal-label">Notities</div>
+      <p style="font-size:13px;color:var(--muted);margin:8px 0 0;">${c.notities}</p>
+    </div>` : ''}
+
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      ${c.email ? `<a href="mailto:${c.email}" style="flex:1;text-align:center;background:var(--ink);color:#fff;text-decoration:none;padding:10px;border-radius:999px;font-size:12px;font-weight:700;">✉ Stuur e-mail</a>` : ''}
+    </div>`;
+
+  document.getElementById('detail-overlay').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detail-overlay').classList.remove('open');
+}
+
+// ── Filter pills ──────────────────────────────────────────────
+function renderFilters() {
+  const el = document.getElementById('filter-pills');
+  el.innerHTML = FILTERS.map(f =>
+    `<button class="fpill ${activeFilter===f?'active':''}" data-f="${f}">${f}</button>`
+  ).join('');
+  el.querySelectorAll('.fpill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeFilter = activeFilter === btn.dataset.f ? '' : btn.dataset.f;
+      renderFilters();
+      renderAll();
+    });
+  });
+}
+
+// ── Nieuw contact ─────────────────────────────────────────────
+let selectedTags = [];
+
+document.getElementById('open-new-btn').addEventListener('click', () => {
+  selectedTags = [];
+  document.querySelectorAll('#nc-tags .tag-pill').forEach(p => p.classList.remove('on'));
+  ['nc-naam','nc-bedrijf','nc-email','nc-telefoon','nc-website','nc-linkedin','nc-notities'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('nc-rol').value = '';
+  document.getElementById('new-overlay').classList.add('open');
+});
+
+document.querySelectorAll('#nc-tags .tag-pill').forEach(p => {
+  p.addEventListener('click', () => {
+    p.classList.toggle('on');
+    const t = p.dataset.tag;
+    selectedTags = p.classList.contains('on')
+      ? [...selectedTags, t]
+      : selectedTags.filter(x => x !== t);
+  });
+});
+
+document.getElementById('close-new-btn').addEventListener('click', () => document.getElementById('new-overlay').classList.remove('open'));
+document.getElementById('cancel-new-btn').addEventListener('click', () => document.getElementById('new-overlay').classList.remove('open'));
+
+document.getElementById('save-new-btn').addEventListener('click', async () => {
+  const naam = document.getElementById('nc-naam').value.trim();
+  if (!naam) { alert('Naam is verplicht'); return; }
+  const btn = document.getElementById('save-new-btn');
+  btn.textContent = 'Opslaan…'; btn.disabled = true;
+  try {
+    const { data, error } = await db.from('contacts').insert([{
+      naam,
+      bedrijf: document.getElementById('nc-bedrijf').value.trim() || null,
+      rol: document.getElementById('nc-rol').value || null,
+      email: document.getElementById('nc-email').value.trim() || null,
+      telefoon: document.getElementById('nc-telefoon').value.trim() || null,
+      website: document.getElementById('nc-website').value.trim() || null,
+      linkedin: document.getElementById('nc-linkedin').value.trim() || null,
+      notities: document.getElementById('nc-notities').value.trim() || null,
+      tags: selectedTags.length ? selectedTags : null,
+    }]).select().single();
+    if (error) throw error;
+    contacts.unshift(data);
+    document.getElementById('new-overlay').classList.remove('open');
+    renderAll();
+  } catch(e) {
+    alert('Opslaan mislukt: ' + e.message);
+  } finally {
+    btn.textContent = 'Opslaan →'; btn.disabled = false;
+  }
+});
+
+// Klik buiten modal sluit hem
+document.getElementById('detail-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeDetail();
+});
+document.getElementById('new-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) document.getElementById('new-overlay').classList.remove('open');
+});
+
+// Zoekbalk
+document.getElementById('ab-search').addEventListener('input', e => {
+  searchQ = e.target.value;
+  renderAll();
+});
+
+// Start
+renderFilters();
+loadContacts();
+</script>
+</body>
+</html>

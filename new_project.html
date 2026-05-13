@@ -162,6 +162,38 @@
     .progress-card{ grid-template-columns: 1fr; }
     .progress-card .stat{ text-align: left; }
   }
+
+  .contact-overlay{ position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.35);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .25s; }
+  .contact-overlay.open{ opacity:1;pointer-events:all; }
+  .contact-panel{ position:fixed;top:0;right:0;bottom:0;z-index:901;width:420px;max-width:96vw;background:var(--bg);border-left:1px solid var(--line);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:-8px 0 32px rgba(0,0,0,.12); }
+  .contact-panel.open{ transform:translateX(0); }
+  .cp-head{ padding:20px 20px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-shrink:0; }
+  .cp-head h3{ flex:1;font-size:15px;font-weight:700;margin:0; }
+  .cp-close{ background:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600;color:var(--muted); }
+  .cp-search{ width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:999px;padding:9px 16px;font-size:13px;background:var(--bg);color:var(--ink);outline:none; }
+  .cp-filters{ display:flex;flex-wrap:wrap;gap:6px;padding:10px 20px 0; }
+  .cp-filter{ padding:4px 12px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid var(--line);cursor:pointer;background:transparent;color:var(--muted);transition:all .12s; }
+  .cp-filter.active{ background:var(--ink);color:#fff;border-color:var(--ink); }
+  .cp-cards{ flex:1;overflow-y:auto;padding:14px 20px;display:flex;flex-direction:column;gap:10px; }
+  .vcard{ border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;transition:border-color .12s,box-shadow .12s;display:flex;align-items:center;gap:12px; }
+  .vcard:hover{ border-color:var(--ink);box-shadow:0 2px 12px rgba(0,0,0,.08); }
+  .vcard.selected{ border-color:var(--ink);background:var(--ink);color:#fff; }
+  .vcard-avatar{ width:38px;height:38px;border-radius:50%;background:#e6ecf2;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--muted);flex-shrink:0; }
+  .vcard.selected .vcard-avatar{ background:rgba(255,255,255,.2);color:#fff; }
+  .vcard-info{ flex:1;min-width:0; }
+  .vcard-naam{ font-weight:700;font-size:13px; }
+  .vcard-sub{ font-size:11px;color:var(--muted);margin-top:2px; }
+  .vcard.selected .vcard-sub{ color:rgba(255,255,255,.7); }
+  .vcard-check{ font-size:18px; }
+  .cp-new-btn{ margin:0 20px 20px;padding:12px;border-radius:10px;border:2px dashed var(--line);background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted); }
+  .cp-new-btn:hover{ border-color:var(--ink);color:var(--ink); }
+  .cp-new-form{ margin:0 20px 20px;padding:16px;border-radius:12px;border:1px solid var(--line);display:flex;flex-direction:column;gap:10px; }
+  .cp-new-form input{ width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13px;background:var(--bg);color:var(--ink);outline:none; }
+  .cp-add-btn{ background:var(--ink);color:#fff;border:none;border-radius:999px;padding:10px 20px;font-size:12px;font-weight:700;cursor:pointer;align-self:flex-end; }
+  .linked-contacts{ display:flex;flex-direction:column;gap:8px;margin-top:8px; }
+  .linked-card{ display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line);border-radius:10px; }
+  .lc-remove{ margin-left:auto;background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;line-height:1;padding:2px 4px; }
+  .lc-remove:hover{ color:#b43c3c; }
 </style>
 </head>
 <body>
@@ -397,6 +429,14 @@ function App(){
     }
     try {
       const savedProject = await Projects.upsert(toSnake(data));
+      if (linkedContacts.length && savedProject?.id) {
+        try {
+          await db.from('project_contacts').upsert(
+            linkedContacts.map(ct=>({project_id:savedProject.id,contact_id:ct.id})),
+            {onConflict:'project_id,contact_id'}
+          );
+        } catch(e) { console.warn('Contacten koppelen mislukt:',e); }
+      }
 
       // Punten toekennen: 1 punt per ingevuld veld
       const filledFields = Object.values(toSnake(data)).filter(v => v !== null && v !== '' && v !== undefined).length;
@@ -429,6 +469,36 @@ function App(){
   const [images, setImages] = React.useState([]);
   const [uploading, setUploading] = React.useState(false);
   const [uploadErr, setUploadErr] = React.useState(null);
+
+  // Adressenboek
+  const [contactPanelOpen, setContactPanelOpen] = React.useState(false);
+  const [allContacts, setAllContacts] = React.useState([]);
+  const [linkedContacts, setLinkedContacts] = React.useState([]);
+  const [contactSearch, setContactSearch] = React.useState('');
+  const [contactFilter, setContactFilter] = React.useState('');
+  const [showNewForm, setShowNewForm] = React.useState(false);
+  const [newContact, setNewContact] = React.useState({ naam:'', bedrijf:'', rol:'', email:'', telefoon:'' });
+  const CONTACT_FILTERS = ['architect','adviseur','aannemer','opdrachtgever','overheid','installateur','financieel'];
+  const openContactPanel = async () => {
+    setContactPanelOpen(true);
+    if (allContacts.length) return;
+    try { const { data } = await db.from('contacts').select('id,naam,bedrijf,rol,email,tags').order('naam'); setAllContacts(data||[]); } catch(e) {}
+  };
+  const toggleContact = (contact) => setLinkedContacts(prev =>
+    prev.find(c=>c.id===contact.id) ? prev.filter(c=>c.id!==contact.id) : [...prev,contact]
+  );
+  const saveNewContact = async () => {
+    if (!newContact.naam) return;
+    try {
+      const { data, error } = await db.from('contacts').insert([newContact]).select().single();
+      if (!error && data) { setAllContacts(p=>[...p,data]); setLinkedContacts(p=>[...p,data]); setNewContact({naam:'',bedrijf:'',rol:'',email:'',telefoon:''}); setShowNewForm(false); }
+    } catch(e) {}
+  };
+  const filteredContacts = allContacts.filter(c => {
+    const q = contactSearch.toLowerCase();
+    return (!q || c.naam?.toLowerCase().includes(q) || c.bedrijf?.toLowerCase().includes(q) || c.rol?.toLowerCase().includes(q))
+      && (!contactFilter || (c.tags||[]).includes(contactFilter) || c.rol?.toLowerCase().includes(contactFilter.toLowerCase()));
+  });
 
   React.useEffect(() => {
     if (!data.projectnummer) return;
@@ -509,6 +579,61 @@ function App(){
           </section>
         );
       })}
+
+      {/* SAMENWERKINGEN */}
+      <section className="section">
+        <h2 style={{fontSize:'11px',fontWeight:700,letterSpacing:'.22em',textTransform:'uppercase',margin:'0 0 18px',display:'flex',alignItems:'center',gap:'12px'}}>
+          Samenwerkingen
+          <span style={{marginLeft:'auto',fontSize:'10px',color:'#6b7480',fontWeight:600}}>{linkedContacts.length} gekoppeld</span>
+        </h2>
+        <div className="linked-contacts">
+          {linkedContacts.map(ct=>(
+            <div key={ct.id} className="linked-card">
+              <div className="vcard-avatar">{(ct.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase()}</div>
+              <div className="vcard-info">
+                <div className="vcard-naam">{ct.naam}</div>
+                <div className="vcard-sub">{[ct.rol,ct.bedrijf].filter(Boolean).join(' · ')}</div>
+              </div>
+              <button className="lc-remove" onClick={()=>toggleContact(ct)}>×</button>
+            </div>
+          ))}
+        </div>
+        <button onClick={openContactPanel} style={{marginTop:linkedContacts.length?'10px':'0',display:'flex',alignItems:'center',gap:'8px',background:'none',border:'1px dashed #c8d0dc',borderRadius:'999px',padding:'9px 18px',cursor:'pointer',fontSize:'12px',fontWeight:700,color:'#6b7480'}}>
+          + Voeg samenwerking toe
+        </button>
+      </section>
+
+      <div className={`contact-overlay ${contactPanelOpen?'open':''}`} onClick={()=>setContactPanelOpen(false)} />
+      <div className={`contact-panel ${contactPanelOpen?'open':''}`}>
+        <div className="cp-head"><h3>📇 Adressenboek</h3><button className="cp-close" onClick={()=>setContactPanelOpen(false)}>✕ Sluiten</button></div>
+        <div style={{padding:'14px 20px 0'}}><input className="cp-search" placeholder="Zoek naam, bedrijf of rol…" value={contactSearch} onChange={e=>setContactSearch(e.target.value)} /></div>
+        <div className="cp-filters">{CONTACT_FILTERS.map(f=>(<button key={f} className={`cp-filter ${contactFilter===f?'active':''}`} onClick={()=>setContactFilter(contactFilter===f?'':f)}>{f}</button>))}</div>
+        <div className="cp-cards">
+          {filteredContacts.map(contact=>{const isSel=linkedContacts.some(c=>c.id===contact.id);return(
+            <div key={contact.id} className={`vcard ${isSel?'selected':''}`} onClick={()=>toggleContact(contact)}>
+              <div className="vcard-avatar">{(contact.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase()}</div>
+              <div className="vcard-info"><div className="vcard-naam">{contact.naam}</div><div className="vcard-sub">{[contact.rol,contact.bedrijf].filter(Boolean).join(' · ')}</div></div>
+              {isSel&&<span className="vcard-check">✓</span>}
+            </div>);})}
+          {filteredContacts.length===0&&<div style={{color:'var(--muted)',fontSize:'13px',textAlign:'center',padding:'20px 0'}}>Geen contacten gevonden</div>}
+        </div>
+        {!showNewForm?(
+          <button className="cp-new-btn" onClick={()=>setShowNewForm(true)}>+ Nieuw visitekaartje aanmaken</button>
+        ):(
+          <div className="cp-new-form">
+            <div style={{fontWeight:700,fontSize:'13px',marginBottom:'4px'}}>Nieuw contact</div>
+            <input placeholder="Naam *" value={newContact.naam} onChange={e=>setNewContact(p=>({...p,naam:e.target.value}))} />
+            <input placeholder="Bedrijf" value={newContact.bedrijf} onChange={e=>setNewContact(p=>({...p,bedrijf:e.target.value}))} />
+            <input placeholder="Rol" value={newContact.rol} onChange={e=>setNewContact(p=>({...p,rol:e.target.value}))} />
+            <input placeholder="E-mail" value={newContact.email} onChange={e=>setNewContact(p=>({...p,email:e.target.value}))} />
+            <input placeholder="Telefoon" value={newContact.telefoon} onChange={e=>setNewContact(p=>({...p,telefoon:e.target.value}))} />
+            <div style={{display:'flex',gap:'8px',justifyContent:'flex-end'}}>
+              <button onClick={()=>setShowNewForm(false)} style={{background:'none',border:'1px solid var(--line)',borderRadius:'999px',padding:'8px 16px',cursor:'pointer',fontSize:'12px'}}>Annuleren</button>
+              <button className="cp-add-btn" onClick={saveNewContact}>Opslaan</button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* AFBEELDINGEN SECTIE */}
       <section className="section">
