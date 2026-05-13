@@ -511,7 +511,7 @@ function addProject(p){
     m.unbindTooltip();
     m.bindTooltip(`<div class="tt-name">${p.name}</div>`, {
       className: 'proj-tooltip-simple proj-tooltip-active', direction: 'top',
-      offset: [0, -8], permanent: true, sticky: false,
+      offset: [0, -46], permanent: true, sticky: false,
     });
     m.openTooltip();
     map.setView([p.lat, p.lng], Math.max(map.getZoom(), 11), { animate: true });
@@ -532,7 +532,7 @@ function addProject(p){
 
   // Tooltip (bij hover)
   m.bindTooltip(`<div class="tt-name">${p.name}</div>`, {
-    className: 'proj-tooltip-simple', direction: 'top', offset: [0, -8],
+    className: 'proj-tooltip-simple', direction: 'top', offset: [0, -46],
     permanent: false, sticky: false,
   });
 
@@ -644,7 +644,7 @@ function closeDetail() {
       activeMarker.setIcon(makeIconZoom(prevP.isUser, prevP.raw, false, map.getZoom()));
       activeMarker.unbindTooltip();
       activeMarker.bindTooltip(`<div class="tt-name">${prevP.name}</div>`, {
-        className: 'proj-tooltip-simple', direction: 'top', offset: [0,-8], permanent: false,
+        className: 'proj-tooltip-simple', direction: 'top', offset: [0,-46], permanent: false,
       });
     }
     activeMarker = null;
@@ -656,9 +656,16 @@ function closeDetail() {
 function renderList(filter = ''){
   const list = document.getElementById('proj-list');
   const q = filter.toLowerCase();
-  const visible = allProjects.filter(p =>
-    !q || p.name.toLowerCase().includes(q) || (p.city || '').toLowerCase().includes(q)
-  );
+  const visible = allProjects.filter(p => {
+    const matchQ = !q || p.name.toLowerCase().includes(q) || (p.city || '').toLowerCase().includes(q);
+    const type = (p.project_type || p.raw?.project_type || '').trim();
+    const fase = (p.raw?.fase || '').trim();
+    const stad = (p.city || p.raw?.stad || '').trim();
+    const matchType = activeFilters.type.size === 0 || activeFilters.type.has(type);
+    const matchFase = activeFilters.fase.size === 0 || activeFilters.fase.has(fase);
+    const matchStad = !activeFilters.stad || stad.toLowerCase().includes(activeFilters.stad.toLowerCase());
+    return matchQ && matchType && matchFase && matchStad;
+  });
   list.innerHTML = visible.map(p => {
     const td = getTypeData(p.raw || p);
     return `<div class="proj-card" data-name="${p.name}">
@@ -771,11 +778,15 @@ async function zoomToStad(stad) {
   const user = await loadUserProjects();
   if (user.length === 0){
     renderList();
+    buildTypeFilters();
+    buildStadFilter();
     return;
   }
   const resolved = await resolveUserCoords(user);
   resolved.forEach(addProject);
   renderList(document.getElementById('search').value);
+  buildTypeFilters();
+  buildStadFilter();
 
   // Vul type-legenda op basis van aanwezige types
   const usedTypes = new Set(allProjects.map(p => p.project_type || p.raw?.project_type || '').filter(Boolean));
