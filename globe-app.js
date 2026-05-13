@@ -21,7 +21,8 @@
     },
     C: {
       ocean: '#0d1f3c', atmo: '#4fc3f7', atmoAlt: 0.25,
-      tileThreshold: 0.35,
+      // Reliable high-res image via three-globe CDN
+      imageUrl: 'https://unpkg.com/three-globe@2/example/img/earth-blue-marble.jpg',
       pin: '#ffffff', pinGlow: 'rgba(255,255,255,0.5)',
       office: '#ff4081', officeGlow: '#ff80ab',
       labelStyle: true,
@@ -70,49 +71,81 @@
     return document.body.getAttribute('data-layout') || 'A';
   }
 
-  // ── Tile URL builders ─────────────────────────────────────
-  // globe.gl native tile support via tilesDataUrl — blazing fast, GPU handled
-  function osmTileUrl(x, y, z) {
-    const s = ['a','b','c'][(x + y + z) % 3];
-    return `https://${s}.tile.openstreetmap.org/${z}/${x}/${y}.png`;
+  // ── Street-level overlay (Leaflet on top of globe) ────────
+  // When zoomed in past threshold in layout C, show a Leaflet
+  // overlay that fades in over the globe for street-level detail.
+  let leafletMap = null;
+  let leafletOverlay = null;
+  let streetMode = false;
+
+  function initLeafletOverlay() {
+    if (leafletOverlay) return;
+
+    // Create overlay div on top of globe
+    leafletOverlay = document.createElement('div');
+    leafletOverlay.id = 'street-overlay';
+    leafletOverlay.style.cssText = `
+      position:absolute;inset:0;z-index:10;
+      opacity:0;pointer-events:none;
+      transition:opacity 600ms ease;
+      border-radius:0;
+    `;
+    container.appendChild(leafletOverlay);
+
+    // Init Leaflet inside overlay
+    leafletMap = L.map(leafletOverlay, {
+      zoomControl: false,
+      attributionControl: false,
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 20,
+      crossOrigin: true,
+    }).addTo(leafletMap);
+
+    // Dark overlay tiles for layout B feel
+    leafletMap.on('load', () => {});
   }
 
-  // CartoDB light tiles — styled, fast, no key needed
-  function cartoTileUrl(x, y, z) {
-    const s = ['a','b','c','d'][(x + y + z) % 4];
-    return `https://${s}.basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}.png`;
+  function showStreetMode(lat, lng, altitudeApprox) {
+    if (!window.L) return; // Leaflet not loaded
+
+    initLeafletOverlay();
+    streetMode = true;
+
+    // Convert altitude to zoom (rough: alt 0.02→z14, 0.005→z16, 0.001→z18)
+    const z = Math.round(14 - Math.log2(altitudeApprox / 0.02) * 1.5);
+    const zoom = Math.max(10, Math.min(19, z));
+
+    leafletMap.setView([lat, lng], zoom);
+    leafletMap.invalidateSize();
+
+    leafletOverlay.style.pointerEvents = 'auto';
+    requestAnimationFrame(() => { leafletOverlay.style.opacity = '1'; });
   }
 
-  // Satellite tiles via ESRI (no key, reliable CORS)
-  function esriSatTileUrl(x, y, z) {
-    return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
+  function hideStreetMode() {
+    if (!leafletOverlay) return;
+    streetMode = false;
+    leafletOverlay.style.opacity = '0';
+    leafletOverlay.style.pointerEvents = 'none';
   }
-
-  let tileMode = false; // is layout C currently in tile mode?
 
   // ── Apply globe theme ─────────────────────────────────────
   function applyGlobeTheme(layout) {
     const t = THEMES[layout];
-    tileMode = false;
+    hideStreetMode();
 
     if (layout === 'C') {
-      // Start with ESRI satellite texture (reliable, high-res, CORS OK)
       globe
-        .globeImageUrl(null)
-        .tilesDataUrl(null)
+        .globeImageUrl(t.imageUrl)
         .polygonsData([])
         .showAtmosphere(true)
         .atmosphereColor(t.atmo)
         .atmosphereAltitude(t.atmoAlt)
         .backgroundColor('rgba(0,0,0,0)');
-
-      // Use globe.gl's native tile rendering with ESRI satellite
-      // This is GPU-accelerated and loads only visible tiles
-      globe.tilesDataUrl(({ x, y, z }) => esriSatTileUrl(x, y, z));
-
-    } else if (layout === 'A' || layout === 'B') {
+    } else {
       globe
-        .tilesDataUrl(null)
         .globeImageUrl(null)
         .polygonsData(landFeatures)
         .polygonCapColor(() => t.land)
@@ -138,6 +171,23 @@
     }
 
     buildPins(filteredProjects, t);
+  }
+
+  // ── Zoom threshold watcher for layout C ───────────────────
+  const STREET_THRESHOLD = 0.04; // below this → show leaflet
+
+  function handleZoomChange() {
+    if (currentLayout() !== 'C') return;
+    const pov = globe.pointOfView();
+    if (pov.altitude < STREET_THRESHOLD && !streetMode) {
+      showStreetMode(pov.lat, pov.lng, pov.altitude);
+    } else if (pov.altitude >= STREET_THRESHOLD && streetMode) {
+      hideStreetMode();
+    } else if (streetMode && leafletMap) {
+      // Update leaflet view while in street mode
+      const z = Math.round(14 - Math.log2(pov.altitude / 0.02) * 1.5);
+      leafletMap.setView([pov.lat, pov.lng], Math.max(10, Math.min(19, z)), { animate: false });
+    }
   }
 
   // ── Initial setup ─────────────────────────────────────────
@@ -182,7 +232,9 @@
         e.stopPropagation();
         if (activePin) activePin.classList.remove('active');
         el.classList.add('active'); activePin = el;
-        globe.pointOfView({ lat: p.lat, lng: p.lng, altitude: 0.05 }, 1200);
+        // Fly in and trigger street mode
+        globe.pointOfView({ lat: p.lat, lng: p.lng, altitude: 0.02 }, 1400);
+        setTimeout(handleZoomChange, 1500);
       });
       return el;
     }
@@ -254,6 +306,7 @@
   resetBtn.addEventListener('click', () => {
     if (activePin) { activePin.classList.remove('active'); activePin = null; }
     tooltip.classList.remove('show');
+    hideStreetMode();
     globe.pointOfView({ ...NL, altitude: 1.2 }, 900);
     ['search-sidebar','search-hud'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     filteredProjects = projects;
@@ -263,7 +316,9 @@
   // ── Zoom ──────────────────────────────────────────────────
   function getAlt() { return globe.pointOfView().altitude; }
   function setAlt(a, ms) {
-    globe.pointOfView({ ...globe.pointOfView(), altitude: Math.max(0.0003, Math.min(4, a)) }, ms || 300);
+    const clamped = Math.max(0.0003, Math.min(4, a));
+    globe.pointOfView({ ...globe.pointOfView(), altitude: clamped }, ms || 300);
+    setTimeout(handleZoomChange, (ms || 300) + 50);
   }
   zoomIn.addEventListener('click',  () => setAlt(getAlt() * 0.5));
   zoomOut.addEventListener('click', () => setAlt(getAlt() * 2.0));
@@ -273,6 +328,10 @@
     stopRotate();
     setAlt(getAlt() * (e.deltaY > 0 ? 1.12 : 0.88), 60);
   }, { passive: false });
+
+  globe.onZoom(({ altitude }) => {
+    if (currentLayout() === 'C') handleZoomChange();
+  });
 
   // ── Auto-rotate ───────────────────────────────────────────
   let autoRotate = true, rotateTimer = null;
