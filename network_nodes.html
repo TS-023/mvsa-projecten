@@ -406,8 +406,14 @@
     // Zoom & pan state
     let zoom = 1.4; // start ingezoomd op hub-niveau
     let viewMode = '2d';
-    let rotX = 0.52;
-    let targetRotX = 0.52;
+    // 3D sphere rotation state
+    let rotY = 0;          // auto-rotatie om Y-as
+    let rotX3 = 0.3;       // tilt om X-as
+    let isDragging3D = false;
+    let drag3DStart = { mx:0, my:0, rx:0, ry:0 };
+    let autoRotate = true;
+    // Sferische node posities (alleen in 3D)
+    let spherePositions = []; // { theta, phi } per node index
     const MIN_ZOOM = 0.15;
     const MAX_ZOOM = 3.0;
     let targetZoom = 1.4;
@@ -510,6 +516,29 @@
       }
     }
     buildGraph();
+    initSpherePositions();
+
+    function initSpherePositions() {
+      spherePositions = [];
+      const projN = nodes.filter(n => n.type === 'project').length;
+      let projIdx = 0, personIdx = 0;
+      for (let i = 1; i < nodes.length; i++) {
+        const n = nodes[i];
+        if (n.type === 'project') {
+          // Gouden spiraal verdeling op bol
+          const phi = Math.acos(1 - 2 * (projIdx + 0.5) / Math.max(projN, 1));
+          const theta = Math.PI * (1 + Math.sqrt(5)) * projIdx;
+          spherePositions[i] = { theta, phi };
+          projIdx++;
+        } else {
+          // Personen iets verder naar buiten verspreid
+          const phi = Math.acos(1 - 2 * (personIdx + 0.5) / Math.max(nodes.length - projN - 1, 1));
+          const theta = Math.PI * (1 + Math.sqrt(5)) * personIdx * 1.3;
+          spherePositions[i] = { theta: theta + 0.5, phi: phi * 0.85 + 0.1 };
+          personIdx++;
+        }
+      }
+    }
 
     // Helpers: screen → world
     function screenToWorld(sx, sy) {
@@ -542,6 +571,12 @@
         canvas.style.cursor = 'grabbing';
         return;
       }
+      if (isDragging3D) {
+        rotX3 = drag3DStart.rx + (e.clientY - drag3DStart.my) * 0.008;
+        rotY = drag3DStart.ry + (e.clientX - drag3DStart.mx) * 0.008;
+        rotX3 = Math.max(-1.2, Math.min(1.2, rotX3));
+        return;
+      }
       if (isPanning) {
         const dx = e.clientX - panStart.mx;
         const dy = e.clientY - panStart.my;
@@ -558,9 +593,11 @@
     window.addEventListener('mouseleave', () => {
       mouse.active = false; mouse.hover = -1;
       isPanning = false; dragNodeIdx = -1;
+      isDragging3D = false;
     });
 
     window.addEventListener('mouseup', () => {
+      if (isDragging3D) { isDragging3D = false; canvas.style.cursor = 'grab'; return; }
       if (dragNodeIdx >= 0) {
         nodes[dragNodeIdx].pinned = true;
         nodes[dragNodeIdx].vx = 0;
@@ -570,6 +607,20 @@
       isPanning = false;
       canvas.style.cursor = 'default';
     });
+
+    // 3D drag rotation
+    canvas.addEventListener('mousedown', (e) => {
+      if (viewMode === '3d') {
+        isDragging3D = true;
+        autoRotate = false;
+        drag3DStart = { mx: e.clientX, my: e.clientY, rx: rotX3, ry: rotY };
+        canvas.style.cursor = 'grabbing';
+        return;
+      }
+    });
+    // Overwrite with regular mousedown below
+    const _origMousedown = canvas.onmousedown;
+    canvas.addEventListener('mousedown_3d_placeholder', () => {});
 
     canvas.addEventListener('mousedown', (e) => {
       const w = screenToWorld(e.clientX, e.clientY);
@@ -931,9 +982,12 @@
       fpsSmoothed = fpsSmoothed * 0.9 + (1000 / Math.max(1, dt)) * 0.1;
       const sp = CONFIG.speed;
 
-      // Vloeiende zoom-animatie
+      // Vloeiande zoom-animatie
       zoom += (targetZoom - zoom) * 0.1;
-      rotX += (targetRotX - rotX) * 0.08;
+      // 3D auto-rotatie
+      if (viewMode === '3d' && autoRotate) {
+        rotY += 0.002;
+      }
 
       updateHover();
 
@@ -1091,10 +1145,39 @@
         if (viewMode === '3d') return 0.35 + 0.65 * ((z + 1) / 2);
         return 0.22 + 0.78 * ((z + 1) / 2);
       }
+      // Sferische → scherm projectie
+      const SPHERE_R = Math.min(W, H) * 0.32; // straal van de 3D ruimte
+
+      function sphere3DToScreen(theta, phi) {
+        // Roteer om X en Y as
+        const cosX = Math.cos(rotX3), sinX = Math.sin(rotX3);
+        const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+        // Sferische → cartesisch
+        let x = Math.sin(phi) * Math.cos(theta);
+        let y = Math.cos(phi);
+        let z = Math.sin(phi) * Math.sin(theta);
+        // Roteer Y
+        const x1 = x * cosY - z * sinY;
+        const z1 = x * sinY + z * cosY;
+        // Roteer X
+        const y2 = y * cosX - z1 * sinX;
+        const z2 = y * sinX + z1 * cosX;
+        // Perspectief projectie
+        const fov = 2.2;
+        const scale = fov / (fov + z2);
+        const cx = W / 2 + panX, cy = H / 2 + panY;
+        return {
+          sx: cx + x1 * SPHERE_R * scale * zoom,
+          sy: cy + y2 * SPHERE_R * scale * zoom,
+          sz: z2,   // diepte: -1 = achter, +1 = voor
+          scale,
+        };
+      }
+
       function project3D(wx, wy, wz) {
         if (viewMode === '2d') return { sx: wx, sy: wy };
-        const lift = (wz || 0) * 90;
-        return { sx: wx, sy: wy - lift * Math.cos(rotX) };
+        // In 3D: gebruik de sferische positie als die beschikbaar is
+        return { sx: wx, sy: wy }; // fallback
       }
 
       // Sorteer indices van achter naar voor
@@ -1113,8 +1196,9 @@
           const proj = nodes[pidx];
           const isLit = hasSel && hl.has(pidx);
           const alpha = isLit ? 0.22 : (hasSel ? 0.04 : 0.12);
-          const { sx: px3, sy: py3 } = project3D(proj.x, proj.y, proj.z||0);
-          const { sx: hx3, sy: hy3 } = project3D(h.x, h.y, 0.5);
+          let px3 = proj.x, py3 = proj.y;
+          if (viewMode === '3d' && sphere3DScreenPos[pidx]) { px3 = sphere3DScreenPos[pidx].sx; py3 = sphere3DScreenPos[pidx].sy; }
+          const hx3 = W/2+panX, hy3 = H/2+panY;
           const ddx=px3-hx3, ddy=py3-hy3, d=Math.hypot(ddx,ddy)||1;
           const sx=hx3+(ddx/d)*HUB_R, sy=hy3+(ddy/d)*HUB_R;
           const gr=ctx.createLinearGradient(sx,sy,px3,py3);
@@ -1178,8 +1262,13 @@
         const [a, b] = edges[ei];
         if (a === HUB_IDX || b === HUB_IDX) continue;
         const A = nodes[a], B = nodes[b];
-        const { sx: ax3, sy: ay3 } = project3D(A.x, A.y, A.z||0);
-        const { sx: bx3, sy: by3 } = project3D(B.x, B.y, B.z||0);
+        let ax3 = A.x, ay3 = A.y, bx3 = B.x, by3 = B.y;
+        if (viewMode === '3d') {
+          const spa = sphere3DScreenPos[a];
+          const spb = sphere3DScreenPos[b];
+          if (spa) { ax3 = spa.sx; ay3 = spa.sy; }
+          if (spb) { bx3 = spb.sx; by3 = spb.sy; }
+        }
         const segs = segmentsAroundHub(ax3, ay3, bx3, by3);
         if (!segs.length) continue;
         const isLit = hasSel && (hl.has(a) && hl.has(b));
@@ -1249,10 +1338,33 @@
         pulses = pulses.filter(p => p.t < 1);
       } else { pulses.length = 0; }
 
+      // In 3D: bereken schermposities op basis van sferische coords
+      let sphere3DScreenPos = {};
+      if (viewMode === '3d') {
+        for (let i = 1; i < nodes.length; i++) {
+          if (i === HUB_IDX) continue;
+          const sp = spherePositions[i];
+          if (!sp) continue;
+          sphere3DScreenPos[i] = sphere3DToScreen(sp.theta, sp.phi);
+        }
+        // Sorteer op sz (diepte) in 3D
+        sortedIdx.sort((a, b) => {
+          const sa = sphere3DScreenPos[a]?.sz ?? 0;
+          const sb = sphere3DScreenPos[b]?.sz ?? 0;
+          return sa - sb;
+        });
+      }
+
       // Nodes van achter naar voor (hub overgeslagen)
       for (const i of sortedIdx) {
         if (i === HUB_IDX) continue;
         const n = nodes[i];
+        // In 3D: gebruik sferische positie
+        let _ox3 = n.x, _oy3 = n.y;
+        if (viewMode === '3d' && sphere3DScreenPos[i]) {
+          const sp = sphere3DScreenPos[i];
+          n.x = sp.sx; n.y = sp.sy;
+        }
         const lit = !hasSel || hl.has(i);
         const sc = zScale(n.z);
         const fog = zAlpha(n.z);
@@ -1394,26 +1506,71 @@
         }
       }
 
-      // Hub cirkel — altijd bovenop
+      // Hub — cirkel in 2D, sphere in 3D
       { const h=nodes[HUB_IDX]; const t=performance.now()/1000;
-        const pulse=1+Math.sin(t*0.8)*0.015; const r=HUB_R*pulse;
-        const og=ctx.createRadialGradient(h.x,h.y,r*0.7,h.x,h.y,r*1.7);
-        og.addColorStop(0,'rgba(255,255,255,0.07)'); og.addColorStop(1,'rgba(255,255,255,0)');
-        ctx.fillStyle=og; ctx.beginPath(); ctx.arc(h.x,h.y,r*1.7,0,Math.PI*2); ctx.fill();
-        ctx.fillStyle='rgba(7,8,11,0.88)'; ctx.beginPath(); ctx.arc(h.x,h.y,r,0,Math.PI*2); ctx.fill();
-        ctx.strokeStyle='rgba(232,238,247,0.9)'; ctx.lineWidth=1.5;
-        ctx.beginPath(); ctx.arc(h.x,h.y,r,0,Math.PI*2); ctx.stroke();
-        ctx.save(); ctx.strokeStyle='rgba(232,238,247,0.16)'; ctx.lineWidth=0.7;
-        ctx.setLineDash([4,8]); ctx.lineDashOffset=-t*12;
-        ctx.beginPath(); ctx.arc(h.x,h.y,r+11,0,Math.PI*2); ctx.stroke();
-        ctx.setLineDash([]); ctx.restore();
-        ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillStyle='rgba(232,238,247,0.92)';
-        ctx.font="600 18px 'Space Grotesk', system-ui, sans-serif";
-        ctx.fillText('MVSA',h.x,h.y-7);
-        ctx.fillStyle='rgba(216,222,233,0.45)';
-        ctx.font="400 9px 'JetBrains Mono', monospace";
-        ctx.fillText('ARCHITECTS',h.x,h.y+9);
+        if (viewMode === '3d') {
+          // ── 3D Sphere ──────────────────────────────────────────
+          const cx = W/2 + panX, cy = H/2 + panY;
+          const sr = HUB_R * 1.1 * zoom;
+          // Atmosferische gloed
+          const atmo = ctx.createRadialGradient(cx, cy, sr*0.5, cx, cy, sr*2.2);
+          atmo.addColorStop(0,'rgba(120,160,220,0.12)');
+          atmo.addColorStop(1,'rgba(120,160,220,0)');
+          ctx.fillStyle=atmo; ctx.beginPath(); ctx.arc(cx,cy,sr*2.2,0,Math.PI*2); ctx.fill();
+          // Bol gradient — licht komt van linksboven
+          const lx = cx - sr*0.35, ly = cy - sr*0.35;
+          const sphere = ctx.createRadialGradient(lx, ly, 0, cx, cy, sr);
+          sphere.addColorStop(0,'rgba(220,230,245,0.95)');  // licht
+          sphere.addColorStop(0.35,'rgba(60,80,110,0.92)'); // midtoon
+          sphere.addColorStop(0.75,'rgba(15,20,30,0.97)');  // donker
+          sphere.addColorStop(1,'rgba(5,8,15,1)');           // rand
+          ctx.fillStyle=sphere;
+          ctx.beginPath(); ctx.arc(cx,cy,sr,0,Math.PI*2); ctx.fill();
+          // Speculaire highlight
+          const spec = ctx.createRadialGradient(lx, ly, 0, lx, ly, sr*0.55);
+          spec.addColorStop(0,'rgba(255,255,255,0.45)');
+          spec.addColorStop(0.4,'rgba(255,255,255,0.08)');
+          spec.addColorStop(1,'rgba(255,255,255,0)');
+          ctx.fillStyle=spec;
+          ctx.beginPath(); ctx.arc(cx,cy,sr,0,Math.PI*2); ctx.fill();
+          // Rand gloed
+          ctx.strokeStyle='rgba(160,190,230,0.35)'; ctx.lineWidth=1.5*zoom;
+          ctx.beginPath(); ctx.arc(cx,cy,sr,0,Math.PI*2); ctx.stroke();
+          // Equator ring (roterende stippellijn)
+          ctx.save();
+          ctx.strokeStyle='rgba(160,200,255,0.18)'; ctx.lineWidth=0.8*zoom;
+          ctx.setLineDash([3,6]); ctx.lineDashOffset=-t*8;
+          ctx.beginPath(); ctx.ellipse(cx, cy, sr, sr*Math.abs(Math.sin(rotX3+0.3)), 0, 0, Math.PI*2);
+          ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+          // MVSA tekst
+          ctx.textAlign='center'; ctx.textBaseline='middle';
+          ctx.fillStyle='rgba(232,238,247,0.88)';
+          ctx.font=`700 ${Math.round(16*zoom)}px 'Space Grotesk', system-ui, sans-serif`;
+          ctx.fillText('MVSA',cx,cy-6*zoom);
+          ctx.fillStyle='rgba(160,190,230,0.5)';
+          ctx.font=`400 ${Math.round(8*zoom)}px 'JetBrains Mono', monospace`;
+          ctx.fillText('ARCHITECTS',cx,cy+9*zoom);
+        } else {
+          // ── 2D cirkel (origineel) ───────────────────────────────
+          const pulse=1+Math.sin(t*0.8)*0.015; const r=HUB_R*pulse;
+          const og=ctx.createRadialGradient(h.x,h.y,r*0.7,h.x,h.y,r*1.7);
+          og.addColorStop(0,'rgba(255,255,255,0.07)'); og.addColorStop(1,'rgba(255,255,255,0)');
+          ctx.fillStyle=og; ctx.beginPath(); ctx.arc(h.x,h.y,r*1.7,0,Math.PI*2); ctx.fill();
+          ctx.fillStyle='rgba(7,8,11,0.88)'; ctx.beginPath(); ctx.arc(h.x,h.y,r,0,Math.PI*2); ctx.fill();
+          ctx.strokeStyle='rgba(232,238,247,0.9)'; ctx.lineWidth=1.5;
+          ctx.beginPath(); ctx.arc(h.x,h.y,r,0,Math.PI*2); ctx.stroke();
+          ctx.save(); ctx.strokeStyle='rgba(232,238,247,0.16)'; ctx.lineWidth=0.7;
+          ctx.setLineDash([4,8]); ctx.lineDashOffset=-t*12;
+          ctx.beginPath(); ctx.arc(h.x,h.y,r+11,0,Math.PI*2); ctx.stroke();
+          ctx.setLineDash([]); ctx.restore();
+          ctx.textAlign='center'; ctx.textBaseline='middle';
+          ctx.fillStyle='rgba(232,238,247,0.92)';
+          ctx.font="600 18px 'Space Grotesk', system-ui, sans-serif";
+          ctx.fillText('MVSA',h.x,h.y-7);
+          ctx.fillStyle='rgba(216,222,233,0.45)';
+          ctx.font="400 9px 'JetBrains Mono', monospace";
+          ctx.fillText('ARCHITECTS',h.x,h.y+9);
+        }
       }
 
       if (CONFIG.showLabels) {
@@ -1548,12 +1705,13 @@
 
     // ── View mode toggle ─────────────────────────────────────────────────
     document.getElementById('btn-2d').addEventListener('click', () => {
-      viewMode = '2d';
+      viewMode = '2d'; autoRotate = false;
       document.getElementById('btn-2d').classList.add('active');
       document.getElementById('btn-3d').classList.remove('active');
     });
     document.getElementById('btn-3d').addEventListener('click', () => {
-      viewMode = '3d';
+      viewMode = '3d'; autoRotate = true;
+      initSpherePositions();
       document.getElementById('btn-3d').classList.add('active');
       document.getElementById('btn-2d').classList.remove('active');
     });
