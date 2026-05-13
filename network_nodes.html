@@ -235,6 +235,11 @@
     <span class="swatch"><span class="dot"></span>persoon</span>
   </div>
 
+  <div class="view-mode-btn">
+    <button class="vmbtn active" id="btn-2d">2D</button>
+    <button class="vmbtn" id="btn-3d">3D</button>
+  </div>
+
   <div class="readout">
     <div>projects<b id="r-projects">—</b></div>
     <div>people<b id="r-people">—</b></div>
@@ -382,6 +387,9 @@
 
     // Zoom & pan state
     let zoom = 1.4; // start ingezoomd op hub-niveau
+    let viewMode = '2d';
+    let rotX = 0.52;
+    let targetRotX = 0.52;
     const MIN_ZOOM = 0.15;
     const MAX_ZOOM = 3.0;
     let targetZoom = 1.4;
@@ -896,6 +904,7 @@
 
       // Vloeiende zoom-animatie
       zoom += (targetZoom - zoom) * 0.1;
+      rotX += (targetRotX - rotX) * 0.08;
 
       updateHover();
 
@@ -1045,8 +1054,19 @@
       const hoverPersonColor = hoverIsPerson ? colorFor(nodes[mouse.hover]) : null;
 
       // 2.5D helpers — z loopt van -1 (ver weg) tot +1 (dichtbij)
-      function zScale(z) { return 0.52 + 0.48 * ((z + 1) / 2); }
-      function zAlpha(z) { return 0.22 + 0.78 * ((z + 1) / 2); }
+      function zScale(z) {
+        if (viewMode === '3d') return 0.6 + 0.5 * ((z + 1) / 2);
+        return 0.52 + 0.48 * ((z + 1) / 2);
+      }
+      function zAlpha(z) {
+        if (viewMode === '3d') return 0.35 + 0.65 * ((z + 1) / 2);
+        return 0.22 + 0.78 * ((z + 1) / 2);
+      }
+      function project3D(wx, wy, wz) {
+        if (viewMode === '2d') return { sx: wx, sy: wy };
+        const lift = (wz || 0) * 90;
+        return { sx: wx, sy: wy - lift * Math.cos(rotX) };
+      }
 
       // Sorteer indices van achter naar voor
       const sortedIdx = Array.from({length: nodes.length}, (_, i) => i)
@@ -1064,9 +1084,11 @@
           const proj = nodes[pidx];
           const isLit = hasSel && hl.has(pidx);
           const alpha = isLit ? 0.22 : (hasSel ? 0.04 : 0.12);
-          const dx=proj.x-h.x, dy=proj.y-h.y, d=Math.hypot(dx,dy)||1;
-          const sx=h.x+(dx/d)*HUB_R, sy=h.y+(dy/d)*HUB_R;
-          const gr=ctx.createLinearGradient(sx,sy,proj.x,proj.y);
+          const { sx: px3, sy: py3 } = project3D(proj.x, proj.y, proj.z||0);
+          const { sx: hx3, sy: hy3 } = project3D(h.x, h.y, 0.5);
+          const ddx=px3-hx3, ddy=py3-hy3, d=Math.hypot(ddx,ddy)||1;
+          const sx=hx3+(ddx/d)*HUB_R, sy=hy3+(ddy/d)*HUB_R;
+          const gr=ctx.createLinearGradient(sx,sy,px3,py3);
           gr.addColorStop(0,`rgba(216,222,233,${alpha})`);
           gr.addColorStop(1,'rgba(216,222,233,0)');
           ctx.strokeStyle=gr; ctx.lineWidth=isLit?1.2:0.5;
@@ -1127,7 +1149,9 @@
         const [a, b] = edges[ei];
         if (a === HUB_IDX || b === HUB_IDX) continue;
         const A = nodes[a], B = nodes[b];
-        const segs = segmentsAroundHub(A.x, A.y, B.x, B.y);
+        const { sx: ax3, sy: ay3 } = project3D(A.x, A.y, A.z||0);
+        const { sx: bx3, sy: by3 } = project3D(B.x, B.y, B.z||0);
+        const segs = segmentsAroundHub(ax3, ay3, bx3, by3);
         if (!segs.length) continue;
         const isLit = hasSel && (hl.has(a) && hl.has(b));
         // Persoon-hover: lijn in kleur van de persoon
@@ -1146,7 +1170,7 @@
         }
         ctx.lineWidth = (involvesPerson ? 1.8 : isLit ? 1.5 : 0.7) * zScale(avgZ);
         for (const [sx, sy, ex, ey] of segs) {
-          const grad = ctx.createLinearGradient(A.x, A.y, B.x, B.y);
+          const grad = ctx.createLinearGradient(ax3, ay3, bx3, by3);
           grad.addColorStop(0, rgba(lineColor1, lineAlpha));
           grad.addColorStop(1, rgba(lineColor2, lineAlpha));
           ctx.strokeStyle = grad;
@@ -1208,6 +1232,9 @@
         const breathe = 0.85 + Math.sin(n.phase) * 0.22;
         const isProj = n.type === 'project';
         const baseR = n.r * sc;
+        const { sx: _p3x, sy: _p3y } = project3D(n.x, n.y, n.z||0);
+        n._ox = n.x; n._oy = n.y;
+        if (viewMode === '3d') { n.x = _p3x; n.y = _p3y; }
 
         if (CONFIG.glow) {
           const glowR = baseR * (isProj ? 5 : 4) * (lit ? 1 : 0.5);
@@ -1403,6 +1430,12 @@
         }
       }
 
+      // Restore node positions after 3D draw
+      if (viewMode === '3d') {
+        for (const n of nodes) {
+          if (typeof n._ox === 'number') { n.x = n._ox; n.y = n._oy; }
+        }
+      }
       ctx.restore(); // end zoom transform
 
       requestAnimationFrame(step);
@@ -1482,6 +1515,18 @@
       renderResults('');
       searchClear.style.display = 'none';
       searchInput.focus();
+    });
+
+    // ── View mode toggle ─────────────────────────────────────────────────
+    document.getElementById('btn-2d').addEventListener('click', () => {
+      viewMode = '2d';
+      document.getElementById('btn-2d').classList.add('active');
+      document.getElementById('btn-3d').classList.remove('active');
+    });
+    document.getElementById('btn-3d').addEventListener('click', () => {
+      viewMode = '3d';
+      document.getElementById('btn-3d').classList.add('active');
+      document.getElementById('btn-2d').classList.remove('active');
     });
 
     // ── Filter panel ────────────────────────────────────────────────────
