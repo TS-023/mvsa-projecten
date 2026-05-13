@@ -645,6 +645,71 @@ body[data-layout="C"] .hud-search::placeholder { color: rgba(0,200,255,0.3); }
   transition: color 150ms, background 150ms;
 }
 .dot-green { width: 8px; height: 8px; border-radius: 50%; }
+/* ── Layout C: coordinate label pins ── */
+.pin-label {
+  position: relative;
+  cursor: pointer;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transform: translate(-50%, -100%);
+  padding-bottom: 14px;
+  user-select: none;
+}
+.pin-label-text {
+  font: 700 11px/1.2 Inter, sans-serif;
+  letter-spacing: 0.12em;
+  color: #ffffff;
+  background: rgba(10, 18, 35, 0.72);
+  border: 1px solid rgba(255,255,255,0.22);
+  padding: 4px 8px 3px;
+  border-radius: 2px;
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: background 150ms, border-color 150ms;
+}
+.pin-label-coord {
+  font: 400 8.5px/1 'Share Tech Mono', monospace;
+  letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.4);
+  margin-top: 2px;
+  padding-left: 2px;
+  white-space: nowrap;
+}
+.pin-label::after {
+  content: '';
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  height: 10px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.3), rgba(255,255,255,0.9));
+}
+.pin-label-dot {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 6px rgba(255,255,255,0.9), 0 0 14px rgba(255,255,255,0.4);
+}
+.pin-label:hover .pin-label-text {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.55);
+}
+.pin-label.active .pin-label-text {
+  background: rgba(255,255,255,0.18);
+  border-color: #ffffff;
+}
+.pin-label.active .pin-label-dot {
+  background: #00e5ff;
+  box-shadow: 0 0 8px #00e5ff, 0 0 18px #00c8ff;
+}
 </style>
 </head>
 <body data-layout="A">

@@ -35,13 +35,16 @@
       land:       null,
       border:     'rgba(0,0,0,0)',
       ocean:      '#0d1f3c',
-      atmo:       '#00c8ff',
-      atmoAlt:    0.22,
-      imageUrl:   'https://unpkg.com/three-globe@2/example/img/earth-blue-marble.jpg',
-      pin:        '#00e5ff',
-      pinGlow:    '#00b0d8',
+      atmo:       '#4fc3f7',
+      atmoAlt:    0.25,
+      // High-res NASA Blue Marble (8192px) via NASA servers
+      imageUrl:   'https://eoimages.gsfc.nasa.gov/images/imagerecords/74000/74117/world.200408.3x5400x2700.jpg',
+      imageUrlFallback: 'https://unpkg.com/three-globe@2/example/img/earth-blue-marble.jpg',
+      pin:        '#ffffff',
+      pinGlow:    'rgba(255,255,255,0.5)',
       office:     '#ff4081',
       officeGlow: '#ff80ab',
+      labelStyle: true,   // use coordinate label pins instead of dots
     },
   };
 
@@ -101,7 +104,7 @@
     const t = THEMES[layout];
 
     if (t.imageUrl) {
-      // Satellite texture mode
+      // Satellite texture mode — try high-res, fallback on error
       globe
         .globeImageUrl(t.imageUrl)
         .polygonsData([])
@@ -109,6 +112,23 @@
         .atmosphereColor(t.atmo)
         .atmosphereAltitude(t.atmoAlt)
         .backgroundColor('rgba(0,0,0,0)');
+
+      // Fallback if NASA image fails to load
+      if (t.imageUrlFallback) {
+        setTimeout(() => {
+          try {
+            const renderer = globe.renderer();
+            // Check if texture loaded by looking at the globe material
+            globe.scene().traverse(obj => {
+              if (obj.isMesh && obj.geometry?.type === 'SphereGeometry' && obj.material?.map) {
+                if (!obj.material.map.image || obj.material.map.image.width === 0) {
+                  globe.globeImageUrl(t.imageUrlFallback);
+                }
+              }
+            });
+          } catch(e) {}
+        }, 3000);
+      }
     } else {
       // Polygon mode
       globe
@@ -171,6 +191,43 @@
 
   function makePinEl(p, theme) {
     const el = document.createElement('div');
+
+    if (theme.labelStyle && !p.isOffice) {
+      // ── Layout C: coordinate label tag (like reference image) ──
+      el.className = 'pin-label';
+      const lat  = p.lat.toFixed(2);
+      const lng  = p.lng.toFixed(2);
+      const latS = p.lat >= 0 ? 'N' : 'S';
+      const lngS = p.lng >= 0 ? 'E' : 'W';
+      el.innerHTML = `
+        <div class="pin-label-text">${p.city}</div>
+        <div class="pin-label-coord">E ${Math.abs(lng).toFixed(2)} N ${Math.abs(lat).toFixed(2)}</div>
+        <div class="pin-label-dot"></div>
+      `;
+
+      el.addEventListener('mouseenter', (e) => {
+        tooltip.innerHTML = `
+          <div class="ttl">${p.name}</div>
+          <div class="meta">${p.city} · ${p.country} · ${p.year}</div>
+          <div class="meta" style="margin-top:4px;opacity:.8">${p.type}</div>
+        `;
+        positionTooltip(e);
+        tooltip.classList.add('show');
+      });
+      el.addEventListener('mousemove', positionTooltip);
+      el.addEventListener('mouseleave', () => tooltip.classList.remove('show'));
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (activePin) activePin.classList.remove('active');
+        el.classList.add('active');
+        activePin = el;
+        globe.pointOfView({ lat: p.lat, lng: p.lng, altitude: 0.4 }, 800);
+      });
+
+      return el;
+    }
+
+    // ── Layout A/B: glow dot pin ──
     el.className = 'pin' + (p.isOffice ? ' office' : '');
     const pinColor  = p.isOffice ? theme.office    : theme.pin;
     const glowColor = p.isOffice ? theme.officeGlow: theme.pinGlow;
