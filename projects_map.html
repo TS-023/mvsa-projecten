@@ -32,7 +32,7 @@
 
   /* Sidebar */
   .side{
-    background: var(--bg); padding: 88px 20px 20px; overflow-y: auto;
+    background: var(--bg); padding: 62px 20px 20px; overflow-y: auto;
     border-right: 1px solid rgba(17,20,24,.06);
   }
   .side h1{ font-size: 28px; font-weight: 800; letter-spacing: -.025em; margin: 0 0 4px; }
@@ -104,12 +104,16 @@
   }
   .detail-open:hover{ background: var(--accent); transform: translateY(-1px); }
   .detail-back{
-    display: flex; align-items: center; gap: 6px;
-    font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600;
-    color: var(--muted); cursor: pointer; background: none; border: none;
-    font-family: inherit; padding: 6px 0; transition: color .15s;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700;
+    color: var(--ink); cursor: pointer;
+    background: #fff; border: 1.5px solid var(--line);
+    border-radius: 999px; font-family: inherit;
+    padding: 8px 16px; margin-bottom: 4px;
+    transition: background .12s, border-color .12s;
+    width: 100%; justify-content: center;
   }
-  .detail-back:hover{ color: var(--ink); }
+  .detail-back:hover{ background: var(--bg); border-color: var(--ink); }
   .proj-card{
     background: var(--card); border-radius: 12px; padding: 12px 14px; cursor: pointer;
     box-shadow: var(--shadow);
@@ -152,6 +156,10 @@
     box-shadow: 0 4px 14px rgba(0,0,0,.28);
     display: flex; align-items: center; justify-content: center;
     transition: transform .15s, box-shadow .15s;
+  }
+  .leaflet-div-icon, .custom-div-icon {
+    background: transparent !important;
+    border: none !important;
   }
   .marker-pin:hover{
     transform: rotate(-45deg) scale(1.12);
@@ -386,13 +394,17 @@ function getIcon(project) {
 
 /* ── makeIcon: maakt een Leaflet DivIcon met emoji en kleur per type ── */
 function makeIcon(isUser, project){
-  const { icon, color } = isUser ? { icon: '★', color: 'var(--ink)' } : getTypeData(project);
-  // Kleur iets donkerder voor de rand
+  const { icon, color } = isUser ? { icon: '★', color: '#111418' } : getTypeData(project);
   return L.divIcon({
-    className: '',
-    html: `<div class="marker-pin" style="background:${color};">
-      <span class="pin-icon">${icon}</span>
-    </div>`,
+    className: 'custom-div-icon',
+    html: `<div style="
+      width:36px;height:36px;border-radius:50% 50% 50% 0;
+      background:${color};
+      transform:rotate(-45deg);
+      border:2.5px solid rgba(255,255,255,0.9);
+      box-shadow:0 4px 14px rgba(0,0,0,.28);
+      display:flex;align-items:center;justify-content:center;
+    "><span style="transform:rotate(45deg);font-size:15px;line-height:1;">${icon}</span></div>`,
     iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -40],
   });
 }
@@ -409,6 +421,13 @@ function addProject(p){
     closeButton: false, className: 'minimal-popup', maxWidth: 200,
   });
   m.on('click', () => showDetail(p));
+  m.on('mouseover', () => {
+    showDetail(p); m.openPopup();
+    // Highlight kaart in lijst
+    document.querySelectorAll('.proj-card').forEach(c => c.classList.remove('active'));
+    const card = document.querySelector(`.proj-card[data-name="${p.name}"]`);
+    if (card) { card.classList.add('active'); card.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+  });
 
   // Tooltip (bij hover)
   const makeTooltip = (imgUrl) => {
