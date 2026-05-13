@@ -211,8 +211,7 @@
     <h1>Projecten op kaart</h1>
     <div class="sub">Alle projecten met een ingevuld adres.</div>
     <input id="search" class="search-input" type="search" placeholder="Zoek project of stad…" />
-    <div class="legend">
-        <span class="item"><span class="dot"></span>Projecten</span>
+    <div class="legend" id="type-legend" style="display:flex;flex-direction:column;gap:5px;margin:10px 0;">
     </div>
     <div id="proj-list" class="proj-list"></div>
     <div id="detail-panel" class="detail-panel">
@@ -331,38 +330,53 @@ const markers = {};
    KAART — projects_map.html
    ═══════════════════════════════════════ */
 
-/* ── FUNC_ICONS: emoji per projecttype voor de kaartpinnen ── */
-const FUNC_ICONS = {
-  'Architectuur':               '🏛',
-  'Stedenbouw':                 '🗺',
-  'Interieur':                  '🛋',
-  'Renovatie':                  '🔧',
-  'Onderzoek':                  '🔬',
-  'Mixed Use':                  '🏙',
-  'Residential':                '🏠',
-  'Offices':                    '🏢',
-  'Education':                  '🎓',
-  'Public & Healthcare':        '🏥',
-  'Retail & Hospitality':       '🛍',
-  'Transport & Infrastructure': '🚉',
-  'Master planning':            '📐',
-  'default':                    '📍',
+/* ── TYPE_MAP: icoon + kleur per project_type ── */
+const TYPE_MAP = {
+  'Architectuur':               { icon: '🏛', color: '#4f7cac' },
+  'Stedenbouw':                 { icon: '🏙', color: '#6b8f71' },
+  'Interieur':                  { icon: '🛋', color: '#c4956a' },
+  'Renovatie':                  { icon: '🔧', color: '#8b7355' },
+  'Onderzoek':                  { icon: '🔬', color: '#7b68ee' },
+  'Mixed Use':                  { icon: '◈',  color: '#5f9ea0' },
+  'Residential':                { icon: '🏠', color: '#e07b54' },
+  'Woningbouw':                 { icon: '🏠', color: '#e07b54' },
+  'Offices':                    { icon: '🏢', color: '#4a7c8f' },
+  'Kantoor':                    { icon: '🏢', color: '#4a7c8f' },
+  'Education':                  { icon: '🎓', color: '#d4a843' },
+  'Onderwijs':                  { icon: '🎓', color: '#d4a843' },
+  'Public & Healthcare':        { icon: '🏥', color: '#5aaa7e' },
+  'Publiek':                    { icon: '🏛', color: '#5aaa7e' },
+  'Zorg':                       { icon: '🏥', color: '#5aaa7e' },
+  'Retail & Hospitality':       { icon: '🛍', color: '#c47a9e' },
+  'Horeca':                     { icon: '☕', color: '#c47a9e' },
+  'Transport & Infrastructure': { icon: '🚉', color: '#6a8aad' },
+  'Infrastructuur':             { icon: '🌉', color: '#6a8aad' },
+  'Master planning':            { icon: '📐', color: '#8e7bb5' },
+  'Herbestemming':              { icon: '♻', color: '#7aaa6a' },
+  'Cultureel':                  { icon: '🎭', color: '#c46a6a' },
+  'Sport':                      { icon: '⚽', color: '#5a9a5a' },
+  'default':                    { icon: '●',  color: '#888ea0' },
 };
 
-/* ── getIcon: kiest het juiste icon op basis van opgave of projecttype ── */
-function getIcon(project) {
-  const opgave = project?.opgave || '';
-  const type   = project?.project_type || project?.raw?.opgave || project?.raw?.project_type || '';
-  return FUNC_ICONS[opgave] || FUNC_ICONS[type] || FUNC_ICONS['default'];
+function getTypeData(project) {
+  const type = project?.project_type || project?.raw?.project_type || project?.raw?.opgave || project?.opgave || '';
+  // Case-insensitive match
+  const key = Object.keys(TYPE_MAP).find(k => k.toLowerCase() === type.toLowerCase()) || 'default';
+  return TYPE_MAP[key];
 }
 
-/* ── makeIcon: maakt een Leaflet DivIcon met emoji en kleur ── */
+/* ── getIcon: backwards compat ── */
+function getIcon(project) {
+  return getTypeData(project).icon;
+}
+
+/* ── makeIcon: maakt een Leaflet DivIcon met emoji en kleur per type ── */
 function makeIcon(isUser, project){
-  const emoji = getIcon(project);
+  const { icon, color } = isUser ? { icon: '★', color: 'var(--ink)' } : getTypeData(project);
   return L.divIcon({
     className: '',
-    html: `<div class="marker-pin ${isUser ? 'user' : ''}">
-      <span class="pin-icon">${emoji}</span>
+    html: `<div class="marker-pin" style="background:${color};border-color:rgba(255,255,255,0.85);">
+      <span class="pin-icon">${icon}</span>
     </div>`,
     iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -36],
   });
@@ -432,7 +446,10 @@ function showDetail(p) {
   }
 
   // Info
-  document.getElementById('detail-tag').textContent = p.project_type || p.opgave || 'Project';
+  const typeData = getTypeData(p.raw || p);
+  const tagEl = document.getElementById('detail-tag');
+  tagEl.textContent = p.project_type || p.opgave || 'Project';
+  tagEl.style.cssText = `background:${typeData.color}22;color:${typeData.color};border:1px solid ${typeData.color}44;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;`;
   document.getElementById('detail-name').textContent = p.name;
   document.getElementById('detail-loc').textContent = [p.city, p.raw?.provincie, p.raw?.land].filter(Boolean).join(' · ') || '—';
 
@@ -587,6 +604,23 @@ async function zoomToStad(stad) {
   resolved.forEach(addProject);
   renderList(document.getElementById('search').value);
 
+  // Vul type-legenda op basis van aanwezige types
+  const usedTypes = new Set(allProjects.map(p => p.project_type || p.raw?.project_type || '').filter(Boolean));
+  const legendEl = document.getElementById('type-legend');
+  if (legendEl) {
+    const entries = [...usedTypes].map(t => {
+      const key = Object.keys(TYPE_MAP).find(k => k.toLowerCase() === t.toLowerCase()) || 'default';
+      return { label: t, ...TYPE_MAP[key] };
+    });
+    if (!entries.length) entries.push({ label: 'Projecten', ...TYPE_MAP['default'] });
+    legendEl.innerHTML = entries.map(e =>
+      `<span style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);">
+        <span style="width:10px;height:10px;border-radius:50%;background:${e.color};flex-shrink:0;"></span>
+        ${e.icon} ${e.label}
+      </span>`
+    ).join('');
+  }
+
   // 3) Fit bounds to all once user projects loaded
   if (allProjects.length){
     const bounds = L.latLngBounds(allProjects.map(p => [p.lat, p.lng]));
@@ -611,44 +645,9 @@ document.getElementById('search').addEventListener('input', (e) => renderList(e.
 [data-theme="dark"] 
 
 </style>
-<div class="auth-bar" id="auth-bar" style="display:none;"></div>
-<script>
-(async function(){
-  const bar = document.getElementById('auth-bar');
-  if (!bar || typeof db === 'undefined') return;
-  try {
-    const { data: { user } } = await db.auth.getUser();
-    if (!user) {
-      bar.innerHTML = '<a class="ab-login" href="login.html">Inloggen →</a>';
-      bar.style.display = 'flex';
-      return;
-    }
-    const { data: profile } = await db.from('profiles').select('naam,status,employee_id').eq('id', user.id).maybeSingle();
-    if (!profile || profile.status !== 'approved') {
-      bar.innerHTML = '<a class="ab-login" href="login.html">Inloggen →</a>';
-      bar.style.display = 'flex';
-      return;
-    }
-    const initials = (profile.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
-    // Probeer foto te laden
-    let photoHtml = initials;
-    if (profile.employee_id) {
-      try {
-        const url = await EmployeeImages.getForEmployee(profile.employee_id);
-        if (url) photoHtml = '<img src="' + url + '" alt="">';
-      } catch(e) {}
-    }
-    bar.innerHTML = '<a href="profile.html" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;" title="Mijn profiel"><div class="ab-avatar">' + photoHtml + '</div>'
-      + '<span class="ab-name">' + profile.naam + '</span></a>'
-      + '<button class="ab-logout" onclick="Auth.logout().then(()=>location.reload())">Uitloggen</button>';
-    bar.style.display = 'flex';
-  } catch(e) {
-    bar.style.display = 'flex';
-  }
-})();
-</script>
 
-<div class="auth-bar" id="auth-bar"></div>
-<script src="auth-bar.js"></script>
+
+
+
 </body>
 </html>

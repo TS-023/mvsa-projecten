@@ -264,6 +264,7 @@
     </div>
   </div>
 
+  <div class="selected-info" id="filter-dot-card" style="top: 112px; left: 280px;"></div>
   <div class="selected-info" id="selected-info"></div>
 
   <div id="tweaks-root" style="display:none"></div>
@@ -500,6 +501,8 @@
     // Node drag state
     let dragNodeIdx = -1;
     let groupedIndex = -1; // project waarop gegroepeerd is
+    let filterDots = []; // { projIdx, key, x, y, r } — bijgewerkt elke frame
+    let selectedFilterDot = null; // { projIdx, key }
 
     window.addEventListener('mousemove', (e) => {
       if (dragNodeIdx >= 0) {
@@ -638,6 +641,23 @@
     canvas.addEventListener('click', (e) => {
       if (panMoved > 5) return; // was een sleep, geen click
 
+      // Check filter bolletjes
+      { const wc = screenToWorld(e.clientX, e.clientY);
+        for (const dot of filterDots) {
+          const dx = wc.x - dot.x, dy = wc.y - dot.y;
+          if (dx*dx + dy*dy < dot.r * dot.r) {
+            if (selectedFilterDot && selectedFilterDot.projIdx === dot.projIdx && selectedFilterDot.key === dot.key) {
+              selectedFilterDot = null;
+              updateFilterDotCard(null);
+            } else {
+              selectedFilterDot = { projIdx: dot.projIdx, key: dot.key };
+              updateFilterDotCard(dot);
+            }
+            return;
+          }
+        }
+      }
+
       // Check of de hub geklikt is
       const wHub = screenToWorld(e.clientX, e.clientY);
       const hubDx = wHub.x - nodes[HUB_IDX].x;
@@ -669,6 +689,7 @@
       }
       if (best < 0) {
         selectedIndex = -1; updateInfoCard(); resetDepth();
+        selectedFilterDot = null; updateFilterDotCard(null);
         // Maak eventueel gegroepeerde nodes los
         if (groupedIndex >= 0) {
           const proj = nodes[groupedIndex];
@@ -780,6 +801,23 @@
     function colorFor(node) {
       if (node.type === 'project' || node.type === 'hub') return PROJECT_COLOR;
       return PERSON_COLORS[node.c % PERSON_COLORS.length];
+    }
+
+    function updateFilterDotCard(dot) {
+      const el = document.getElementById('filter-dot-card');
+      if (!dot || !selectedFilterDot) { if (el) el.classList.remove('visible'); return; }
+      const proj = nodes[dot.projIdx];
+      const tags = projectTags[proj.name] || {};
+      const key = selectedFilterDot.key;
+      const vals = tags[key] || [];
+      const color = FILTER_COLORS[key];
+      const LABELS = { bedrijf:'Bedrijf', contact:'Contact', software:'Software', award:'Award', label:'Label' };
+      el.innerHTML = `
+        <div class="kind" style="color:${color};letter-spacing:.18em;">${LABELS[key] || key}</div>
+        <div class="who">${proj.name}</div>
+        <ul>${vals.map(v => `<li>${v}</li>`).join('')}</ul>
+        <div class="hint">klik opnieuw om te sluiten</div>`;
+      el.classList.add('visible');
     }
 
     function updateHover() {
@@ -997,6 +1035,7 @@
       ctx.scale(zoom, zoom);
       ctx.translate(-W / 2 + panX, -H / 2 + panY);
 
+      filterDots = []; // reset elke frame
       const hl = highlightSet();
       const hasSel = mouse.hover >= 0 || selectedIndex >= 0;
       const dimA = hasSel ? 0.28 : 1;
@@ -1235,19 +1274,35 @@
               const orbit = orbitBase + ri * 9 * sc;
               const bx = n.x + Math.cos(angle) * orbit;
               const by = n.y + Math.sin(angle) * orbit;
-              const fa = alpha * 0.85;
+              // Sla op voor click-detectie
+              filterDots.push({ projIdx: i, key: k, x: bx, y: by, r: dotR * 3.5 });
+              const isSelDot = selectedFilterDot && selectedFilterDot.projIdx === i && selectedFilterDot.key === k;
+              const isHovDot = !isSelDot && (() => {
+                const ddx = mouse.x - bx, ddy = mouse.y - by;
+                return ddx*ddx + ddy*ddy < (dotR*4)**2;
+              })();
+              const fa = (isSelDot ? 1 : isHovDot ? 0.95 : alpha) * 0.9;
+              const curDotR = dotR * (isSelDot ? 1.6 : isHovDot ? 1.3 : 1);
               // Glow
-              const g = ctx.createRadialGradient(bx, by, 0, bx, by, dotR * 3);
-              g.addColorStop(0, FILTER_COLORS[k] + Math.round(fa * 120).toString(16).padStart(2,'0'));
+              const g = ctx.createRadialGradient(bx, by, 0, bx, by, curDotR * 3.5);
+              g.addColorStop(0, FILTER_COLORS[k] + Math.round(fa * (isSelDot ? 200 : 120)).toString(16).padStart(2,'0'));
               g.addColorStop(1, FILTER_COLORS[k] + '00');
               ctx.fillStyle = g;
-              ctx.beginPath(); ctx.arc(bx, by, dotR * 3, 0, Math.PI * 2); ctx.fill();
+              ctx.beginPath(); ctx.arc(bx, by, curDotR * 3.5, 0, Math.PI * 2); ctx.fill();
               // Dot
               ctx.fillStyle = FILTER_COLORS[k] + Math.round(fa * 230).toString(16).padStart(2,'0');
-              ctx.beginPath(); ctx.arc(bx, by, dotR, 0, Math.PI * 2); ctx.fill();
+              ctx.beginPath(); ctx.arc(bx, by, curDotR, 0, Math.PI * 2); ctx.fill();
               // Wit puntje
-              ctx.fillStyle = `rgba(255,255,255,${fa * 0.7})`;
-              ctx.beginPath(); ctx.arc(bx, by, dotR * 0.35, 0, Math.PI * 2); ctx.fill();
+              ctx.fillStyle = `rgba(255,255,255,${fa * 0.8})`;
+              ctx.beginPath(); ctx.arc(bx, by, curDotR * 0.35, 0, Math.PI * 2); ctx.fill();
+              // Ring bij geselecteerd
+              if (isSelDot) {
+                ctx.strokeStyle = FILTER_COLORS[k] + 'cc';
+                ctx.lineWidth = 1.2 * sc;
+                ctx.beginPath(); ctx.arc(bx, by, curDotR + 4*sc, 0, Math.PI*2); ctx.stroke();
+              }
+              // Cursor
+              if (isHovDot || isSelDot) canvas.style.cursor = 'pointer';
             });
           }
         } else {
