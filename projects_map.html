@@ -378,9 +378,14 @@ map.on('zoomend', () => {
 });
 
 map.on('click', function(e) {
-  // Sluit detail als er op de kaart geklikt wordt (niet op een pin)
-  if (!e.originalEvent.target.closest('.marker-pin')) {
-    closeDetail();
+  // Klik buiten marker → sluit detail en zoom terug naar begin
+  const target = e.originalEvent.target;
+  const onPin = target.closest('svg') || target.closest('.leaflet-marker-icon') || target.tagName === 'text' || target.tagName === 'path';
+  if (!onPin) {
+    if (activeMarker) {
+      closeDetail();
+      map.setView([52.2, 5.3], 7, { animate: true });
+    }
   }
 });
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
