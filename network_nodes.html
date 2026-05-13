@@ -1125,6 +1125,24 @@
       ctx.translate(-W / 2 + panX, -H / 2 + panY);
 
       filterDots = []; // reset elke frame
+
+      // Bereken 3D schermposities vooraf (nodig voor edges én nodes)
+      let sphere3DScreenPos = {};
+      if (viewMode === '3d') {
+        for (let i = 1; i < nodes.length; i++) {
+          if (i === HUB_IDX) continue;
+          const sp = spherePositions[i];
+          if (!sp) continue;
+          sphere3DScreenPos[i] = sphere3DToScreen(sp.theta, sp.phi);
+        }
+        // Sorteer sortedIdx op diepte
+        sortedIdx.sort((a, b) => {
+          const sa = sphere3DScreenPos[a]?.sz ?? 0;
+          const sb = sphere3DScreenPos[b]?.sz ?? 0;
+          return sa - sb;
+        });
+      }
+
       const hl = highlightSet();
       const hasSel = mouse.hover >= 0 || selectedIndex >= 0;
       const dimA = hasSel ? 0.28 : 1;
@@ -1334,23 +1352,6 @@
         }
         pulses = pulses.filter(p => p.t < 1);
       } else { pulses.length = 0; }
-
-      // In 3D: bereken schermposities op basis van sferische coords
-      let sphere3DScreenPos = {};
-      if (viewMode === '3d') {
-        for (let i = 1; i < nodes.length; i++) {
-          if (i === HUB_IDX) continue;
-          const sp = spherePositions[i];
-          if (!sp) continue;
-          sphere3DScreenPos[i] = sphere3DToScreen(sp.theta, sp.phi);
-        }
-        // Sorteer op sz (diepte) in 3D
-        sortedIdx.sort((a, b) => {
-          const sa = sphere3DScreenPos[a]?.sz ?? 0;
-          const sb = sphere3DScreenPos[b]?.sz ?? 0;
-          return sa - sb;
-        });
-      }
 
       // Nodes van achter naar voor (hub overgeslagen)
       for (const i of sortedIdx) {
@@ -1745,10 +1746,14 @@
     setInterval(() => {
       const projN = nodes.filter(n => n.type === 'project').length;
       const persN = nodes.length - projN;
-      document.getElementById('r-projects').textContent = String(projN).padStart(2, '0');
-      document.getElementById('r-people').textContent = String(persN).padStart(2, '0');
-      document.getElementById('r-links').textContent = String(edges.length).padStart(3, '0');
-      document.getElementById('r-fps').textContent = Math.round(fpsSmoothed);
+      const rProj = document.getElementById('r-projects');
+      const rPeop = document.getElementById('r-people');
+      const rLinks = document.getElementById('r-links');
+      const rFps = document.getElementById('r-fps');
+      if (rProj) rProj.textContent = String(projN).padStart(2, '0');
+      if (rPeop) rPeop.textContent = String(persN).padStart(2, '0');
+      if (rLinks) rLinks.textContent = String(edges.length).padStart(3, '0');
+      if (rFps) rFps.textContent = Math.round(fpsSmoothed);
     }, 300);
 
     window.__NET = {
