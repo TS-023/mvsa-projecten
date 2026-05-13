@@ -229,3 +229,101 @@ alter table public.profiles add column if not exists is_admin boolean default fa
 
 -- Stel jezelf in als beheerder (vervang het e-mailadres):
 -- update public.profiles set is_admin = true where email = 'jouw@email.nl';
+
+-- ============================================================
+--  ADRESSENBOEK · Stap 1: contacts + project_contacts tabellen
+-- ============================================================
+
+-- Visitekaartjes tabel
+create table if not exists public.contacts (
+  id            uuid default gen_random_uuid() primary key,
+  created_at    timestamptz default now(),
+  updated_at    timestamptz default now(),
+
+  -- Persoon
+  naam          text not null,
+  bedrijf       text,
+  rol           text,           -- bijv. Architect, Aannemer, Adviseur, Opdrachtgever
+  email         text,
+  telefoon      text,
+  website       text,
+  linkedin      text,
+  foto_url      text,
+
+  -- Tags voor filters
+  tags          text[],         -- bijv. ['extern', 'architect', 'adviseur']
+
+  -- Metadata
+  created_by    uuid references public.profiles(id),
+  notities      text
+);
+
+-- Koppeltabel: project ↔ contact
+create table if not exists public.project_contacts (
+  id            uuid default gen_random_uuid() primary key,
+  created_at    timestamptz default now(),
+
+  project_id    uuid references public.projects(id) on delete cascade,
+  contact_id    uuid references public.contacts(id) on delete cascade,
+
+  rol_op_project text,          -- specifieke rol op dit project
+  beoordeling   smallint check (beoordeling between 1 and 5),
+  notitie       text,
+
+  unique(project_id, contact_id)
+);
+
+-- RLS inschakelen
+alter table public.contacts enable row level security;
+alter table public.project_contacts enable row level security;
+
+-- Contacts: iedereen (ingelogd) mag lezen
+create policy "Contacts lezen"
+  on public.contacts for select
+  using (auth.uid() is not null);
+
+-- Contacts: ingelogd mag aanmaken
+create policy "Contacts aanmaken"
+  on public.contacts for insert
+  with check (auth.uid() is not null);
+
+-- Contacts: maker of admin mag bewerken
+create policy "Contacts bewerken"
+  on public.contacts for update
+  using (
+    created_by = auth.uid() or
+    exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin = true)
+  );
+
+-- Project contacts: iedereen ingelogd mag lezen + schrijven
+create policy "Project contacts lezen"
+  on public.project_contacts for select
+  using (auth.uid() is not null);
+
+create policy "Project contacts koppelen"
+  on public.project_contacts for insert
+  with check (auth.uid() is not null);
+
+create policy "Project contacts ontkoppelen"
+  on public.project_contacts for delete
+  using (auth.uid() is not null);
+
+-- Indexes voor snelheid
+create index if not exists contacts_naam_idx       on public.contacts(naam);
+create index if not exists contacts_bedrijf_idx    on public.contacts(bedrijf);
+create index if not exists proj_contacts_proj_idx  on public.project_contacts(project_id);
+create index if not exists proj_contacts_cont_idx  on public.project_contacts(project_id, contact_id);
+
+-- Testdata contacten
+insert into public.contacts (naam, bedrijf, rol, email, tags) values
+  ('Jan de Vries',    'Arcadis',              'Constructeur',    'jan@arcadis.nl',    ARRAY['adviseur','constructeur']),
+  ('Petra Smit',      'Heijmans',             'Projectleider',   'p.smit@heijmans.nl', ARRAY['aannemer']),
+  ('Mark Bakker',     'Gemeente Amsterdam',   'Opdrachtgever',   'mbakker@amsterdam.nl', ARRAY['opdrachtgever']),
+  ('Lisa van den Berg','Royal HaskoningDHV',  'Adviseur',        'l.vdberg@rhdhv.com', ARRAY['adviseur']),
+  ('Tom Jansen',      'Witteveen+Bos',        'Civiel ingenieur','t.jansen@witbo.nl',  ARRAY['adviseur','civiel']),
+  ('Emma Visser',     'Fakton',               'Financieel',      'e.visser@fakton.nl', ARRAY['financieel']),
+  ('Bas Mulder',      'Sweco',                'Installateur',    'b.mulder@sweco.nl',  ARRAY['installateur']),
+  ('Sophie Hendriks', 'OMA',                  'Architect',       's.hendriks@oma.com', ARRAY['architect']),
+  ('Rick Bosman',     'Ballast Nedam',        'Uitvoerder',      'r.bosman@bn.nl',     ARRAY['aannemer']),
+  ('Anne Dekker',     'Provincie Noord-Holland','Vergunning',    'a.dekker@pnh.nl',    ARRAY['overheid'])
+on conflict do nothing;
