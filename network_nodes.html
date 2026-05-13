@@ -851,17 +851,6 @@
           ${tagHTML}
           <div class="hint">click opnieuw om los te maken</div>`;
       }
-      // Position below selected-info
-      const si = document.getElementById('selected-info');
-      if (si && si.classList.contains('visible')) {
-        el.style.top = (si.getBoundingClientRect().bottom + 10) + 'px';
-        el.style.width = si.offsetWidth + 'px';
-        el.style.maxWidth = si.offsetWidth + 'px';
-      } else {
-        el.style.top = '112px';
-        el.style.width = '';
-        el.style.maxWidth = '';
-      }
       el.classList.add('visible');
     }
 
@@ -903,8 +892,22 @@
       el.innerHTML = `
         <div class="kind" style="color:${color};letter-spacing:.18em;">${LABELS[key] || key}</div>
         <div class="who">${proj.name}</div>
-        <ul>${vals.map(v => `<li>${v}</li>`).join('')}</ul>
+        ${vals.length ? `<ul>${vals.map(v => `<li>${v}</li>`).join('')}</ul>` : '<div style="opacity:.5;font-size:11px;margin-top:6px;">Geen data</div>'}
         <div class="hint">klik opnieuw om te sluiten</div>`;
+      // Positioneer onder de selected-info kaart, of los linksboven
+      const si = document.getElementById('selected-info');
+      if (si && si.classList.contains('visible')) {
+        const rect = si.getBoundingClientRect();
+        el.style.top = (rect.bottom + 10) + 'px';
+        el.style.left = '28px';
+        el.style.width = rect.width + 'px';
+        el.style.maxWidth = rect.width + 'px';
+      } else {
+        el.style.top = '112px';
+        el.style.left = '28px';
+        el.style.width = '';
+        el.style.maxWidth = '';
+      }
       el.classList.add('visible');
     }
 
