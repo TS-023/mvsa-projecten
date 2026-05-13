@@ -988,8 +988,8 @@
 
       updateHover();
 
-      // Physics — alleen als niets geselecteerd is
-      if (selectedIndex < 0) {
+      // Physics — alleen als niets geselecteerd is EN in 2D modus
+      if (selectedIndex < 0 && viewMode === '2d') {
 
       const SPRING = CONFIG.spring;
       const REST = 65;
@@ -1100,8 +1100,8 @@
 
       } // einde physics-blok (alleen actief zonder selectie)
 
-      // Z-animatie en phase altijd doorgaan (ook bij selectie)
-      if (selectedIndex >= 0) {
+      // Z-animatie en phase altijd doorgaan (ook bij selectie, maar alleen 2D)
+      if (viewMode === '2d' && selectedIndex >= 0) {
         for (const n of nodes) {
           const dz = n.tz - n.z;
           n.vz = (n.vz + dz * 0.04) * 0.82;
@@ -1697,6 +1697,24 @@
     // ── View mode toggle ─────────────────────────────────────────────────
     document.getElementById('btn-2d').addEventListener('click', () => {
       viewMode = '2d'; autoRotate = false;
+      // Herpositioneer nodes in ring zodat ze niet gestapeld zijn
+      const cx = W/2, cy = H/2;
+      const projNodes = nodes.filter((n,i) => i > 0 && n.type === 'project');
+      const personNodes = nodes.filter(n => n.type === 'person');
+      const ringR = HUB_R + Math.min(W,H) * 0.14;
+      projNodes.forEach((n, i) => {
+        const a = (i / Math.max(projNodes.length,1)) * Math.PI * 2;
+        n.x = cx + Math.cos(a) * ringR * (0.88 + Math.random()*0.24);
+        n.y = cy + Math.sin(a) * ringR * (0.88 + Math.random()*0.24);
+        n.vx = 0; n.vy = 0;
+      });
+      personNodes.forEach((n, i) => {
+        const a = (i / Math.max(personNodes.length,1)) * Math.PI * 2;
+        const r = ringR * (1.5 + Math.random()*0.8);
+        n.x = cx + Math.cos(a) * r;
+        n.y = cy + Math.sin(a) * r;
+        n.vx = 0; n.vy = 0;
+      });
       document.getElementById('btn-2d').classList.add('active');
       document.getElementById('btn-3d').classList.remove('active');
     });
