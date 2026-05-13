@@ -1085,9 +1085,12 @@ function App(){
   return (
     <>
       <header className="topbar">
-        <a className="back" href="projects_dashboard.html">← Dashboard</a>
-        <div className="crumbs">
-          <a href="projects_dashboard.html">Projecten</a> · <strong>{data.title}</strong>
+        <div style={{display:'flex', alignItems:'center', gap:'8px', minWidth:0}}>
+          <span style={{fontSize:'11px', letterSpacing:'.14em', textTransform:'uppercase', color:'var(--muted)'}}>
+            <a href="projects_list.html" style={{color:'var(--muted)', textDecoration:'none'}}>Projecten</a>
+            {' · '}
+          </span>
+          <strong style={{fontSize:'13px', fontWeight:700, color:'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{data.title}</strong>
         </div>
         <div style={{display:'flex', gap:'8px', alignItems:'center', position:'relative', zIndex:250}}>
           <button className="pdf-btn" onClick={() => {
@@ -1237,8 +1240,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 <script src="transitions.js"></script>
 
-<div class="auth-bar" id="auth-bar"></div>
-<script src="auth-bar.js"></script>
 <script src="dark-mode.js"></script>
 </body>
 </html>
