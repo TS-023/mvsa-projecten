@@ -376,6 +376,7 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
 
 const allProjects = [];
 const markers = {};
+let activeMarker = null; // huidig geselecteerde marker
 
 /* ═══════════════════════════════════════
    KAART — projects_map.html
@@ -422,12 +423,27 @@ function getIcon(project) {
 }
 
 /* ── makeIcon: maakt een Leaflet DivIcon met emoji en kleur per type ── */
-function makeIcon(isUser, project){
+function makeIcon(isUser, project, active){
   const { icon, color } = isUser ? { icon: '★', color: '#111418' } : getTypeData(project);
+  const border = active ? '#111418' : '#ffffff';
+  const shadow = active ? '0 0 0 3px #111418' : '0 4px 14px rgba(0,0,0,.35)';
+  // SVG pin — niet beïnvloed door Leaflet CSS
+  const size = active ? 42 : 36;
+  const half = size / 2;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size+6}" viewBox="0 0 ${size} ${size+6}">
+    <defs>
+      <filter id="sh" x="-50%" y="-50%" width="200%" height="200%">
+        <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,.35)"/>
+      </filter>
+    </defs>
+    <path d="M${half} ${size+4} C${half} ${size+4} 2 ${half+4} 2 ${half} a${half-2} ${half-2} 0 1 1 ${size-4} 0 C${size-2} ${half+4} ${half} ${size+4} ${half} ${size+4}z"
+      fill="${color}" stroke="${border}" stroke-width="2" filter="url(#sh)"/>
+    <text x="${half}" y="${half+1}" text-anchor="middle" dominant-baseline="middle" font-size="14" style="user-select:none;">${icon}</text>
+  </svg>`;
   return L.divIcon({
-    className: 'custom-div-icon',
-    html: `<div style="width:36px;height:36px;border-radius:50% 50% 50% 0 !important;background:${color} !important;transform:rotate(-45deg);border:2.5px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:14px;line-height:1;display:block;">${icon}</span></div>`,
-    iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -40],
+    className: '',
+    html: svg,
+    iconSize: [size, size+6], iconAnchor: [half, size+6], popupAnchor: [0, -(size+6)],
   });
 }
 
@@ -435,11 +451,21 @@ function makeIcon(isUser, project){
    - bindt een popup (klik) en tooltip (hover) met thumbnail
    - laadt thumbnail lazy bij eerste hover ── */
 function addProject(p){
-  const m = L.marker([p.lat, p.lng], { icon: makeIcon(p.isUser, p.raw) }).addTo(map);
+  const m = L.marker([p.lat, p.lng], { icon: makeIcon(p.isUser, p.raw, false) }).addTo(map);
   const link = `project_page.html?p=${encodeURIComponent(p.name)}`;
 
   // Popup (bij klik)
-  m.on('click', () => { showDetail(p); });
+  m.on('click', () => {
+    // Reset vorige actieve marker
+    if (activeMarker && activeMarker !== m) {
+      const prevP = allProjects.find(x => markers[x.name] === activeMarker);
+      if (prevP) activeMarker.setIcon(makeIcon(prevP.isUser, prevP.raw, false));
+    }
+    activeMarker = m;
+    m.setIcon(makeIcon(p.isUser, p.raw, true));
+    map.setView([p.lat, p.lng], Math.max(map.getZoom(), 13), { animate: true });
+    showDetail(p);
+  });
   m.on('mouseover', () => {
     showDetail(p);
     // Highlight kaart in lijst
@@ -554,7 +580,12 @@ function closeDetail() {
   document.getElementById('search').style.display = '';
   document.querySelector('.legend') && (document.querySelector('.legend').style.display = '');
   document.getElementById('detail-panel').classList.remove('visible');
-  // Deactiveer actieve kaart
+  // Reset actieve marker icon
+  if (activeMarker) {
+    const prevP = allProjects.find(x => markers[x.name] === activeMarker);
+    if (prevP) activeMarker.setIcon(makeIcon(prevP.isUser, prevP.raw, false));
+    activeMarker = null;
+  }
   document.querySelectorAll('.proj-card.active').forEach(c => c.classList.remove('active'));
   map.closePopup();
 }
