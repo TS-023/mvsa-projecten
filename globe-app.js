@@ -4,102 +4,183 @@
 // ============================================================
 
 (function () {
-  // ── CSS variable colours resolved at runtime ─────────────
-  const style   = getComputedStyle(document.documentElement);
-  const C_PIN    = '#c8914a';   // warm amber — matches --pin oklch
-  const C_OFFICE = '#c94040';   // coral/red  — matches --office oklch
-  const C_BG     = '#efe9da';
-  const C_LAND   = '#ebe4d0';
-  const C_OCEAN  = '#f5f0e3';
-  const C_BORDER = '#b7ae96';
+
+  // ── Globe theme configs per layout ───────────────────────
+  const THEMES = {
+    A: {
+      land:       '#ebe4d0',
+      border:     '#b7ae96',
+      ocean:      '#f5f0e3',
+      atmo:       '#cfc5a9',
+      atmoAlt:    0.14,
+      imageUrl:   null,
+      pin:        '#c8914a',
+      pinGlow:    '#d4a060',
+      office:     '#c94040',
+      officeGlow: '#e05050',
+    },
+    B: {
+      land:       '#1a1a22',
+      border:     '#ff6a00',
+      ocean:      '#0a0a10',
+      atmo:       '#ff6a00',
+      atmoAlt:    0.18,
+      imageUrl:   null,
+      pin:        '#ff6a00',
+      pinGlow:    '#ff8c00',
+      office:     '#ff2200',
+      officeGlow: '#ff4400',
+    },
+    C: {
+      land:       null,
+      border:     'rgba(0,0,0,0)',
+      ocean:      '#0d1f3c',
+      atmo:       '#00c8ff',
+      atmoAlt:    0.22,
+      imageUrl:   'https://unpkg.com/three-globe@2/example/img/earth-blue-marble.jpg',
+      pin:        '#00e5ff',
+      pinGlow:    '#00b0d8',
+      office:     '#ff4081',
+      officeGlow: '#ff80ab',
+    },
+  };
 
   // ── DOM refs ─────────────────────────────────────────────
-  const container   = document.getElementById('globeViz');
-  const loading     = document.getElementById('loading');
-  const tooltip     = document.getElementById('tooltip');
-  const resetBtn    = document.getElementById('reset');
-  const zoomIn      = document.getElementById('zoom-in');
-  const zoomOut     = document.getElementById('zoom-out');
-  const searchInput = document.getElementById('search');
-  const statTotal   = document.getElementById('stat-total');
-  const statCities  = document.getElementById('stat-cities');
+  const container     = document.getElementById('globeViz');
+  const loading       = document.getElementById('loading');
+  const tooltip       = document.getElementById('tooltip');
+  const resetBtn      = document.getElementById('reset');
+  const zoomIn        = document.getElementById('zoom-in');
+  const zoomOut       = document.getElementById('zoom-out');
+  const statTotal     = document.getElementById('stat-total');
+  const statCities    = document.getElementById('stat-cities');
   const statCountries = document.getElementById('stat-countries');
   const projectCount  = document.getElementById('project-count');
 
   // ── Data ─────────────────────────────────────────────────
   const { projects, stats } = window.MVSA;
-
-  // Fill stats
-  statTotal.textContent    = stats.total;
-  statCities.textContent   = stats.cities;
+  statTotal.textContent     = stats.total;
+  statCities.textContent    = stats.cities;
   statCountries.textContent = stats.countries;
   if (projectCount) projectCount.textContent = stats.total;
+
+  // Update HUD stats
+  const hudTotal = document.getElementById('hud-total');
+  const hudCities = document.getElementById('hud-cities');
+  const hudCountries = document.getElementById('hud-countries');
+  if (hudTotal) hudTotal.textContent = stats.total;
+  if (hudCities) hudCities.textContent = stats.cities;
+  if (hudCountries) hudCountries.textContent = stats.countries;
 
   // ── Globe init ───────────────────────────────────────────
   const globe = Globe({ animateIn: false })(container);
 
-  // Size globe to container
   function resize() {
     globe.width(container.clientWidth).height(container.clientHeight);
   }
   resize();
   window.addEventListener('resize', resize);
 
-  // ── Globe visual config ──────────────────────────────────
-  globe
-    .globeImageUrl(null)
-    .backgroundColor('rgba(0,0,0,0)')
-    // Land polygons via topojson
-    .polygonsData([])          // populated after fetch
-    .polygonCapColor(() => C_LAND)
-    .polygonSideColor(() => C_BORDER)
-    .polygonStrokeColor(() => C_BORDER)
-    .polygonAltitude(0.002)
-    // Atmosphere
-    .showAtmosphere(true)
-    .atmosphereColor(C_BORDER)
-    .atmosphereAltitude(0.14)
-    // Controls
-    .enablePointerInteraction(true);
-
-  // Fetch world land polygons
+  // ── Land data (loaded once) ──────────────────────────────
+  let landFeatures = [];
   fetch('https://unpkg.com/world-atlas@2/land-110m.json')
     .then(r => r.json())
     .then(world => {
-      const land = topojson.feature(world, world.objects.land);
-      globe.polygonsData(land.features);
+      landFeatures = topojson.feature(world, world.objects.land).features;
+      applyGlobeTheme(currentLayout());
     })
-    .catch(() => {
-      // Fallback: solid globe if fetch fails
-      globe.globeImageUrl(
-        'https://unpkg.com/three-globe@2/example/img/earth-day.jpg'
-      );
-    });
+    .catch(() => {});
 
-  // ── Initial camera position — centred on Netherlands ─────
+  // ── Helpers ──────────────────────────────────────────────
+  function currentLayout() {
+    return document.body.getAttribute('data-layout') || 'A';
+  }
+
+  // ── Apply globe theme ────────────────────────────────────
+  function applyGlobeTheme(layout) {
+    const t = THEMES[layout];
+
+    if (t.imageUrl) {
+      // Satellite texture mode
+      globe
+        .globeImageUrl(t.imageUrl)
+        .polygonsData([])
+        .showAtmosphere(true)
+        .atmosphereColor(t.atmo)
+        .atmosphereAltitude(t.atmoAlt)
+        .backgroundColor('rgba(0,0,0,0)');
+    } else {
+      // Polygon mode
+      globe
+        .globeImageUrl(null)
+        .polygonsData(landFeatures)
+        .polygonCapColor(() => t.land)
+        .polygonSideColor(() => t.border)
+        .polygonStrokeColor(() => t.border)
+        .polygonAltitude(layout === 'B' ? 0.004 : 0.002)
+        .showAtmosphere(true)
+        .atmosphereColor(t.atmo)
+        .atmosphereAltitude(t.atmoAlt)
+        .backgroundColor('rgba(0,0,0,0)');
+
+      // Tint ocean sphere
+      setTimeout(() => {
+        try {
+          globe.scene().traverse(obj => {
+            if (obj.isMesh && obj.geometry?.type === 'SphereGeometry') {
+              if (obj.material) {
+                obj.material.map = null;
+                obj.material.color.set(t.ocean);
+                obj.material.needsUpdate = true;
+              }
+            }
+          });
+        } catch(e) {}
+      }, 100);
+    }
+
+    buildPins(filteredProjects, t);
+  }
+
+  // ── Initial config ───────────────────────────────────────
+  const t0 = THEMES['A'];
+  globe
+    .globeImageUrl(null)
+    .backgroundColor('rgba(0,0,0,0)')
+    .polygonsData([])
+    .polygonCapColor(() => t0.land)
+    .polygonSideColor(() => t0.border)
+    .polygonStrokeColor(() => t0.border)
+    .polygonAltitude(0.002)
+    .showAtmosphere(true)
+    .atmosphereColor(t0.atmo)
+    .atmosphereAltitude(t0.atmoAlt)
+    .enablePointerInteraction(true);
+
   const NL = { lat: 52.3, lng: 5.1, altitude: 1.6 };
   globe.pointOfView(NL, 0);
-
-  // Small delay so globe renders before flying in
   setTimeout(() => {
     globe.pointOfView({ ...NL, altitude: 1.2 }, 1200);
     loading.classList.add('hidden');
+    applyGlobeTheme('A');
   }, 600);
 
-  // ── Points (HTML pins via htmlElementsData) ───────────────
+  // ── Pins ─────────────────────────────────────────────────
   let activePin = null;
   let filteredProjects = projects;
 
-  function makePinEl(p) {
+  function makePinEl(p, theme) {
     const el = document.createElement('div');
     el.className = 'pin' + (p.isOffice ? ' office' : '');
+    const pinColor  = p.isOffice ? theme.office    : theme.pin;
+    const glowColor = p.isOffice ? theme.officeGlow: theme.pinGlow;
+
     el.innerHTML = `
-      <div class="dot"></div>
-      <div class="halo"></div>
-      <div class="halo b"></div>
+      <div class="dot" style="background:${pinColor};box-shadow:0 0 0 1px rgba(255,255,255,0.5),0 0 6px ${glowColor},0 0 14px ${glowColor}"></div>
+      <div class="halo" style="background:radial-gradient(circle,${glowColor} 0%,transparent 70%)"></div>
+      <div class="halo b" style="background:radial-gradient(circle,${glowColor} 0%,transparent 70%)"></div>
     `;
 
-    // Hover tooltip
     el.addEventListener('mouseenter', (e) => {
       if (p.isOffice) return;
       tooltip.innerHTML = `
@@ -113,26 +194,23 @@
     el.addEventListener('mousemove', positionTooltip);
     el.addEventListener('mouseleave', () => tooltip.classList.remove('show'));
 
-    // Click — fly to project
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       if (p.isOffice) return;
-
-      // Reset previous active
       if (activePin) activePin.classList.remove('active');
       el.classList.add('active');
       activePin = el;
-
       globe.pointOfView({ lat: p.lat, lng: p.lng, altitude: 0.4 }, 800);
     });
 
     return el;
   }
 
-  function buildPins(list) {
+  function buildPins(list, theme) {
+    const t = theme || THEMES[currentLayout()];
     globe
       .htmlElementsData(list)
-      .htmlElement(p => makePinEl(p))
+      .htmlElement(p => makePinEl(p, t))
       .htmlLat(p => p.lat)
       .htmlLng(p => p.lng)
       .htmlAltitude(p => p.isOffice ? 0.012 : 0.005);
@@ -140,104 +218,83 @@
 
   buildPins(projects);
 
-  // ── Tooltip positioning ──────────────────────────────────
+  // ── Expose to HTML ───────────────────────────────────────
+  window.setGlobeLayout = applyGlobeTheme;
+
+  // ── Tooltip ──────────────────────────────────────────────
   function positionTooltip(e) {
-    const x = e.clientX, y = e.clientY;
     const tw = tooltip.offsetWidth || 160;
     const th = tooltip.offsetHeight || 50;
-    // Flip left if too close to right edge
-    const left = (x + tw + 20 > window.innerWidth) ? x - tw - 14 : x + 14;
+    const left = (e.clientX + tw + 20 > window.innerWidth) ? e.clientX - tw - 14 : e.clientX + 14;
     tooltip.style.left = left + 'px';
-    tooltip.style.top  = (y - th / 2) + 'px';
+    tooltip.style.top  = (e.clientY - th / 2) + 'px';
   }
 
   // ── Search ───────────────────────────────────────────────
-  searchInput.addEventListener('input', () => {
-    const q = searchInput.value.toLowerCase().trim();
-    if (!q) {
-      filteredProjects = projects;
-    } else {
-      filteredProjects = projects.filter(p =>
-        p.name.toLowerCase().includes(q) ||
-        p.city.toLowerCase().includes(q) ||
-        p.country.toLowerCase().includes(q) ||
-        p.type.toLowerCase().includes(q)
-      );
-    }
+  function handleSearch(q) {
+    filteredProjects = q
+      ? projects.filter(p =>
+          p.name.toLowerCase().includes(q) ||
+          p.city.toLowerCase().includes(q) ||
+          p.country.toLowerCase().includes(q) ||
+          p.type.toLowerCase().includes(q))
+      : projects;
     buildPins(filteredProjects);
-
-    // Fly to first result
     if (filteredProjects.length && q) {
       const first = filteredProjects.find(p => !p.isOffice) || filteredProjects[0];
       globe.pointOfView({ lat: first.lat, lng: first.lng, altitude: 0.8 }, 700);
     }
+  }
+
+  // Wire up both search inputs (sidebar A = 'search-sidebar', HUD B/C = 'search-hud')
+  ['search-sidebar', 'search-hud'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => handleSearch(el.value.toLowerCase().trim()));
   });
 
-  // ── Reset ─────────────────────────────────────────────────
+  // ── Reset ────────────────────────────────────────────────
   resetBtn.addEventListener('click', () => {
     if (activePin) { activePin.classList.remove('active'); activePin = null; }
     tooltip.classList.remove('show');
     globe.pointOfView({ ...NL, altitude: 1.2 }, 900);
-    searchInput.value = '';
+    ['search-sidebar', 'search-hud'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     filteredProjects = projects;
     buildPins(projects);
   });
 
-  // ── Zoom buttons ─────────────────────────────────────────
-  function getAlt()   { return globe.pointOfView().altitude; }
-  function setAlt(a, ms)  { globe.pointOfView({ ...globe.pointOfView(), altitude: Math.max(0.15, Math.min(4, a)) }, ms || 300); }
+  // ── Zoom ─────────────────────────────────────────────────
+  function getAlt() { return globe.pointOfView().altitude; }
+  function setAlt(a, ms) {
+    globe.pointOfView({ ...globe.pointOfView(), altitude: Math.max(0.15, Math.min(4, a)) }, ms || 300);
+  }
   zoomIn.addEventListener('click',  () => setAlt(getAlt() * 0.65));
   zoomOut.addEventListener('click', () => setAlt(getAlt() * 1.5));
 
-  // ── Scroll to zoom (globe.gl blocks native wheel — re-enable) ────
   container.addEventListener('wheel', (e) => {
     e.preventDefault();
     stopRotate();
-    const factor = e.deltaY > 0 ? 1.12 : 0.88;
-    setAlt(getAlt() * factor, 80);
+    setAlt(getAlt() * (e.deltaY > 0 ? 1.12 : 0.88), 80);
   }, { passive: false });
 
-  // ── Auto-rotate (stops on interaction) ───────────────────
+  // ── Auto-rotate ──────────────────────────────────────────
   let autoRotate = true;
   let rotateTimer = null;
-
-  function startRotate() {
-    autoRotate = true;
-  }
+  function startRotate() { autoRotate = true; }
   function stopRotate() {
     autoRotate = false;
     clearTimeout(rotateTimer);
-    rotateTimer = setTimeout(startRotate, 5000); // resume after 5s
+    rotateTimer = setTimeout(startRotate, 5000);
   }
-
   container.addEventListener('mousedown', stopRotate);
   container.addEventListener('touchstart', stopRotate, { passive: true });
-
-  // Rotation tick via Three.js camera
-  const ROTATION_SPEED = 0.0008; // radians/frame
   globe.onZoom(stopRotate);
 
-  // Hijack the render loop via requestAnimationFrame
+  const ROTATION_SPEED = 0.0008;
   (function rotateLoop() {
     requestAnimationFrame(rotateLoop);
     if (!autoRotate) return;
     const pov = globe.pointOfView();
     globe.pointOfView({ ...pov, lng: pov.lng + ROTATION_SPEED * (180 / Math.PI) }, 0);
   })();
-
-  // ── Globe background sphere colour ───────────────────────
-  // Access the Three.js scene to tint the globe sphere
-  setTimeout(() => {
-    try {
-      const threeObj = globe.scene();
-      threeObj.traverse(obj => {
-        if (obj.isMesh && obj.geometry?.type === 'SphereGeometry') {
-          if (obj.material && !obj.material.map) {
-            obj.material.color.set(C_OCEAN);
-          }
-        }
-      });
-    } catch(e) {}
-  }, 800);
 
 })();
