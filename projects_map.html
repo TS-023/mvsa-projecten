@@ -181,6 +181,12 @@
   .leaflet-div-icon, .custom-div-icon {
     background: transparent !important;
     border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .leaflet-div-icon div {
+    box-sizing: border-box;
   }
   .marker-pin:hover{
     transform: rotate(-45deg) scale(1.12);
@@ -420,14 +426,7 @@ function makeIcon(isUser, project){
   const { icon, color } = isUser ? { icon: '★', color: '#111418' } : getTypeData(project);
   return L.divIcon({
     className: 'custom-div-icon',
-    html: `<div style="
-      width:36px;height:36px;border-radius:50% 50% 50% 0;
-      background:${color};
-      transform:rotate(-45deg);
-      border:2.5px solid rgba(255,255,255,0.9);
-      box-shadow:0 4px 14px rgba(0,0,0,.28);
-      display:flex;align-items:center;justify-content:center;
-    "><span style="transform:rotate(45deg);font-size:15px;line-height:1;">${icon}</span></div>`,
+    html: `<div style="width:36px;height:36px;border-radius:50% 50% 50% 0 !important;background:${color} !important;transform:rotate(-45deg);border:2.5px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:14px;line-height:1;display:block;">${icon}</span></div>`,
     iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -40],
   });
 }
@@ -440,12 +439,9 @@ function addProject(p){
   const link = `project_page.html?p=${encodeURIComponent(p.name)}`;
 
   // Popup (bij klik)
-  m.bindPopup(`<div style="font-family:'Inter',sans-serif;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:4px 2px;white-space:nowrap;">${p.name}</div>`, {
-    closeButton: false, className: 'minimal-popup', maxWidth: 200,
-  });
-  m.on('click', () => showDetail(p));
+  m.on('click', () => { showDetail(p); });
   m.on('mouseover', () => {
-    showDetail(p); m.openPopup();
+    showDetail(p);
     // Highlight kaart in lijst
     document.querySelectorAll('.proj-card').forEach(c => c.classList.remove('active'));
     const card = document.querySelector(`.proj-card[data-name="${p.name}"]`);
@@ -589,7 +585,6 @@ function renderList(filter = ''){
       const p = allProjects.find(x => x.name === n);
       if (m && p){
         map.setView([p.lat, p.lng], 14, { animate: true });
-        m.openPopup();
         document.querySelectorAll('.proj-card.active').forEach(c => c.classList.remove('active'));
         card.classList.add('active');
         showDetail(p);
