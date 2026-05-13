@@ -304,8 +304,8 @@
 
   /* ---------- Bottom toggle ---------- */
   .toggle {
-    position: absolute;
-    bottom: 28px;
+    position: fixed;
+    bottom: 24px;
     left: 50%;
     transform: translateX(-50%);
     background: var(--ink);
@@ -313,7 +313,7 @@
     padding: 5px;
     display: flex;
     gap: 3px;
-    z-index: 15;
+    z-index: 1000;
     box-shadow: 0 14px 30px -10px rgba(0,0,0,0.35);
   }
   .toggle button {

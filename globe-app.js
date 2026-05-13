@@ -185,9 +185,17 @@
 
   // ── Zoom buttons ─────────────────────────────────────────
   function getAlt()   { return globe.pointOfView().altitude; }
-  function setAlt(a)  { globe.pointOfView({ ...globe.pointOfView(), altitude: Math.max(0.15, Math.min(4, a)) }, 300); }
+  function setAlt(a, ms)  { globe.pointOfView({ ...globe.pointOfView(), altitude: Math.max(0.15, Math.min(4, a)) }, ms || 300); }
   zoomIn.addEventListener('click',  () => setAlt(getAlt() * 0.65));
   zoomOut.addEventListener('click', () => setAlt(getAlt() * 1.5));
+
+  // ── Scroll to zoom (globe.gl blocks native wheel — re-enable) ────
+  container.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    stopRotate();
+    const factor = e.deltaY > 0 ? 1.12 : 0.88;
+    setAlt(getAlt() * factor, 80);
+  }, { passive: false });
 
   // ── Auto-rotate (stops on interaction) ───────────────────
   let autoRotate = true;
