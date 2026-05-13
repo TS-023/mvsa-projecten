@@ -608,8 +608,8 @@
       canvas.style.cursor = 'default';
     });
 
-    // 3D drag rotation
     canvas.addEventListener('mousedown', (e) => {
+      // 3D modus: drag roteert de bol
       if (viewMode === '3d') {
         isDragging3D = true;
         autoRotate = false;
@@ -617,12 +617,6 @@
         canvas.style.cursor = 'grabbing';
         return;
       }
-    });
-    // Overwrite with regular mousedown below
-    const _origMousedown = canvas.onmousedown;
-    canvas.addEventListener('mousedown_3d_placeholder', () => {});
-
-    canvas.addEventListener('mousedown', (e) => {
       const w = screenToWorld(e.clientX, e.clientY);
       // Hub blokkeren
       const hubDist = Math.hypot(w.x - nodes[HUB_IDX].x, w.y - nodes[HUB_IDX].y);
@@ -1152,27 +1146,27 @@
       const SPHERE_R = Math.min(W, H) * 0.32; // straal van de 3D ruimte
 
       function sphere3DToScreen(theta, phi) {
-        // Roteer om X en Y as
         const cosX = Math.cos(rotX3), sinX = Math.sin(rotX3);
-        const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
-        // Sferische → cartesisch
+        const cosY = Math.cos(rotY),  sinY = Math.sin(rotY);
+        // Sferisch → cartesisch
         let x = Math.sin(phi) * Math.cos(theta);
         let y = Math.cos(phi);
         let z = Math.sin(phi) * Math.sin(theta);
-        // Roteer Y
+        // Roteer Y-as
         const x1 = x * cosY - z * sinY;
         const z1 = x * sinY + z * cosY;
-        // Roteer X
+        // Roteer X-as
         const y2 = y * cosX - z1 * sinX;
         const z2 = y * sinX + z1 * cosX;
-        // Perspectief projectie
-        const fov = 2.2;
-        const scale = fov / (fov + z2);
-        const cx = W / 2 + panX, cy = H / 2 + panY;
+        // Perspectief
+        const fov = 2.5;
+        const scale = fov / (fov + z2 * 0.5 + 1);
+        // Centrum altijd midden van scherm in 3D
+        const cx = W / 2, cy = H / 2;
         return {
-          sx: cx + x1 * SPHERE_R * scale * zoom,
-          sy: cy + y2 * SPHERE_R * scale * zoom,
-          sz: z2,   // diepte: -1 = achter, +1 = voor
+          sx: cx + x1 * SPHERE_R * scale,
+          sy: cy + y2 * SPHERE_R * scale,
+          sz: z2,
           scale,
         };
       }
@@ -1363,10 +1357,11 @@
         if (i === HUB_IDX) continue;
         const n = nodes[i];
         // In 3D: gebruik sferische positie
-        let _ox3 = n.x, _oy3 = n.y;
+        let _ox3 = n.x, _oy3 = n.y, _oz3 = n.z;
         if (viewMode === '3d' && sphere3DScreenPos[i]) {
           const sp = sphere3DScreenPos[i];
           n.x = sp.sx; n.y = sp.sy;
+          n.z = sp.sz; // gebruik diepte voor schaal/alpha
         }
         const lit = !hasSel || hl.has(i);
         const sc = zScale(n.z);
@@ -1376,9 +1371,6 @@
         const breathe = 0.85 + Math.sin(n.phase) * 0.22;
         const isProj = n.type === 'project';
         const baseR = n.r * sc;
-        const { sx: _p3x, sy: _p3y } = project3D(n.x, n.y, n.z||0);
-        n._ox = n.x; n._oy = n.y;
-        if (viewMode === '3d') { n.x = _p3x; n.y = _p3y; }
 
         if (CONFIG.glow) {
           const glowR = baseR * (isProj ? 5 : 4) * (lit ? 1 : 0.5);
@@ -1507,13 +1499,15 @@
             ctx.stroke();
           }
         }
+        // Herstel originele 2D positie
+        n.x = _ox3; n.y = _oy3; n.z = _oz3;
       }
 
       // Hub — cirkel in 2D, sphere in 3D
       { const h=nodes[HUB_IDX]; const t=performance.now()/1000;
         if (viewMode === '3d') {
           // ── 3D Sphere ──────────────────────────────────────────
-          const cx = W/2 + panX, cy = H/2 + panY;
+          const cx = W/2, cy = H/2;
           const sr = HUB_R * 1.1 * zoom;
           // Atmosferische gloed
           const atmo = ctx.createRadialGradient(cx, cy, sr*0.5, cx, cy, sr*2.2);
@@ -1619,12 +1613,6 @@
         }
       }
 
-      // Restore node positions after 3D draw
-      if (viewMode === '3d') {
-        for (const n of nodes) {
-          if (typeof n._ox === 'number') { n.x = n._ox; n.y = n._oy; }
-        }
-      }
       ctx.restore(); // end zoom transform
 
       requestAnimationFrame(step);
