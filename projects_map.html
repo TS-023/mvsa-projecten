@@ -295,12 +295,16 @@ function cacheSet(key, val){
 async function resolveUserCoords(userProjects){
   const out = [];
   for (const p of userProjects){
+    // Direct lat/lng beschikbaar → geen geocoding nodig
+    if (p.raw?.lat && p.raw?.lng) {
+      out.push({ ...p, lat: +p.raw.lat, lng: +p.raw.lng });
+      continue;
+    }
     if (!p.address){ continue; }
     let coords = cacheGet(p.address);
     if (!coords){
       coords = await geocode(p.address);
       if (coords) cacheSet(p.address, coords);
-      // Be polite — Nominatim asks ~1 req/s
       await new Promise(r => setTimeout(r, 1100));
     }
     if (coords) out.push({ ...p, lat: coords.lat, lng: coords.lng });
