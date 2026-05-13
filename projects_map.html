@@ -1054,7 +1054,7 @@ function buildHeatmap() {
     blur: 60,
     maxZoom: 10,
     max: 3,
-    gradient: { 0.2: '#3b82f6', 0.4: '#8b5cf6', 0.6: '#f59e0b', 0.8: '#ef4444', 1.0: '#fff' },
+    gradient: { 0.2: '#3b82f6', 0.4: '#8b5cf6', 0.6: '#f59e0b', 0.8: '#ef4444', 1.0: '#cc0000' },
   }).addTo(map);
 }
 
@@ -1111,7 +1111,6 @@ function buildBubbles() {
 
 // ── Netwerk ───────────────────────────────────────────────────────────────────
 function buildNetwork() {
-  // Pulserende marker voor kantoor
   const officeIcon = L.divIcon({
     className: '',
     html: `<div style="
@@ -1123,18 +1122,23 @@ function buildNetwork() {
     iconAnchor: [8, 8],
   });
   const om = L.marker([OFFICE.lat, OFFICE.lng], { icon: officeIcon, zIndexOffset: 1000 })
-    .bindTooltip('<strong>MVSA Kantoor</strong><br>Amsterdam', { className: 'proj-tooltip-simple', direction: 'top', permanent: false })
+    .bindTooltip('<strong>MVSA Kantoor</strong><br>Amsterdam', { className: 'proj-tooltip-simple', direction: 'top' })
     .addTo(map);
   networkLayers.push(om);
 
+  function lineWeight() {
+    const z = map.getZoom();
+    return Math.max(1, (z - 5) * 0.6);
+  }
+
   allProjects.forEach(p => {
     const dist = getDistKm(OFFICE.lat, OFFICE.lng, p.lat, p.lng);
-    const opacity = Math.max(0.08, 0.55 - dist / 600);
+    const opacity = Math.max(0.25, 0.75 - dist / 400);
     const line = L.polyline([[OFFICE.lat, OFFICE.lng], [p.lat, p.lng]], {
-      color: '#3d6e8a',
-      weight: 1,
+      color: '#111418',
+      weight: lineWeight(),
       opacity,
-      dashArray: '4 6',
+      dashArray: '5 7',
     }).addTo(map);
     line.bindTooltip(
       `${p.name}<br><span style="color:var(--muted)">${Math.round(dist)} km van kantoor</span>`,
@@ -1142,7 +1146,20 @@ function buildNetwork() {
     );
     networkLayers.push(line);
   });
+
+  // Schaal lijnen mee bij zoomen
+  map.on('zoomend.network', () => {
+    const w = lineWeight();
+    networkLayers.forEach(l => { if (l.setStyle) l.setStyle({ weight: w }); });
+  });
 }
+
+// Verwijder zoom listener bij clearen
+const _clearAllLayers = clearAllLayers;
+clearAllLayers = function() {
+  map.off('zoomend.network');
+  _clearAllLayers();
+};
 
 function getDistKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
