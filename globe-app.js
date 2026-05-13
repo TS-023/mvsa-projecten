@@ -9,21 +9,18 @@
   const THEMES = {
     A: {
       land: '#ebe4d0', border: '#b7ae96', ocean: '#f5f0e3',
-      atmo: '#cfc5a9', atmoAlt: 0.14, imageUrl: null,
+      atmo: '#cfc5a9', atmoAlt: 0.14,
       pin: '#c8914a', pinGlow: '#d4a060',
       office: '#c94040', officeGlow: '#e05050',
     },
     B: {
       land: '#1a1a22', border: '#ff6a00', ocean: '#0a0a10',
-      atmo: '#ff6a00', atmoAlt: 0.18, imageUrl: null,
+      atmo: '#ff6a00', atmoAlt: 0.18,
       pin: '#ff6a00', pinGlow: '#ff8c00',
       office: '#ff2200', officeGlow: '#ff4400',
     },
     C: {
-      land: null, border: 'rgba(0,0,0,0)', ocean: '#0d1f3c',
-      atmo: '#4fc3f7', atmoAlt: 0.25,
-      imageUrl: 'https://eoimages.gsfc.nasa.gov/images/imagerecords/74000/74117/world.200408.3x5400x2700.jpg',
-      imageUrlFallback: 'https://unpkg.com/three-globe@2/example/img/earth-blue-marble.jpg',
+      ocean: '#0d1f3c', atmo: '#4fc3f7', atmoAlt: 0.25,
       tileThreshold: 0.35,
       pin: '#ffffff', pinGlow: 'rgba(255,255,255,0.5)',
       office: '#ff4081', officeGlow: '#ff80ab',
@@ -73,147 +70,49 @@
     return document.body.getAttribute('data-layout') || 'A';
   }
 
-  // ── OSM tile system ───────────────────────────────────────
-  // Only render a small patch of tiles around current POV — fast!
-  const TILE_SIZE  = 256;
-  const PATCH_GRID = 5;   // 5×5 tiles around centre = 25 tiles max
-
-  let osmCanvas  = document.createElement('canvas');
-  let osmCtx     = osmCanvas.getContext('2d');
-  let lastOsmZ   = -1;
-  let lastOsmCx  = -1;
-  let lastOsmCy  = -1;
-  let osmActive  = false;
-  let osmTimer   = null;
-  let nasaUrl    = null;  // stored so we can restore it
-
-  function latLngToTileXY(lat, lng, z) {
-    const n   = Math.pow(2, z);
-    const x   = Math.floor((lng + 180) / 360 * n);
-    const rad = lat * Math.PI / 180;
-    const y   = Math.floor((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2 * n);
-    return { x: (x % n + n) % n, y: Math.max(0, Math.min(n - 1, y)) };
-  }
-
-  function altToZoom(alt) {
-    // altitude 0.35→z6, 0.1→z9, 0.02→z12, 0.003→z15, 0.0003→z18
-    return Math.max(3, Math.min(18, Math.round(6 - Math.log2(alt / 0.35) * 1.8)));
-  }
-
-  function osmUrl(x, y, z) {
+  // ── Tile URL builders ─────────────────────────────────────
+  // globe.gl native tile support via tilesDataUrl — blazing fast, GPU handled
+  function osmTileUrl(x, y, z) {
     const s = ['a','b','c'][(x + y + z) % 3];
     return `https://${s}.tile.openstreetmap.org/${z}/${x}/${y}.png`;
   }
 
-  function loadOSMPatch(z, cx, cy) {
-    if (z === lastOsmZ && cx === lastOsmCx && cy === lastOsmCy) return;
-    lastOsmZ  = z;
-    lastOsmCx = cx;
-    lastOsmCy = cy;
-
-    const G    = PATCH_GRID;
-    const half = Math.floor(G / 2);
-    const n    = Math.pow(2, z);
-    const px   = G * TILE_SIZE;
-
-    osmCanvas.width  = px;
-    osmCanvas.height = px;
-    osmCtx.fillStyle = '#1a2a4a';
-    osmCtx.fillRect(0, 0, px, px);
-
-    let done = 0;
-    const total = G * G;
-
-    for (let dx = 0; dx < G; dx++) {
-      for (let dy = 0; dy < G; dy++) {
-        const tx = ((cx - half + dx) % n + n) % n;
-        const ty = Math.max(0, Math.min(n - 1, cy - half + dy));
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        const capturedDx = dx, capturedDy = dy;
-        img.onload = img.onerror = function () {
-          if (img.naturalWidth) {
-            osmCtx.drawImage(img, capturedDx * TILE_SIZE, capturedDy * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-          }
-          done++;
-          // Apply as soon as we have at least half the tiles
-          if (done === Math.ceil(total / 2) || done === total) {
-            applyOSMToGlobe();
-          }
-        };
-        img.src = osmUrl(tx, ty, z);
-      }
-    }
+  // CartoDB light tiles — styled, fast, no key needed
+  function cartoTileUrl(x, y, z) {
+    const s = ['a','b','c','d'][(x + y + z) % 4];
+    return `https://${s}.basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}.png`;
   }
 
-  function applyOSMToGlobe() {
-    try {
-      // Use createImageBitmap + OffscreenCanvas if available for speed
-      const dataUrl = osmCanvas.toDataURL('image/jpeg', 0.88);
-      globe.globeImageUrl(dataUrl);
-      osmActive = true;
-    } catch(e) {}
+  // Satellite tiles via ESRI (no key, reliable CORS)
+  function esriSatTileUrl(x, y, z) {
+    return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
   }
 
-  function updateOSM() {
-    const layout = currentLayout();
-    const t = THEMES[layout];
-    if (!t.tileThreshold) return;
-
-    const pov = globe.pointOfView();
-    const alt = pov.altitude;
-
-    if (alt < t.tileThreshold) {
-      const z  = altToZoom(alt);
-      const { x, y } = latLngToTileXY(pov.lat, pov.lng, z);
-      loadOSMPatch(z, x, y);
-    } else if (osmActive) {
-      // Zoom out — restore NASA
-      osmActive  = false;
-      lastOsmZ   = -1;
-      lastOsmCx  = -1;
-      lastOsmCy  = -1;
-      globe.globeImageUrl(nasaUrl || t.imageUrl);
-    }
-  }
-
-  // Debounced zoom watcher — fires 300ms after scroll stops
-  function scheduleOSMUpdate() {
-    clearTimeout(osmTimer);
-    osmTimer = setTimeout(updateOSM, 300);
-  }
+  let tileMode = false; // is layout C currently in tile mode?
 
   // ── Apply globe theme ─────────────────────────────────────
   function applyGlobeTheme(layout) {
     const t = THEMES[layout];
-    osmActive = false; lastOsmZ = -1;
+    tileMode = false;
 
-    if (t.imageUrl) {
-      nasaUrl = t.imageUrl;
+    if (layout === 'C') {
+      // Start with ESRI satellite texture (reliable, high-res, CORS OK)
       globe
-        .globeImageUrl(t.imageUrl)
+        .globeImageUrl(null)
+        .tilesDataUrl(null)
         .polygonsData([])
         .showAtmosphere(true)
         .atmosphereColor(t.atmo)
         .atmosphereAltitude(t.atmoAlt)
         .backgroundColor('rgba(0,0,0,0)');
 
-      // Fallback
-      if (t.imageUrlFallback) {
-        setTimeout(() => {
-          try {
-            globe.scene().traverse(obj => {
-              if (obj.isMesh && obj.geometry?.type === 'SphereGeometry' && obj.material?.map) {
-                if (!obj.material.map.image || obj.material.map.image.width === 0)
-                  globe.globeImageUrl(t.imageUrlFallback);
-              }
-            });
-          } catch(e) {}
-        }, 3000);
-      }
-    } else {
-      nasaUrl = null;
+      // Use globe.gl's native tile rendering with ESRI satellite
+      // This is GPU-accelerated and loads only visible tiles
+      globe.tilesDataUrl(({ x, y, z }) => esriSatTileUrl(x, y, z));
+
+    } else if (layout === 'A' || layout === 'B') {
       globe
+        .tilesDataUrl(null)
         .globeImageUrl(null)
         .polygonsData(landFeatures)
         .polygonCapColor(() => t.land)
@@ -359,15 +258,12 @@
     ['search-sidebar','search-hud'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     filteredProjects = projects;
     buildPins(projects);
-    const t = THEMES[currentLayout()];
-    if (t.imageUrl && osmActive) { osmActive = false; lastOsmZ = -1; globe.globeImageUrl(t.imageUrl); }
   });
 
   // ── Zoom ──────────────────────────────────────────────────
   function getAlt() { return globe.pointOfView().altitude; }
   function setAlt(a, ms) {
     globe.pointOfView({ ...globe.pointOfView(), altitude: Math.max(0.0003, Math.min(4, a)) }, ms || 300);
-    scheduleOSMUpdate();
   }
   zoomIn.addEventListener('click',  () => setAlt(getAlt() * 0.5));
   zoomOut.addEventListener('click', () => setAlt(getAlt() * 2.0));
@@ -377,8 +273,6 @@
     stopRotate();
     setAlt(getAlt() * (e.deltaY > 0 ? 1.12 : 0.88), 60);
   }, { passive: false });
-
-  globe.onZoom(() => scheduleOSMUpdate());
 
   // ── Auto-rotate ───────────────────────────────────────────
   let autoRotate = true, rotateTimer = null;
