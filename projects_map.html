@@ -496,12 +496,15 @@ L.control.zoom({ position: 'bottomright' }).addTo(map);
 // Schaal markers op basis van zoom
 map.on('zoomend', () => {
   const z = map.getZoom();
-  // Leaflet handles this via iconSize in SVG viewBox - update all markers
   Object.entries(markers).forEach(([name, marker]) => {
     const proj = allProjects.find(p => p.name === name);
     if (proj) {
       const isActive = marker === activeMarker;
-      marker.setIcon(makeIconZoom(proj.isUser, proj.raw, isActive, z));
+      if (currentMode === 'timeline') {
+        marker.setIcon(makeIconYear(proj.year, isActive, z));
+      } else {
+        marker.setIcon(makeIconZoom(proj.isUser, proj.raw, isActive, z));
+      }
     }
   });
 });
@@ -621,10 +624,54 @@ function makeIcon(isUser, project, active){
   });
 }
 
-/* ── addProject: voegt een marker toe aan de kaart
-   - bindt een popup (klik) en tooltip (hover) met thumbnail
-   - laadt thumbnail lazy bij eerste hover ── */
+/* ── Jaar kleurschaal: oud=blauw, recent=warm rood ── */
+const YEAR_MIN = 2010, YEAR_MAX = 2024;
+function yearColor(year) {
+  if (!year) return '#888ea0';
+  const t = Math.max(0, Math.min(1, (year - YEAR_MIN) / (YEAR_MAX - YEAR_MIN)));
+  // blauw (#4a7cac) → paars (#8b5aaa) → amber (#d4900a) → rood (#c94040)
+  const stops = [
+    [0.00, [74, 124, 172]],
+    [0.33, [139, 90, 170]],
+    [0.66, [212, 144, 10]],
+    [1.00, [201, 64, 64]],
+  ];
+  let c0 = stops[0][1], c1 = stops[stops.length-1][1], blend = t;
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (t >= stops[i][0] && t <= stops[i+1][0]) {
+      blend = (t - stops[i][0]) / (stops[i+1][0] - stops[i][0]);
+      c0 = stops[i][1]; c1 = stops[i+1][1]; break;
+    }
+  }
+  const r = Math.round(c0[0] + (c1[0]-c0[0]) * blend);
+  const g = Math.round(c0[1] + (c1[1]-c0[1]) * blend);
+  const b = Math.round(c0[2] + (c1[2]-c0[2]) * blend);
+  return `rgb(${r},${g},${b})`;
+}
+
+function makeIconYear(year, active, zoom) {
+  zoom = zoom || 7;
+  const color  = yearColor(year);
+  const border = active ? '#111418' : '#ffffff';
+  const size   = getIconSize(zoom, active);
+  const half   = size / 2;
+  const label  = year ? String(year).slice(2) : '?';
+  const fontSize = Math.max(8, size * 0.3);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size+6}" viewBox="0 0 ${size} ${size+6}">
+    <defs><filter id="shy"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,.3)"/></filter></defs>
+    <path d="M${half} ${size+4} C${half} ${size+4} 2 ${half+4} 2 ${half} a${half-2} ${half-2} 0 1 1 ${size-4} 0 C${size-2} ${half+4} ${half} ${size+4} ${half} ${size+4}z"
+      fill="${color}" stroke="${border}" stroke-width="2" filter="url(#shy)"/>
+    <text x="${half}" y="${half+1}" text-anchor="middle" dominant-baseline="middle"
+      font-size="${fontSize}" font-weight="800" fill="#fff" style="user-select:none;">${label}</text>
+  </svg>`;
+  return L.divIcon({ className: '', html: svg, iconSize: [size, size+6], iconAnchor: [half, size+6] });
+}
 function addProject(p){
+  // Mock jaar als geen opleverdatum beschikbaar
+  if (!p.year) {
+    const y = p.raw?.opleverdatum?.slice(0,4) || p.raw?.startdatum?.slice(0,4);
+    p.year = y ? +y : (YEAR_MIN + Math.floor(Math.random() * (YEAR_MAX - YEAR_MIN + 1)));
+  }
   const m = L.marker([p.lat, p.lng], { icon: makeIconZoom(p.isUser, p.raw, false, map.getZoom()) }).addTo(map);
   const link = `project_page.html?p=${encodeURIComponent(p.name)}`;
 
@@ -1034,6 +1081,18 @@ function setMode(mode) {
     else             { if (map.hasLayer(m))  map.removeLayer(m); }
   });
 
+  // Restore normal icons when leaving timeline
+  if (mode !== 'timeline') {
+    allProjects.forEach(p => {
+      const m = markers[p.name];
+      if (m) {
+        const el = m.getElement();
+        if (el) { el.style.opacity = '1'; el.style.transform = ''; }
+        m.setIcon(makeIconZoom(p.isUser, p.raw, false, map.getZoom()));
+      }
+    });
+  }
+
   if (mode === 'heat')     buildHeatmap();
   if (mode === 'bubble')   buildBubbles();
   if (mode === 'network')  buildNetwork();
@@ -1172,17 +1231,23 @@ function getDistKm(lat1, lng1, lat2, lng2) {
 // ── Tijdlijn ──────────────────────────────────────────────────────────────────
 function buildTimeline() {
   const slider = document.getElementById('tl-slider');
-  // Determine year range from projects
-  const years = allProjects.map(p => {
-    const y = p.raw?.opleverdatum?.slice(0,4) || p.raw?.startdatum?.slice(0,4);
-    return y ? +y : null;
-  }).filter(Boolean);
-
-  const minY = years.length ? Math.min(...years) : 2010;
-  const maxY = years.length ? Math.max(...years) : 2024;
+  const years = allProjects.map(p => p.year).filter(Boolean);
+  const minY = years.length ? Math.min(...years) : YEAR_MIN;
+  const maxY = years.length ? Math.max(...years) : YEAR_MAX;
   slider.min = minY;
   slider.max = maxY;
   slider.value = minY;
+
+  // Switch all markers to year-colored icons
+  allProjects.forEach(p => {
+    const m = markers[p.name];
+    if (m) {
+      m.setIcon(makeIconYear(p.year, false, map.getZoom()));
+      // Add fade transition via DOM
+      const el = m.getElement();
+      if (el) el.style.transition = 'opacity 400ms ease, transform 400ms ease';
+    }
+  });
 
   updateTimeline(minY);
   slider.addEventListener('input', () => updateTimeline(+slider.value));
@@ -1196,16 +1261,43 @@ function updateTimeline(year) {
   const pct = maxY > minY ? ((year - minY) / (maxY - minY)) * 100 : 0;
   document.getElementById('tl-fill').style.width = pct + '%';
 
-  // Show only projects up to this year
   let count = 0;
   allProjects.forEach(p => {
-    const y = p.raw?.opleverdatum?.slice(0,4) || p.raw?.startdatum?.slice(0,4);
-    const projYear = y ? +y : null;
-    const visible = !projYear || projYear <= year;
+    const visible = !p.year || p.year <= year;
     const m = markers[p.name];
     if (!m) return;
-    if (visible) { if (!map.hasLayer(m)) map.addLayer(m); count++; }
-    else          { if (map.hasLayer(m))  map.removeLayer(m); }
+    const el = m.getElement();
+
+    if (visible) {
+      if (!map.hasLayer(m)) {
+        map.addLayer(m);
+        // Fade in + pop up
+        requestAnimationFrame(() => {
+          const e = m.getElement();
+          if (e) {
+            e.style.opacity = '0';
+            e.style.transform = 'scale(0.5)';
+            e.style.transition = 'opacity 400ms ease, transform 400ms ease';
+            requestAnimationFrame(() => { e.style.opacity = '1'; e.style.transform = 'scale(1)'; });
+          }
+        });
+      }
+      // Kleur recente projecten feller
+      const isNew = p.year === year;
+      if (el) el.style.opacity = isNew ? '1' : '0.65';
+      count++;
+    } else {
+      if (map.hasLayer(m)) {
+        // Fade out
+        if (el) {
+          el.style.opacity = '0';
+          el.style.transform = 'scale(0.5)';
+          setTimeout(() => { if (map.hasLayer(m)) map.removeLayer(m); }, 380);
+        } else {
+          map.removeLayer(m);
+        }
+      }
+    }
   });
 
   document.getElementById('tl-count').textContent = `${count} project${count !== 1 ? 'en' : ''}`;
