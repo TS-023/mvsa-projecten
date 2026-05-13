@@ -195,6 +195,24 @@
     letter-spacing: 0.04em; transition: color .15s;
   }
   .filter-item.off .filter-label { color: rgba(216,222,233,0.35); }
+
+  /* ── View mode toggle ─────────────────────────────────────────── */
+  .view-mode-btn {
+    position: fixed; bottom: 22px; right: 16px; z-index: 6;
+    display: flex; gap: 4px;
+    background: rgba(10,12,16,0.82); backdrop-filter: blur(16px);
+    border: 1px solid rgba(216,222,233,0.12); border-radius: 999px;
+    padding: 5px;
+  }
+  .vmbtn {
+    padding: 6px 14px; border-radius: 999px; border: none; cursor: pointer;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    background: transparent; color: rgba(216,222,233,0.5);
+    transition: all .15s;
+  }
+  .vmbtn.active { background: rgba(232,238,247,0.15); color: rgba(232,238,247,0.95); }
+  .vmbtn:hover:not(.active) { color: rgba(232,238,247,0.75); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase.js"></script>
@@ -269,7 +287,7 @@
     </div>
   </div>
 
-  <div class="selected-info" id="filter-dot-card" style="top: 112px; left: 280px;"></div>
+  <div class="selected-info" id="filter-dot-card" style="top: 112px; left: 28px;"></div>
   <div class="selected-info" id="selected-info"></div>
 
   <div id="tweaks-root" style="display:none"></div>
@@ -781,6 +799,17 @@
           <ul>${people.map(p => `<li>${p}</li>`).join('')}</ul>
           ${tagHTML}
           <div class="hint">click opnieuw om los te maken</div>`;
+      }
+      // Position below selected-info
+      const si = document.getElementById('selected-info');
+      if (si && si.classList.contains('visible')) {
+        el.style.top = (si.getBoundingClientRect().bottom + 10) + 'px';
+        el.style.width = si.offsetWidth + 'px';
+        el.style.maxWidth = si.offsetWidth + 'px';
+      } else {
+        el.style.top = '112px';
+        el.style.width = '';
+        el.style.maxWidth = '';
       }
       el.classList.add('visible');
     }
