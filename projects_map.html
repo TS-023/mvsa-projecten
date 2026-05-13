@@ -362,7 +362,21 @@ async function resolveUserCoords(userProjects){
 /* ----------------------------------------------------------------------------
    Build map
 ---------------------------------------------------------------------------- */
-const map = L.map('map', { zoomControl: true }).setView([52.2, 5.3], 7);
+const map = L.map('map', { zoomControl: false }).setView([52.2, 5.3], 7);
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+// Schaal markers op basis van zoom
+map.on('zoomend', () => {
+  const z = map.getZoom();
+  // Leaflet handles this via iconSize in SVG viewBox - update all markers
+  Object.entries(markers).forEach(([name, marker]) => {
+    const proj = allProjects.find(p => p.name === name);
+    if (proj) {
+      const isActive = marker === activeMarker;
+      marker.setIcon(makeIconZoom(proj.isUser, proj.raw, isActive, z));
+    }
+  });
+});
+
 map.on('click', function(e) {
   // Sluit detail als er op de kaart geklikt wordt (niet op een pin)
   if (!e.originalEvent.target.closest('.marker-pin')) {
@@ -411,8 +425,9 @@ const TYPE_MAP = {
 };
 
 function getTypeData(project) {
-  const type = project?.project_type || project?.raw?.project_type || project?.raw?.opgave || project?.opgave || '';
-  // Case-insensitive match
+  const type = (project?.project_type || project?.raw?.project_type || 
+    project?.raw?.opgave || project?.opgave || '').trim();
+  if (!type) return TYPE_MAP['default'];
   const key = Object.keys(TYPE_MAP).find(k => k.toLowerCase() === type.toLowerCase()) || 'default';
   return TYPE_MAP[key];
 }
@@ -423,6 +438,31 @@ function getIcon(project) {
 }
 
 /* ── makeIcon: maakt een Leaflet DivIcon met emoji en kleur per type ── */
+function getIconSize(zoom, active) {
+  const base = active ? 42 : Math.max(20, Math.min(38, (zoom - 5) * 4 + 20));
+  return base;
+}
+
+function makeIconZoom(isUser, project, active, zoom) {
+  zoom = zoom || 7;
+  const { icon, color } = isUser ? { icon: '★', color: '#111418' } : getTypeData(project);
+  const border = active ? '#111418' : '#ffffff';
+  const size = getIconSize(zoom, active);
+  const half = size / 2;
+  const fontSize = Math.max(10, size * 0.38);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size+6}" viewBox="0 0 ${size} ${size+6}">
+    <defs><filter id="sh${size}"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,.3)"/></filter></defs>
+    <path d="M${half} ${size+4} C${half} ${size+4} 2 ${half+4} 2 ${half} a${half-2} ${half-2} 0 1 1 ${size-4} 0 C${size-2} ${half+4} ${half} ${size+4} ${half} ${size+4}z"
+      fill="${color}" stroke="${border}" stroke-width="2" filter="url(#sh${size})"/>
+    <text x="${half}" y="${half+1}" text-anchor="middle" dominant-baseline="middle" font-size="${fontSize}" style="user-select:none;">${icon}</text>
+  </svg>`;
+  return L.divIcon({
+    className: '',
+    html: svg,
+    iconSize: [size, size+6], iconAnchor: [half, size+6], popupAnchor: [0, -(size+6)],
+  });
+}
+
 function makeIcon(isUser, project, active){
   const { icon, color } = isUser ? { icon: '★', color: '#111418' } : getTypeData(project);
   const border = active ? '#111418' : '#ffffff';
@@ -451,7 +491,7 @@ function makeIcon(isUser, project, active){
    - bindt een popup (klik) en tooltip (hover) met thumbnail
    - laadt thumbnail lazy bij eerste hover ── */
 function addProject(p){
-  const m = L.marker([p.lat, p.lng], { icon: makeIcon(p.isUser, p.raw, false) }).addTo(map);
+  const m = L.marker([p.lat, p.lng], { icon: makeIconZoom(p.isUser, p.raw, false, map.getZoom()) }).addTo(map);
   const link = `project_page.html?p=${encodeURIComponent(p.name)}`;
 
   // Popup (bij klik)
@@ -459,24 +499,36 @@ function addProject(p){
     // Reset vorige actieve marker
     if (activeMarker && activeMarker !== m) {
       const prevP = allProjects.find(x => markers[x.name] === activeMarker);
-      if (prevP) activeMarker.setIcon(makeIcon(prevP.isUser, prevP.raw, false));
+      if (prevP) activeMarker.setIcon(makeIconZoom(prevP.isUser, prevP.raw, false, map.getZoom()));
     }
     activeMarker = m;
-    m.setIcon(makeIcon(p.isUser, p.raw, true));
-    map.setView([p.lat, p.lng], Math.max(map.getZoom(), 13), { animate: true });
+    m.setIcon(makeIconZoom(p.isUser, p.raw, true, map.getZoom()));
+    m.unbindTooltip();
+    m.bindTooltip(`<div class="tt-name">${p.name}</div>`, {
+      className: 'proj-tooltip-simple proj-tooltip-active', direction: 'top',
+      offset: [0, -8], permanent: true, sticky: false,
+    });
+    m.openTooltip();
+    map.setView([p.lat, p.lng], Math.max(map.getZoom(), 11), { animate: true });
     showDetail(p);
   });
   m.on('mouseover', () => {
-    showDetail(p);
-    // Highlight kaart in lijst
-    document.querySelectorAll('.proj-card').forEach(c => c.classList.remove('active'));
-    const card = document.querySelector(`.proj-card[data-name="${p.name}"]`);
-    if (card) { card.classList.add('active'); card.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+    // Hover: alleen tooltip tonen, detail alleen bij klik
+    if (activeMarker !== m) {
+      // Highlight in lijst maar open NIET detail
+      document.querySelectorAll('.proj-card').forEach(el => el.classList.remove('active'));
+      const card = document.querySelector(`.proj-card[data-name="${p.name}"]`);
+      if (card) card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  });
+  m.on('mouseout', () => {
+    // Niets — detail blijft open als geklikt
   });
 
   // Tooltip (bij hover)
   m.bindTooltip(`<div class="tt-name">${p.name}</div>`, {
-    className: 'proj-tooltip-simple', direction: 'top', offset: [0, -8], sticky: false,
+    className: 'proj-tooltip-simple', direction: 'top', offset: [0, -8],
+    permanent: false, sticky: false,
   });
 
 markers[p.name] = m;
@@ -576,14 +628,20 @@ async function showDetail(p) {
 }
 
 function closeDetail() {
-  document.getElementById('proj-list').style.display = '';
+  document.getElementById('proj-list').style.display = 'flex';
   document.getElementById('search').style.display = '';
   document.querySelector('.legend') && (document.querySelector('.legend').style.display = '');
   document.getElementById('detail-panel').classList.remove('visible');
   // Reset actieve marker icon
   if (activeMarker) {
     const prevP = allProjects.find(x => markers[x.name] === activeMarker);
-    if (prevP) activeMarker.setIcon(makeIcon(prevP.isUser, prevP.raw, false));
+    if (prevP) {
+      activeMarker.setIcon(makeIconZoom(prevP.isUser, prevP.raw, false, map.getZoom()));
+      activeMarker.unbindTooltip();
+      activeMarker.bindTooltip(`<div class="tt-name">${prevP.name}</div>`, {
+        className: 'proj-tooltip-simple', direction: 'top', offset: [0,-8], permanent: false,
+      });
+    }
     activeMarker = null;
   }
   document.querySelectorAll('.proj-card.active').forEach(c => c.classList.remove('active'));
