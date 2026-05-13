@@ -973,6 +973,38 @@
     let lastFrame = performance.now();
     let fpsSmoothed = 60;
 
+    function zScale(z) {
+      if (viewMode === '3d') return 0.6 + 0.5 * ((z + 1) / 2);
+      return 0.52 + 0.48 * ((z + 1) / 2);
+    }
+    function zAlpha(z) {
+      if (viewMode === '3d') return 0.35 + 0.65 * ((z + 1) / 2);
+      return 0.22 + 0.78 * ((z + 1) / 2);
+    }
+
+    // ── 3D Sphere projectie functies ────────────────────────────
+    function getSphereR() { return Math.min(W, H) * 0.32; }
+
+    function sphere3DToScreen(theta, phi) {
+      const cosX = Math.cos(rotX3), sinX = Math.sin(rotX3);
+      const cosY = Math.cos(rotY),  sinY = Math.sin(rotY);
+      let x = Math.sin(phi) * Math.cos(theta);
+      let y = Math.cos(phi);
+      let z = Math.sin(phi) * Math.sin(theta);
+      const x1 = x * cosY - z * sinY;
+      const z1 = x * sinY + z * cosY;
+      const y2 = y * cosX - z1 * sinX;
+      const z2 = y * sinX + z1 * cosX;
+      const fov = 2.5;
+      const scale = fov / (fov + z2 * 0.5 + 1);
+      const cx = W / 2, cy = H / 2;
+      return {
+        sx: cx + x1 * getSphereR() * scale,
+        sy: cy + y2 * getSphereR() * scale,
+        sz: z2, scale,
+      };
+    }
+
     function step(now) {
       const dt = Math.min(40, now - lastFrame);
       lastFrame = now;
@@ -1152,48 +1184,8 @@
       const hoverPersonColor = hoverIsPerson ? colorFor(nodes[mouse.hover]) : null;
 
       // 2.5D helpers — z loopt van -1 (ver weg) tot +1 (dichtbij)
-      function zScale(z) {
-        if (viewMode === '3d') return 0.6 + 0.5 * ((z + 1) / 2);
-        return 0.52 + 0.48 * ((z + 1) / 2);
-      }
-      function zAlpha(z) {
-        if (viewMode === '3d') return 0.35 + 0.65 * ((z + 1) / 2);
-        return 0.22 + 0.78 * ((z + 1) / 2);
-      }
-      // Sferische → scherm projectie
-      const SPHERE_R = Math.min(W, H) * 0.32; // straal van de 3D ruimte
 
-      function sphere3DToScreen(theta, phi) {
-        const cosX = Math.cos(rotX3), sinX = Math.sin(rotX3);
-        const cosY = Math.cos(rotY),  sinY = Math.sin(rotY);
-        // Sferisch → cartesisch
-        let x = Math.sin(phi) * Math.cos(theta);
-        let y = Math.cos(phi);
-        let z = Math.sin(phi) * Math.sin(theta);
-        // Roteer Y-as
-        const x1 = x * cosY - z * sinY;
-        const z1 = x * sinY + z * cosY;
-        // Roteer X-as
-        const y2 = y * cosX - z1 * sinX;
-        const z2 = y * sinX + z1 * cosX;
-        // Perspectief
-        const fov = 2.5;
-        const scale = fov / (fov + z2 * 0.5 + 1);
-        // Centrum altijd midden van scherm in 3D
-        const cx = W / 2, cy = H / 2;
-        return {
-          sx: cx + x1 * SPHERE_R * scale,
-          sy: cy + y2 * SPHERE_R * scale,
-          sz: z2,
-          scale,
-        };
-      }
 
-      function project3D(wx, wy, wz) {
-        if (viewMode === '2d') return { sx: wx, sy: wy };
-        // In 3D: gebruik de sferische positie als die beschikbaar is
-        return { sx: wx, sy: wy }; // fallback
-      }
 
       // Sorteer indices van achter naar voor
       const sortedIdx = Array.from({length: nodes.length}, (_, i) => i)
