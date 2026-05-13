@@ -495,18 +495,8 @@ const map = L.map('map', { zoomControl: false }).setView([52.2, 5.3], 7);
 L.control.zoom({ position: 'bottomright' }).addTo(map);
 // Schaal markers op basis van zoom
 map.on('zoomend', () => {
-  const z = map.getZoom();
-  Object.entries(markers).forEach(([name, marker]) => {
-    const proj = allProjects.find(p => p.name === name);
-    if (proj) {
-      const isActive = marker === activeMarker;
-      if (currentMode === 'timeline') {
-        marker.setIcon(makeIconYear(proj.year, isActive, z));
-      } else {
-        marker.setIcon(makeIconZoom(proj.isUser, proj.raw, isActive, z));
-      }
-    }
-  });
+  // Vaste iconSize — geen update nodig bij zoom
+  // Alleen active marker herstellen als nodig
 });
 
 map.on('click', function(e) {
@@ -574,97 +564,52 @@ function getIcon(project) {
   return getTypeData(project).icon;
 }
 
-/* ── makeIcon: maakt een Leaflet DivIcon met emoji en kleur per type ── */
-function getIconSize(zoom, active) {
-  const base = active ? 42 : Math.max(20, Math.min(38, (zoom - 5) * 4 + 20));
-  return base;
-}
+// Vaste container — anchor klopt altijd, SVG schaalt intern
+const ICON_W = 36, ICON_H = 42, ICON_AX = 18, ICON_AY = 42;
 
 function makeIconZoom(isUser, project, active, zoom) {
-  zoom = zoom || 7;
   const { icon, color } = isUser ? { icon: '★', color: '#111418' } : getTypeData(project);
   const border = active ? '#111418' : '#ffffff';
-  const size = getIconSize(zoom, active);
-  const half = size / 2;
-  const fontSize = Math.max(10, size * 0.38);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size+6}" viewBox="0 0 ${size} ${size+6}">
-    <defs><filter id="sh${size}"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,.3)"/></filter></defs>
-    <path d="M${half} ${size+4} C${half} ${size+4} 2 ${half+4} 2 ${half} a${half-2} ${half-2} 0 1 1 ${size-4} 0 C${size-2} ${half+4} ${half} ${size+4} ${half} ${size+4}z"
-      fill="${color}" stroke="${border}" stroke-width="2" filter="url(#sh${size})"/>
-    <text x="${half}" y="${half+1}" text-anchor="middle" dominant-baseline="middle" font-size="${fontSize}" style="user-select:none;">${icon}</text>
-  </svg>`;
-  return L.divIcon({
-    className: '',
-    html: svg,
-    iconSize: [size, size+6], iconAnchor: [half, size+6], popupAnchor: [0, -(size+6)],
-  });
-}
-
-function makeIcon(isUser, project, active){
-  const { icon, color } = isUser ? { icon: '★', color: '#111418' } : getTypeData(project);
-  const border = active ? '#111418' : '#ffffff';
-  const shadow = active ? '0 0 0 3px #111418' : '0 4px 14px rgba(0,0,0,.35)';
-  // SVG pin — niet beïnvloed door Leaflet CSS
-  const size = active ? 42 : 36;
-  const half = size / 2;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size+6}" viewBox="0 0 ${size} ${size+6}">
-    <defs>
-      <filter id="sh" x="-50%" y="-50%" width="200%" height="200%">
-        <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,.35)"/>
-      </filter>
-    </defs>
-    <path d="M${half} ${size+4} C${half} ${size+4} 2 ${half+4} 2 ${half} a${half-2} ${half-2} 0 1 1 ${size-4} 0 C${size-2} ${half+4} ${half} ${size+4} ${half} ${size+4}z"
+  const scale  = active ? 1.2 : 1;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg"
+    width="${ICON_W}" height="${ICON_H}"
+    viewBox="0 0 36 42"
+    style="transform:scale(${scale});transform-origin:50% 100%;display:block;">
+    <defs><filter id="sh"><feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="rgba(0,0,0,.32)"/></filter></defs>
+    <path d="M18 40 C18 40 2 22 2 14 a16 16 0 1 1 32 0 C34 22 18 40 18 40z"
       fill="${color}" stroke="${border}" stroke-width="2" filter="url(#sh)"/>
-    <text x="${half}" y="${half+1}" text-anchor="middle" dominant-baseline="middle" font-size="14" style="user-select:none;">${icon}</text>
+    <text x="18" y="15" text-anchor="middle" dominant-baseline="middle"
+      font-size="14" style="user-select:none;">${icon}</text>
   </svg>`;
   return L.divIcon({
     className: '',
     html: svg,
-    iconSize: [size, size+6], iconAnchor: [half, size+6], popupAnchor: [0, -(size+6)],
+    iconSize:    [ICON_W, ICON_H],
+    iconAnchor:  [ICON_AX, ICON_AY],
+    popupAnchor: [0, -ICON_H],
   });
 }
 
-/* ── Jaar kleurschaal: oud=blauw, recent=warm rood ── */
-const YEAR_MIN = 2010, YEAR_MAX = 2024;
-function yearColor(year) {
-  if (!year) return '#888ea0';
-  const t = Math.max(0, Math.min(1, (year - YEAR_MIN) / (YEAR_MAX - YEAR_MIN)));
-  // blauw (#4a7cac) → paars (#8b5aaa) → amber (#d4900a) → rood (#c94040)
-  const stops = [
-    [0.00, [74, 124, 172]],
-    [0.33, [139, 90, 170]],
-    [0.66, [212, 144, 10]],
-    [1.00, [201, 64, 64]],
-  ];
-  let c0 = stops[0][1], c1 = stops[stops.length-1][1], blend = t;
-  for (let i = 0; i < stops.length - 1; i++) {
-    if (t >= stops[i][0] && t <= stops[i+1][0]) {
-      blend = (t - stops[i][0]) / (stops[i+1][0] - stops[i][0]);
-      c0 = stops[i][1]; c1 = stops[i+1][1]; break;
-    }
-  }
-  const r = Math.round(c0[0] + (c1[0]-c0[0]) * blend);
-  const g = Math.round(c0[1] + (c1[1]-c0[1]) * blend);
-  const b = Math.round(c0[2] + (c1[2]-c0[2]) * blend);
-  return `rgb(${r},${g},${b})`;
-}
-
-function makeIconYear(year, active, zoom) {
-  zoom = zoom || 7;
+function makeIconYear(year, active) {
   const color  = yearColor(year);
   const border = active ? '#111418' : '#ffffff';
-  const size   = getIconSize(zoom, active);
-  const half   = size / 2;
-  const label  = year ? String(year).slice(2) : '?';
-  const fontSize = Math.max(8, size * 0.3);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size+6}" viewBox="0 0 ${size} ${size+6}">
-    <defs><filter id="shy"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,.3)"/></filter></defs>
-    <path d="M${half} ${size+4} C${half} ${size+4} 2 ${half+4} 2 ${half} a${half-2} ${half-2} 0 1 1 ${size-4} 0 C${size-2} ${half+4} ${half} ${size+4} ${half} ${size+4}z"
+  const scale  = active ? 1.2 : 1;
+  // Geen label — alleen kleur
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg"
+    width="${ICON_W}" height="${ICON_H}"
+    viewBox="0 0 36 42"
+    style="transform:scale(${scale});transform-origin:50% 100%;display:block;">
+    <defs><filter id="shy"><feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="rgba(0,0,0,.32)"/></filter></defs>
+    <path d="M18 40 C18 40 2 22 2 14 a16 16 0 1 1 32 0 C34 22 18 40 18 40z"
       fill="${color}" stroke="${border}" stroke-width="2" filter="url(#shy)"/>
-    <text x="${half}" y="${half+1}" text-anchor="middle" dominant-baseline="middle"
-      font-size="${fontSize}" font-weight="800" fill="#fff" style="user-select:none;">${label}</text>
   </svg>`;
-  return L.divIcon({ className: '', html: svg, iconSize: [size, size+6], iconAnchor: [half, size+6] });
+  return L.divIcon({
+    className: '',
+    html: svg,
+    iconSize:    [ICON_W, ICON_H],
+    iconAnchor:  [ICON_AX, ICON_AY],
+    popupAnchor: [0, -ICON_H],
+  });
 }
 function addProject(p){
   // Mock jaar als geen opleverdatum beschikbaar
@@ -1012,6 +957,17 @@ document.getElementById('search').addEventListener('input', (e) => renderList(e.
   <div class="legend-float" id="type-legend">
     <div class="legend-title">Type</div>
   </div>
+
+<!-- ── Jaar legenda (zichtbaar in tijdlijn modus) ── -->
+<div class="legend-float" id="year-legend" style="display:none;bottom:80px;">
+  <div class="legend-title">Jaar van oplevering</div>
+  <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
+    <span style="font-size:10px;color:var(--muted);font-weight:600;">2010</span>
+    <div style="flex:1;height:8px;border-radius:4px;background:linear-gradient(to right,rgb(74,124,172),rgb(139,90,170),rgb(212,144,10),rgb(201,64,64));"></div>
+    <span style="font-size:10px;color:var(--muted);font-weight:600;">2024</span>
+  </div>
+</div>
+
 <!-- ── Mode switcher bar ── -->
 <div class="mode-bar">
   <button class="mode-btn active" data-mode="normal" onclick="setMode('normal')">
@@ -1072,6 +1028,8 @@ function setMode(mode) {
 
   // Hide timeline panel unless timeline mode
   document.getElementById('timeline-panel').classList.toggle('visible', mode === 'timeline');
+  document.getElementById('year-legend').style.display  = mode === 'timeline' ? 'block' : 'none';
+  document.getElementById('type-legend').style.display  = mode === 'timeline' ? 'none'  : 'block';
   if (mode !== 'timeline' && tlPlaying) stopPlay();
 
   // Show/hide regular markers
@@ -1242,7 +1200,7 @@ function buildTimeline() {
   allProjects.forEach(p => {
     const m = markers[p.name];
     if (m) {
-      m.setIcon(makeIconYear(p.year, false, map.getZoom()));
+      m.setIcon(makeIconYear(p.year, false));
       // Add fade transition via DOM
       const el = m.getElement();
       if (el) el.style.transition = 'opacity 400ms ease, transform 400ms ease';
