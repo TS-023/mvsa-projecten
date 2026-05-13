@@ -103,6 +103,27 @@
     transition: background .15s, transform .15s; margin-bottom: 12px;
   }
   .detail-open:hover{ background: var(--accent); transform: translateY(-1px); }
+  .detail-section-title{
+    font-size:9px; font-weight:700; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--muted); margin-bottom:8px;
+  }
+  .team-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  .team-chip{
+    display:flex; align-items:center; gap:6px; padding:5px 10px;
+    border-radius:999px; background:#fff; border:1px solid var(--line);
+    font-size:11px; font-weight:600; color:var(--ink);
+  }
+  .team-avatar{
+    width:20px; height:20px; border-radius:50%;
+    background:linear-gradient(135deg,#3d6e8a,#2a4f6a);
+    display:flex; align-items:center; justify-content:center;
+    font-size:8px; font-weight:800; color:#fff; flex-shrink:0;
+  }
+  .partner-chip{
+    display:inline-block; padding:4px 10px; border-radius:999px;
+    font-size:10px; font-weight:600; border:1px solid var(--line);
+    background:var(--bg); color:var(--muted); margin:2px;
+  }
   .detail-back{
     display: flex; align-items: center; gap: 8px;
     font-size: 12px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700;
@@ -242,6 +263,8 @@
       <div class="detail-loc" id="detail-loc"></div>
       <div class="detail-stats" id="detail-stats"></div>
       <a class="detail-open" id="detail-open" href="#">Open project →</a>
+      <div id="detail-team" style="margin-top:14px;display:none;"></div>
+      <div id="detail-partners" style="margin-top:10px;display:none;"></div>
     </div>
   </aside>
   <div class="map-wrap"><div id="map"></div></div>
@@ -438,7 +461,7 @@ markers[p.name] = m;
   allProjects.push(p);
 }
 
-function showDetail(p) {
+async function showDetail(p) {
   // Verberg lijst, toon detail
   document.getElementById('proj-list').style.display = 'none';
   document.getElementById('search').style.display = 'none';
@@ -480,6 +503,54 @@ function showDetail(p) {
   const nr = p.raw?.projectnummer || '';
   document.getElementById('detail-open').href =
     `project_page.html?nr=${encodeURIComponent(nr)}&p=${encodeURIComponent(p.name)}`;
+
+  // Laad team + partners
+  const teamEl = document.getElementById('detail-team');
+  const partnersEl = document.getElementById('detail-partners');
+  teamEl.style.display = 'none';
+  partnersEl.style.display = 'none';
+
+  if (p.raw?.id) {
+    // Werknemers via employees tabel (projecten veld)
+    try {
+      const { data: emps } = await db.from('employees')
+        .select('naam, rol')
+        .ilike('projecten', `%${p.name}%`)
+        .limit(8);
+      if (emps && emps.length) {
+        teamEl.innerHTML = `<div class="detail-section-title">Team (${emps.length})</div>
+          <div class="team-chips">${emps.map(e =>
+            `<div class="team-chip">
+              <div class="team-avatar">${(e.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase()}</div>
+              ${e.naam}
+            </div>`).join('')}</div>`;
+        teamEl.style.display = 'block';
+      }
+    } catch(e) {}
+
+    // Partners via project_contacts
+    try {
+      const { data: pcs } = await db.from('project_contacts')
+        .select('contacts(naam, bedrijf, rol)')
+        .eq('project_id', p.raw.id)
+        .limit(8);
+      if (pcs && pcs.length) {
+        const contacts = pcs.map(pc => pc.contacts).filter(Boolean);
+        if (contacts.length) {
+          partnersEl.innerHTML = `<div class="detail-section-title">Samenwerkingen</div>
+            <div class="team-chips">${contacts.map(ct =>
+              `<div class="team-chip">
+                <div class="team-avatar" style="background:linear-gradient(135deg,#6b5a8a,#4a3d6a);">${(ct.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase()}</div>
+                <div>
+                  <div style="font-size:11px;font-weight:700;">${ct.naam}</div>
+                  ${ct.bedrijf ? `<div style="font-size:9px;color:var(--muted);font-weight:400;">${ct.bedrijf}</div>` : ''}
+                </div>
+              </div>`).join('')}</div>`;
+          partnersEl.style.display = 'block';
+        }
+      }
+    } catch(e) {}
+  }
 }
 
 function closeDetail() {
