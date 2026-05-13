@@ -137,16 +137,17 @@
   /* Custom marker */
   .marker-pin{
     width: 36px; height: 36px; border-radius: 50% 50% 50% 0;
-    background: var(--accent); transform: rotate(-45deg);
-    border: 2.5px solid #fff;
+    transform: rotate(-45deg);
+    border: 2.5px solid rgba(255,255,255,0.9);
     box-shadow: 0 4px 14px rgba(0,0,0,.28);
     display: flex; align-items: center; justify-content: center;
     transition: transform .15s, box-shadow .15s;
   }
   .marker-pin:hover{
+    transform: rotate(-45deg) scale(1.12);
     box-shadow: 0 6px 20px rgba(0,0,0,.38);
   }
-  .marker-pin.user{ background: var(--ink); }
+  .marker-pin.user{ background: var(--ink) !important; }
   .pin-icon{
     transform: rotate(45deg);
     font-size: 15px; line-height: 1;
@@ -377,12 +378,13 @@ function getIcon(project) {
 /* ── makeIcon: maakt een Leaflet DivIcon met emoji en kleur per type ── */
 function makeIcon(isUser, project){
   const { icon, color } = isUser ? { icon: '★', color: 'var(--ink)' } : getTypeData(project);
+  // Kleur iets donkerder voor de rand
   return L.divIcon({
     className: '',
-    html: `<div class="marker-pin" style="background:${color};border-color:rgba(255,255,255,0.85);">
+    html: `<div class="marker-pin" style="background:${color};">
       <span class="pin-icon">${icon}</span>
     </div>`,
-    iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -36],
+    iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -40],
   });
 }
 
