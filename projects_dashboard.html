@@ -2525,13 +2525,13 @@ function App(){
               case 'functie':           return <FunctieDonut data={a.functie} />;
               case 'verkregen':         return <VerkregenChart data={a.verkregen} />;
               case 'ontwerp-opgeleverd':return <OntwerpOpgeleverd ontwerp={a.ontwerp} opgeleverd={a.opgeleverd} />;
-              case 'fases':             return <FasesChart fases={a.fases} onBarClick={(d) => {
+              case 'fases':             return <FasesChart fases={a.fases} onBarClick={(barData) => {
                 const filtered = allProjects.filter(p => {
                   if (!p.fase) return false;
                   const f = p.fase.trim().toUpperCase();
-                  return f === d.label || f.startsWith(d.label+' ') || f.includes('('+d.label+')') || f.startsWith(d.full ? d.full.toUpperCase() : '____');
+                  return f === barData.label || f.startsWith(barData.label+' ') || f.includes('('+barData.label+')') || f.startsWith(barData.full ? barData.full.toUpperCase() : '____');
                 });
-                setFaseModal({ label: d.label, fullName: d.full || FASE_NAMES[d.label] || d.label, projects: filtered });
+                setFaseModal({ label: barData.label, fullName: barData.full || FASE_NAMES[barData.label] || barData.label, projects: filtered });
               }} />;
               case 'binnen-buiten':     return <BinnenBuitenland binnenland={l.binnenland} buitenland={l.buitenland} />;
               case 'top-provincies':    return <TopProvincies provincies={l.provincies} />;
@@ -2559,7 +2559,7 @@ function App(){
           // Render groepen die minstens 1 actieve widget hebben
           return GROUPS.map(group => {
             const visible = group.ids.filter(id => activeWidgets.includes(id))
-              .sort((a, b) => activeWidgets.indexOf(a) - activeWidgets.indexOf(b));
+              .sort((wa, wb) => activeWidgets.indexOf(wa) - activeWidgets.indexOf(wb));
             if (!visible.length) return null;
 
             return (
