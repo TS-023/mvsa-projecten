@@ -67,18 +67,17 @@
   /* ── Data sectie (grote nummers bovenaan) ── */
   .grid-data{
     grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: repeat(6, 1fr);
+    grid-template-rows: repeat(4, 1fr);
     grid-auto-flow: column;
   }
-  .grid-data .left-1, .grid-data .left-2, .grid-data .left-3{ grid-column: 1; grid-row: span 2; }
-  .grid-data .left-1{ grid-row: 1 / span 2; }
-  .grid-data .left-2{ grid-row: 3 / span 2; }
-  .grid-data .left-3{ grid-row: 5 / span 2; }
+  .grid-data .left-1{ grid-column: 1; grid-row: 1 / span 2; }
+  .grid-data .left-3{ grid-column: 1; grid-row: 3 / span 2; }
   .grid-data .middle{ grid-column: 2; grid-row: 1 / -1; }
   .card.middle{ transition: transform .15s ease, box-shadow .15s ease; }
   .card.middle:hover{ transform: translateY(-2px); box-shadow: 0 1px 0 rgba(20,30,45,.04), 0 16px 32px -12px rgba(20,30,45,.28); }
-  .card.middle:hover h3::after{ content: " →"; color: #3d6e8a; }  .grid-data .right-1{ grid-column: 3; grid-row: 1 / span 3; }
-  .grid-data .right-2{ grid-column: 3; grid-row: 4 / span 3; }
+  .card.middle:hover h3::after{ content: " →"; color: #3d6e8a; }
+  .grid-data .right-1{ grid-column: 3; grid-row: 1 / span 2; }
+  .grid-data .right-2{ grid-column: 3; grid-row: 3 / span 2; }
   .grid-data > .card{ display:flex; flex-direction: column; min-height: 0; }
 
   .card{
@@ -976,16 +975,6 @@ function AantalProjecten({ projectsFilled, allProjects }) {
 }
 
 
-/* ── VeldenIngevuld: teller van ingevulde velden ── */
-function VeldenIngevuld({ fieldsFilled }) {
-  return (
-    <div className="card stat left-2">
-      <h3>Totaal aantal velden ingevuld</h3>
-      <div className="num">{fieldsFilled.toLocaleString('nl-NL')}</div>
-      <div className="delta"><b>72%</b> van mogelijke velden</div>
-    </div>
-  );
-}
 
 
 /* ── RandomProject: uitgelicht project met shuffle knop ── */
@@ -1081,23 +1070,13 @@ function RecentCard({ project, position }) {
 
 
 /* ── DataSection: samengesteld blok (alle data-widgets samen) ── */
-function DataSection({ d, leaderPhoto, allProjects }) {
+function DataSection({ d, leaderPhoto, allProjects, onShuffle }) {
   return (
     <>
       <SectionTitle>Data</SectionTitle>
       <div className="grid grid-data">
         <AantalProjecten projectsFilled={d.projectsFilled} allProjects={allProjects} />
-        <VeldenIngevuld fieldsFilled={d.fieldsFilled} />
-        <RandomProject project={d.randomProject} onShuffle={() => {
-          const projects = window._allProjects || [];
-          if (!projects.length) return;
-          const pick = projects[Math.floor(Math.random() * projects.length)];
-          setRandomProject({
-            name: pick.projectnaam,
-            city: pick.stad || pick.land || '',
-            tags: [pick.project_type, pick.fase, pick.opgave].filter(Boolean).slice(0, 3),
-          });
-        }} />
+        <RandomProject project={d.randomProject} onShuffle={onShuffle} />
         <Leaderboard leaderboard={d.leaderboard} leaderPhoto={leaderPhoto} />
         {d.recent.map((r, i) => (
           <RecentCard key={i} project={r} position={i} />
@@ -2299,7 +2278,21 @@ function App(){
       </header>
 
 
-      <DataSection d={{...(liveData || MOCK.data), randomProject: randomProject || (liveData || MOCK.data).randomProject}} leaderPhoto={liveLeaderPhoto} allProjects={allProjects} />
+      <DataSection
+        d={{...(liveData || MOCK.data), randomProject: randomProject || (liveData || MOCK.data).randomProject}}
+        leaderPhoto={liveLeaderPhoto}
+        allProjects={allProjects}
+        onShuffle={() => {
+          const projects = window._allProjects || [];
+          if (!projects.length) return;
+          const pick = projects[Math.floor(Math.random() * projects.length)];
+          setRandomProject({
+            name: pick.projectnaam,
+            city: pick.stad || pick.land || '',
+            tags: [pick.project_type, pick.fase, pick.opgave].filter(Boolean).slice(0, 3),
+          });
+        }}
+      />
       <AlgemeenSection a={liveAlgemeen || MOCK.algemeen} onBarClick={(d) => {
         const filtered = allProjects.filter(p => {
           if (!p.fase) return false;
