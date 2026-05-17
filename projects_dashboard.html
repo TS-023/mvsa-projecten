@@ -1049,20 +1049,34 @@ function Leaderboard({ leaderboard, leaderPhoto }) {
 
 /* ── RecentCard: recent toegevoegd project (kaartje rechts) ── */
 function RecentCard({ project, position }) {
+  const [imgUrl, setImgUrl] = React.useState(null);
   const className = `card recent-card ${position === 0 ? 'right-1' : 'right-2'}`;
+
+  React.useEffect(() => {
+    if (!project.projectnummer) return;
+    Images.getForProject(project.projectnummer).then(imgs => {
+      if (imgs && imgs[0]) setImgUrl(imgs[0]);
+    }).catch(() => {});
+  }, [project.projectnummer]);
+
+  const href = `project_page.html?nr=${encodeURIComponent(project.projectnummer || '')}&p=${encodeURIComponent(project.title || '')}`;
+  const dateStr = project.date
+    ? 'Meest recent · ' + project.date
+    : project.created_at
+      ? 'Meest recent · ' + new Date(project.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })
+      : '';
+
   return (
     <div className={className}>
-      <a className={`img ${project.tone === 'cool' ? 'alt' : ''}`}
-         href={`project_page.html?nr=${encodeURIComponent(project.projectnummer || '')}&p=${encodeURIComponent(project.title || '')}`}>
-        <span className="label">PLACE IMAGE HERE</span>
+      <a className={`img ${position === 1 ? 'alt' : ''}`} href={href}
+         style={imgUrl ? { backgroundImage: `url(${imgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
+        {!imgUrl && <span className="label">GEEN AFBEELDING</span>}
       </a>
       <div className="meta">
         <span className="ttl">
-          <a href={`project_page.html?nr=${encodeURIComponent(project.projectnummer || '')}&p=${encodeURIComponent(project.title || '')}`}>
-            {project.title}
-          </a>
+          <a href={href}>{project.title || project.projectnaam}</a>
         </span>
-        <span className="dt">Meest recent · {project.date}</span>
+        <span className="dt">{dateStr}</span>
       </div>
     </div>
   );
@@ -2029,6 +2043,14 @@ function App(){
         totalBvo: Math.round(sum('totaal_bvo')).toLocaleString('nl-NL'),
         avgBvo: n > 0 ? Math.round(sum('totaal_bvo') / n).toLocaleString('nl-NL') : '—',
         leaderboard: liveLeaderboard.length ? liveLeaderboard : MOCK.data.leaderboard,
+        recent: [...rawProjects]
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+          .slice(0, 2)
+          .map(p => ({
+            title: p.projectnaam,
+            projectnummer: p.projectnummer,
+            created_at: p.created_at,
+          })),
       });
 
       // ALGEMEEN
