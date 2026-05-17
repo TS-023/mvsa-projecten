@@ -583,12 +583,11 @@ function BarChart({ data, height = 180, gap = 10, showLabels = true, padTop = 14
             <rect className="bar-bg" x={x} y={padTop} width={bw} height={chartH} rx="2" />
             <rect x={x} y={y} width={bw} height={bh} rx="2"
                   style={{ fill, transition: 'fill .15s ease' }} />
-            {isHov && (
-              <text x={x + bw / 2} y={valY} textAnchor="middle"
-                    style={{ fontSize: 11, fontWeight: 700, fill: '#fff', fontFamily: "'Inter',sans-serif", pointerEvents: 'none' }}>
-                {d.v}
-              </text>
-            )}
+            <text x={x + bw / 2} y={y - 4} textAnchor="middle"
+                  style={{ fontSize: 10, fontWeight: 700, fill: 'var(--muted)', fontFamily: "'Inter',sans-serif", pointerEvents: 'none', transition: 'fill .15s ease',
+                    ...(isHov ? { fill: 'var(--ink)' } : {}) }}>
+              {d.v > 0 ? d.v : ''}
+            </text>
             {showLabels && (
               <text className="axis-label" x={x + bw / 2} y={h - 8} textAnchor="middle">{d.label}</text>
             )}
@@ -2181,6 +2180,33 @@ function App(){
 
   // Donkere modus
   const [darkMode, setDarkMode] = React.useState(() => localStorage.getItem('mvsa.dark') === '1');
+
+  // Bewerk-modus en sectievolgorde
+  const DEFAULT_ORDER = ['data','algemeen','locatie','metrage','mobiliteit','duurzaamheid','bouw'];
+  const [editMode, setEditMode] = React.useState(false);
+  const [sectionOrder, setSectionOrder] = React.useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('mvsa.sectionOrder') || 'null');
+      if (saved && saved.length === DEFAULT_ORDER.length) return saved;
+    } catch(e) {}
+    return DEFAULT_ORDER;
+  });
+  const dragSrc = React.useRef(null);
+
+  const onDragStart = (id) => { dragSrc.current = id; };
+  const onDragOver = (e, id) => {
+    e.preventDefault();
+    if (dragSrc.current === id) return;
+    const from = sectionOrder.indexOf(dragSrc.current);
+    const to   = sectionOrder.indexOf(id);
+    const next = [...sectionOrder];
+    next.splice(from, 1);
+    next.splice(to, 0, dragSrc.current);
+    setSectionOrder(next);
+  };
+  const onDragEnd = () => {
+    localStorage.setItem('mvsa.sectionOrder', JSON.stringify(sectionOrder));
+  };
   React.useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : '');
     localStorage.setItem('mvsa.dark', darkMode ? '1' : '0');
@@ -2298,43 +2324,106 @@ function App(){
 
         {/* NAVIGATIE KNOPPEN — rechts */}
         <div className="meta">
-
+          <button
+            onClick={() => setEditMode(m => !m)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '6px 14px', borderRadius: 999,
+              border: editMode ? 'none' : '1px solid rgba(17,20,24,.12)',
+              background: editMode ? 'var(--ink)' : 'none',
+              color: editMode ? '#fff' : 'var(--muted)',
+              fontSize: 11, fontWeight: 700, letterSpacing: '.08em',
+              textTransform: 'uppercase', cursor: 'pointer',
+              fontFamily: 'inherit', transition: 'all .15s',
+            }}>
+            {editMode ? '✓ Klaar' : '⠿ Bewerk indeling'}
+          </button>
         </div>
       </header>
 
 
-      <DataSection
-        d={{...(liveData || MOCK.data), randomProject: randomProject || (liveData || MOCK.data).randomProject}}
-        leaderPhoto={liveLeaderPhoto}
-        allProjects={allProjects}
-        onShuffle={() => {
-          const projects = window._allProjects || [];
-          if (!projects.length) return;
-          const pick = projects[Math.floor(Math.random() * projects.length)];
-          setRandomProject({
-            name: pick.projectnaam,
-            city: pick.stad || pick.land || '',
-            tags: [pick.project_type, pick.fase, pick.opgave].filter(Boolean).slice(0, 3),
-          });
-        }}
-      />
-      <AlgemeenSection a={liveAlgemeen || MOCK.algemeen} onBarClick={(d) => {
-        const filtered = allProjects.filter(p => {
-          if (!p.fase) return false;
-          const f = p.fase.trim().toUpperCase();
-          // Match op code (bijv. "DO") of volledige naam (bijv. "Definitief Ontwerp")
-          return f === d.label ||
-                 f.startsWith(d.label + ' ') ||
-                 f.includes('(' + d.label + ')') ||
-                 f.startsWith(d.full ? d.full.toUpperCase() : '____');
-        });
-        setFaseModal({ label: d.label, fullName: d.full || FASE_NAMES[d.label] || d.label, projects: filtered });
-      }} />
-      <LocatieSection l={liveLocatie || MOCK.locatie} />
-      <MetrageSection m={liveMetrage || MOCK.metrage} />
-      <MobiliteitRatioSection mob={liveMobiliteit || MOCK.mobiliteit} ratio={MOCK.ratio} />
-      <DuurzaamheidSection d={liveDuurzaamheid || MOCK.duurzaamheid} />
-      <BouwOverigSection b={liveBouw || MOCK.bouwOverig} />
+      {/* SECTIES — drag-and-drop volgorde */}
+      {sectionOrder.map(id => {
+        const dragProps = editMode ? {
+          draggable: true,
+          onDragStart: () => onDragStart(id),
+          onDragOver:  (e) => onDragOver(e, id),
+          onDragEnd:   onDragEnd,
+        } : {};
+        const wrapStyle = editMode ? {
+          outline: '2px dashed rgba(61,110,138,.35)',
+          outlineOffset: 4,
+          borderRadius: 18,
+          cursor: 'grab',
+          userSelect: 'none',
+          position: 'relative',
+        } : {};
+        const handle = editMode ? (
+          <div style={{
+            position: 'absolute', top: 10, right: 14, zIndex: 10,
+            fontSize: 16, color: 'rgba(61,110,138,.5)',
+            pointerEvents: 'none', letterSpacing: 2,
+          }}>⠿</div>
+        ) : null;
+
+        const LABELS = {
+          data: 'Data', algemeen: 'Algemeen', locatie: 'Locatie',
+          metrage: 'Metrage', mobiliteit: 'Mobiliteit',
+          duurzaamheid: 'Duurzaamheid', bouw: 'Bouw & Overig',
+        };
+
+        const content = (() => { switch(id) {
+          case 'data': return (
+            <DataSection
+              d={{...(liveData || MOCK.data), randomProject: randomProject || (liveData || MOCK.data).randomProject}}
+              leaderPhoto={liveLeaderPhoto}
+              allProjects={allProjects}
+              onShuffle={() => {
+                const projects = window._allProjects || [];
+                if (!projects.length) return;
+                const pick = projects[Math.floor(Math.random() * projects.length)];
+                setRandomProject({
+                  name: pick.projectnaam,
+                  city: pick.stad || pick.land || '',
+                  tags: [pick.project_type, pick.fase, pick.opgave].filter(Boolean).slice(0, 3),
+                });
+              }}
+            />
+          );
+          case 'algemeen': return (
+            <AlgemeenSection a={liveAlgemeen || MOCK.algemeen} onBarClick={(d) => {
+              const filtered = allProjects.filter(p => {
+                if (!p.fase) return false;
+                const f = p.fase.trim().toUpperCase();
+                return f === d.label ||
+                       f.startsWith(d.label + ' ') ||
+                       f.includes('(' + d.label + ')') ||
+                       f.startsWith(d.full ? d.full.toUpperCase() : '____');
+              });
+              setFaseModal({ label: d.label, fullName: d.full || FASE_NAMES[d.label] || d.label, projects: filtered });
+            }} />
+          );
+          case 'locatie':     return <LocatieSection l={liveLocatie || MOCK.locatie} />;
+          case 'metrage':     return <MetrageSection m={liveMetrage || MOCK.metrage} />;
+          case 'mobiliteit':  return <MobiliteitRatioSection mob={liveMobiliteit || MOCK.mobiliteit} ratio={MOCK.ratio} />;
+          case 'duurzaamheid':return <DuurzaamheidSection d={liveDuurzaamheid || MOCK.duurzaamheid} />;
+          case 'bouw':        return <BouwOverigSection b={liveBouw || MOCK.bouwOverig} />;
+          default: return null;
+        }})();
+
+        return (
+          <div key={id} {...dragProps} style={{ position: 'relative', ...wrapStyle }}>
+            {handle}
+            {editMode && (
+              <div style={{
+                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                zIndex: 5, borderRadius: 18,
+              }} />
+            )}
+            {content}
+          </div>
+        );
+      })}
 
       {/* FASE MODAL — via portal buiten root div zodat fixed positioning altijd werkt */}
       {faseModal && ReactDOM.createPortal(
