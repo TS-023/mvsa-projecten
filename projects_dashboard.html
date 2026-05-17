@@ -2181,32 +2181,112 @@ function App(){
   // Donkere modus
   const [darkMode, setDarkMode] = React.useState(() => localStorage.getItem('mvsa.dark') === '1');
 
-  // Bewerk-modus en sectievolgorde
-  const DEFAULT_ORDER = ['data','algemeen','locatie','metrage','mobiliteit','duurzaamheid','bouw'];
-  const [editMode, setEditMode] = React.useState(false);
-  const [sectionOrder, setSectionOrder] = React.useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('mvsa.sectionOrder') || 'null');
-      if (saved && saved.length === DEFAULT_ORDER.length) return saved;
-    } catch(e) {}
-    return DEFAULT_ORDER;
-  });
-  const dragSrc = React.useRef(null);
+  // ── Widget manager ──────────────────────────────────────────
+  const ALL_WIDGETS = [
+    { id: 'aantal-projecten',  label: 'Aantal projecten',    icon: '📊', size: 'mid' },
+    { id: 'random-project',    label: 'Random project',      icon: '🎲', size: 'mid' },
+    { id: 'leaderboard',       label: 'Leaderboard',         icon: '🏆', size: 'tall' },
+    { id: 'recent-1',          label: 'Recent project 1',    icon: '🕐', size: 'mid' },
+    { id: 'recent-2',          label: 'Recent project 2',    icon: '🕑', size: 'mid' },
+    { id: 'projecttype',       label: 'Projecttype',         icon: '📈', size: 'tall' },
+    { id: 'functie',           label: 'Functie (donut)',      icon: '🍩', size: 'tall' },
+    { id: 'verkregen',         label: 'Verkregen d.m.v.',    icon: '📉', size: 'tall' },
+    { id: 'ontwerp-opgeleverd',label: 'Ontwerp/Opgeleverd',  icon: '✅', size: 'tall' },
+    { id: 'fases',             label: 'Fases',               icon: '🏗', size: 'tall' },
+    { id: 'binnen-buiten',     label: 'Binnen/Buitenland',   icon: '🌍', size: 'tall' },
+    { id: 'top-provincies',    label: 'Top provincies',      icon: '📍', size: 'tall' },
+    { id: 'top-steden',        label: 'Top steden',          icon: '🏙', size: 'tall' },
+    { id: 'type-programma',    label: 'Type programma',      icon: '🥧', size: 'tall' },
+    { id: 'totaal-bvo',        label: 'Totaal BVO',          icon: '📐', size: 'mid' },
+    { id: 'grootste-gebouw',   label: 'Grootste gebouw',     icon: '🏢', size: 'tall' },
+    { id: 'bvo-lijst',         label: 'BVO lijst',           icon: '📋', size: 'tall' },
+    { id: 'autoparkeren',      label: 'Autoparkeren',        icon: '🚗', size: 'mid' },
+    { id: 'fietsparkeren',     label: 'Fietsparkeren',       icon: '🚲', size: 'mid' },
+    { id: 'ratio-wonen',       label: 'Ratio wonen',         icon: '🏠', size: 'tall' },
+    { id: 'ratio-kantoor',     label: 'Ratio kantoor',       icon: '🏢', size: 'tall' },
+    { id: 'duurzaamheid-score',label: 'Duurzaamheidsscore',  icon: '🌱', size: 'tall' },
+    { id: 'daktuin',           label: 'Daktuin',             icon: '🌿', size: 'tall' },
+    { id: 'zonnepanelen',      label: 'Zonnepanelen',        icon: '☀️', size: 'tall' },
+    { id: 'hoogste-gebouw',    label: 'Hoogste gebouw',      icon: '🗼', size: 'tall' },
+    { id: 'tevredenheid',      label: 'Tevredenheid',        icon: '⭐', size: 'mid' },
+    { id: 'awards',            label: 'Awards',              icon: '🏅', size: 'mid' },
+    { id: 'labels',            label: 'Labels',              icon: '🏷',  size: 'tall' },
+    { id: 'meeste-awards',     label: 'Meeste awards',       icon: '🥇', size: 'tall' },
+  ];
+  const PRESETS = [
+    {
+      id: 'overzicht',
+      label: 'Overzicht',
+      icon: '📊',
+      desc: 'Alles in één oogopslag',
+      widgets: ['aantal-projecten','random-project','leaderboard','recent-1','recent-2',
+        'projecttype','functie','fases',
+        'binnen-buiten','top-steden',
+        'totaal-bvo','grootste-gebouw',
+        'duurzaamheid-score','tevredenheid','awards'],
+    },
+    {
+      id: 'portfolio',
+      label: 'Portfolio',
+      icon: '🏗',
+      desc: 'Projecten & locaties',
+      widgets: ['aantal-projecten','recent-1','recent-2','random-project',
+        'projecttype','verkregen','ontwerp-opgeleverd','fases',
+        'binnen-buiten','top-provincies','top-steden',
+        'grootste-gebouw','bvo-lijst','hoogste-gebouw','meeste-awards'],
+    },
+    {
+      id: 'duurzaamheid',
+      label: 'Duurzaamheid',
+      icon: '🌱',
+      desc: 'Groen & efficiëntie',
+      widgets: ['aantal-projecten','fases','type-programma','totaal-bvo',
+        'duurzaamheid-score','daktuin','zonnepanelen','labels',
+        'autoparkeren','fietsparkeren','ratio-wonen','ratio-kantoor',
+        'tevredenheid','awards'],
+    },
+  ];
+  const DEFAULT_ACTIVE = PRESETS[0].widgets;
 
+  const [editMode, setEditMode] = React.useState(false);
+  const [activePreset, setActivePreset] = React.useState(() => localStorage.getItem('mvsa.preset') || 'custom');
+  const [activeWidgets, setActiveWidgets] = React.useState(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem('mvsa.widgets') || 'null');
+      if (s && Array.isArray(s)) return s;
+    } catch(e) {}
+    return DEFAULT_ACTIVE;
+  });
+
+  const saveWidgets = (next, presetId = 'custom') => {
+    setActiveWidgets(next);
+    setActivePreset(presetId);
+    localStorage.setItem('mvsa.widgets', JSON.stringify(next));
+    localStorage.setItem('mvsa.preset', presetId);
+  };
+
+  const applyPreset = (preset) => saveWidgets(preset.widgets, preset.id);
+  const removeWidget  = (id) => saveWidgets(activeWidgets.filter(w => w !== id));
+  const addWidget     = (id) => saveWidgets([...activeWidgets, id]);
+  const inactiveWidgets = ALL_WIDGETS.filter(w => !activeWidgets.includes(w.id));
+
+  const dragSrc = React.useRef(null);
   const onDragStart = (id) => { dragSrc.current = id; };
-  const onDragOver = (e, id) => {
+  const onDragOver  = (e, id) => {
     e.preventDefault();
-    if (dragSrc.current === id) return;
-    const from = sectionOrder.indexOf(dragSrc.current);
-    const to   = sectionOrder.indexOf(id);
-    const next = [...sectionOrder];
+    if (!dragSrc.current || dragSrc.current === id) return;
+    const next = [...activeWidgets];
+    const from = next.indexOf(dragSrc.current);
+    const to   = next.indexOf(id);
+    if (from < 0 || to < 0) return;
     next.splice(from, 1);
     next.splice(to, 0, dragSrc.current);
-    setSectionOrder(next);
+    setActiveWidgets(next);
   };
   const onDragEnd = () => {
-    localStorage.setItem('mvsa.sectionOrder', JSON.stringify(sectionOrder));
+    localStorage.setItem('mvsa.widgets', JSON.stringify(activeWidgets));
   };
+  // ────────────────────────────────────────────────────────────
   React.useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : '');
     localStorage.setItem('mvsa.dark', darkMode ? '1' : '0');
@@ -2336,94 +2416,211 @@ function App(){
               textTransform: 'uppercase', cursor: 'pointer',
               fontFamily: 'inherit', transition: 'all .15s',
             }}>
-            {editMode ? '✓ Klaar' : '⠿ Bewerk indeling'}
+            {editMode ? '✓ Klaar' : `⠿ ${PRESETS.find(p=>p.id===activePreset)?.label || 'Bewerk indeling'}`}
           </button>
         </div>
       </header>
 
 
-      {/* SECTIES — drag-and-drop volgorde */}
-      {sectionOrder.map(id => {
-        const dragProps = editMode ? {
-          draggable: true,
-          onDragStart: () => onDragStart(id),
-          onDragOver:  (e) => onDragOver(e, id),
-          onDragEnd:   onDragEnd,
-        } : {};
-        const wrapStyle = editMode ? {
-          outline: '2px dashed rgba(61,110,138,.35)',
-          outlineOffset: 4,
-          borderRadius: 18,
-          cursor: 'grab',
-          userSelect: 'none',
-          position: 'relative',
-        } : {};
-        const handle = editMode ? (
-          <div style={{
-            position: 'absolute', top: 10, right: 14, zIndex: 10,
-            fontSize: 16, color: 'rgba(61,110,138,.5)',
-            pointerEvents: 'none', letterSpacing: 2,
-          }}>⠿</div>
-        ) : null;
+      {/* ── WIDGET ZIJPANEEL ── */}
+      {editMode && (
+        <div style={{
+          position: 'fixed', left: 0, top: 0, bottom: 0, width: 240,
+          background: 'var(--card)', borderRight: '1px solid var(--line)',
+          zIndex: 8000, display: 'flex', flexDirection: 'column',
+          boxShadow: '4px 0 24px -8px rgba(20,30,45,.15)',
+          fontFamily: 'inherit',
+        }}>
+          <div style={{ padding: '20px 18px 12px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
+            <div style={{ fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--muted)', fontWeight: 700, marginBottom: 10 }}>Presets</div>
+            {PRESETS.map(p => (
+              <button key={p.id} onClick={() => applyPreset(p)} style={{
+                width: '100%', marginBottom: 6, padding: '9px 12px',
+                borderRadius: 10, border: '1px solid',
+                borderColor: activePreset === p.id ? 'var(--accent)' : 'var(--line)',
+                background: activePreset === p.id ? 'rgba(61,110,138,.08)' : 'var(--bg)',
+                cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', gap: 10,
+                transition: 'all .15s',
+              }}>
+                <span style={{ fontSize: 18, flexShrink: 0 }}>{p.icon}</span>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: activePreset === p.id ? 'var(--accent)' : 'var(--ink)' }}>{p.label}</div>
+                  <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 1 }}>{p.desc}</div>
+                </div>
+                {activePreset === p.id && <span style={{ marginLeft: 'auto', color: 'var(--accent)', fontSize: 14 }}>✓</span>}
+              </button>
+            ))}
+          </div>
+          <div style={{ padding: '14px 18px 10px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
+            <div style={{ fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--muted)', fontWeight: 700, marginBottom: 4 }}>Widget bibliotheek</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)' }}>{inactiveWidgets.length} verborgen</div>
+          </div>
+          <div style={{ overflowY: 'auto', flex: 1, padding: '10px 12px' }}>
+            {inactiveWidgets.length === 0 && (
+              <div style={{ padding: '24px 8px', textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>Alle widgets zijn zichtbaar</div>
+            )}
+            {inactiveWidgets.map(w => (
+              <div key={w.id} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '9px 10px', borderRadius: 10, marginBottom: 4,
+                border: '1px dashed rgba(17,20,24,.12)',
+                background: 'var(--bg)', cursor: 'default',
+              }}>
+                <span style={{ fontSize: 16, flexShrink: 0 }}>{w.icon}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, flex: 1, color: 'var(--ink)' }}>{w.label}</span>
+                <button onClick={() => addWidget(w.id)} title="Toevoegen" style={{
+                  background: 'var(--ink)', border: 'none', borderRadius: '50%',
+                  width: 22, height: 22, color: '#fff', fontSize: 16, lineHeight: 1,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0, fontWeight: 300,
+                }}>+</button>
+              </div>
+            ))}
+          </div>
+          <div style={{ padding: '12px 18px', borderTop: '1px solid var(--line)', fontSize: 11, color: 'var(--muted)', flexShrink: 0 }}>
+            Sleep widgets om te herordenen
+          </div>
+        </div>
+      )}
 
-        const LABELS = {
-          data: 'Data', algemeen: 'Algemeen', locatie: 'Locatie',
-          metrage: 'Metrage', mobiliteit: 'Mobiliteit',
-          duurzaamheid: 'Duurzaamheid', bouw: 'Bouw & Overig',
-        };
+      {/* ── WIDGET GRID ── */}
+      <div style={editMode ? { marginLeft: 240, transition: 'margin .2s' } : { transition: 'margin .2s' }}>
+        {/* Groepeer actieve widgets per sectie voor layout, maar los versleepbaar */}
+        {(() => {
+          const GROUPS = [
+            { title: 'Data',        ids: ['aantal-projecten','random-project','leaderboard','recent-1','recent-2'] },
+            { title: 'Algemeen',    ids: ['projecttype','functie','verkregen','ontwerp-opgeleverd','fases'] },
+            { title: 'Locatie',     ids: ['binnen-buiten','top-provincies','top-steden'] },
+            { title: 'Metrage',     ids: ['type-programma','totaal-bvo','grootste-gebouw','bvo-lijst'] },
+            { title: 'Mobiliteit',  ids: ['autoparkeren','fietsparkeren','ratio-wonen','ratio-kantoor'] },
+            { title: 'Duurzaamheid',ids: ['duurzaamheid-score','daktuin','zonnepanelen'] },
+            { title: 'Bouw & Overig',ids:['hoogste-gebouw','tevredenheid','awards','labels','meeste-awards'] },
+          ];
 
-        const content = (() => { switch(id) {
-          case 'data': return (
-            <DataSection
-              d={{...(liveData || MOCK.data), randomProject: randomProject || (liveData || MOCK.data).randomProject}}
-              leaderPhoto={liveLeaderPhoto}
-              allProjects={allProjects}
-              onShuffle={() => {
+          // Helper: render een individueel widget
+          const renderWidget = (id) => {
+            const d  = liveData      || MOCK.data;
+            const a  = liveAlgemeen  || MOCK.algemeen;
+            const l  = liveLocatie   || MOCK.locatie;
+            const m  = liveMetrage   || MOCK.metrage;
+            const mo = liveMobiliteit|| MOCK.mobiliteit;
+            const du = liveDuurzaamheid || MOCK.duurzaamheid;
+            const b  = liveBouw      || MOCK.bouwOverig;
+            const rp = randomProject || d.randomProject;
+            const recent = d.recent || [];
+
+            switch(id) {
+              case 'aantal-projecten':  return <AantalProjecten projectsFilled={d.projectsFilled} allProjects={allProjects} />;
+              case 'random-project':    return <RandomProject project={rp} onShuffle={() => {
                 const projects = window._allProjects || [];
                 if (!projects.length) return;
                 const pick = projects[Math.floor(Math.random() * projects.length)];
-                setRandomProject({
-                  name: pick.projectnaam,
-                  city: pick.stad || pick.land || '',
-                  tags: [pick.project_type, pick.fase, pick.opgave].filter(Boolean).slice(0, 3),
+                setRandomProject({ name: pick.projectnaam, city: pick.stad || pick.land || '', tags: [pick.project_type, pick.fase, pick.opgave].filter(Boolean).slice(0,3) });
+              }} />;
+              case 'leaderboard':       return <Leaderboard leaderboard={d.leaderboard} leaderPhoto={liveLeaderPhoto} />;
+              case 'recent-1':          return recent[0] ? <RecentCard project={recent[0]} position={0} /> : null;
+              case 'recent-2':          return recent[1] ? <RecentCard project={recent[1]} position={1} /> : null;
+              case 'projecttype':       return <ProjecttypeChart data={a.projecttype} />;
+              case 'functie':           return <FunctieDonut data={a.functie} />;
+              case 'verkregen':         return <VerkregenChart data={a.verkregen} />;
+              case 'ontwerp-opgeleverd':return <OntwerpOpgeleverd ontwerp={a.ontwerp} opgeleverd={a.opgeleverd} />;
+              case 'fases':             return <FasesChart fases={a.fases} onBarClick={(d) => {
+                const filtered = allProjects.filter(p => {
+                  if (!p.fase) return false;
+                  const f = p.fase.trim().toUpperCase();
+                  return f === d.label || f.startsWith(d.label+' ') || f.includes('('+d.label+')') || f.startsWith(d.full ? d.full.toUpperCase() : '____');
                 });
-              }}
-            />
-          );
-          case 'algemeen': return (
-            <AlgemeenSection a={liveAlgemeen || MOCK.algemeen} onBarClick={(d) => {
-              const filtered = allProjects.filter(p => {
-                if (!p.fase) return false;
-                const f = p.fase.trim().toUpperCase();
-                return f === d.label ||
-                       f.startsWith(d.label + ' ') ||
-                       f.includes('(' + d.label + ')') ||
-                       f.startsWith(d.full ? d.full.toUpperCase() : '____');
-              });
-              setFaseModal({ label: d.label, fullName: d.full || FASE_NAMES[d.label] || d.label, projects: filtered });
-            }} />
-          );
-          case 'locatie':     return <LocatieSection l={liveLocatie || MOCK.locatie} />;
-          case 'metrage':     return <MetrageSection m={liveMetrage || MOCK.metrage} />;
-          case 'mobiliteit':  return <MobiliteitRatioSection mob={liveMobiliteit || MOCK.mobiliteit} ratio={MOCK.ratio} />;
-          case 'duurzaamheid':return <DuurzaamheidSection d={liveDuurzaamheid || MOCK.duurzaamheid} />;
-          case 'bouw':        return <BouwOverigSection b={liveBouw || MOCK.bouwOverig} />;
-          default: return null;
-        }})();
+                setFaseModal({ label: d.label, fullName: d.full || FASE_NAMES[d.label] || d.label, projects: filtered });
+              }} />;
+              case 'binnen-buiten':     return <BinnenBuitenland binnenland={l.binnenland} buitenland={l.buitenland} />;
+              case 'top-provincies':    return <TopProvincies provincies={l.provincies} />;
+              case 'top-steden':        return <TopSteden steden={l.steden} />;
+              case 'type-programma':    return <TypeProgrammaDonut data={m.typeProgramma} />;
+              case 'totaal-bvo':        return <TotaalGerealiseerd waarde={m.totaalGerealiseerd} />;
+              case 'grootste-gebouw':   return <GrootsteGebouw data={m.grootsteGebouw} />;
+              case 'bvo-lijst':         return <BvoLijst lijst={m.bvoLijst} />;
+              case 'autoparkeren':      return <AutoParkeren items={mo.auto} />;
+              case 'fietsparkeren':     return <FietsParkeren items={mo.fiets} />;
+              case 'ratio-wonen':       return <RatioWonen items={MOCK.ratio.wonen} />;
+              case 'ratio-kantoor':     return <RatioKantoor items={MOCK.ratio.kantoor} />;
+              case 'duurzaamheid-score':return <DuurzaamheidsScore items={du.score} />;
+              case 'daktuin':           return <DaktuinWidget items={du.daktuin} />;
+              case 'zonnepanelen':      return <ZonnepanelenWidget items={du.zonnepanelen} />;
+              case 'hoogste-gebouw':    return <HoogsteGebouw items={b.hoogsteGebouw} />;
+              case 'tevredenheid':      return <TevredenheidStat waarde={b.tevredenheid} />;
+              case 'awards':            return <TotaalAwardsStat waarde={b.totaalAwards} />;
+              case 'labels':            return <LabelsList items={b.labels} />;
+              case 'meeste-awards':     return <MeesteAwards items={b.awards} />;
+              default: return null;
+            }
+          };
 
-        return (
-          <div key={id} {...dragProps} style={{ position: 'relative', ...wrapStyle }}>
-            {handle}
-            {editMode && (
-              <div style={{
-                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-                zIndex: 5, borderRadius: 18,
-              }} />
-            )}
-            {content}
-          </div>
-        );
-      })}
+          // Render groepen die minstens 1 actieve widget hebben
+          return GROUPS.map(group => {
+            const visible = group.ids.filter(id => activeWidgets.includes(id))
+              .sort((a, b) => activeWidgets.indexOf(a) - activeWidgets.indexOf(b));
+            if (!visible.length) return null;
+
+            return (
+              <div key={group.title}>
+                <SectionTitle>{group.title}</SectionTitle>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 14 }}>
+                  {visible.map(id => {
+                    const meta = ALL_WIDGETS.find(w => w.id === id);
+                    const h = meta?.size === 'tall' ? 'var(--h-tall)' : 'var(--h-mid)';
+                    return (
+                      <div key={id}
+                        draggable={editMode}
+                        onDragStart={() => onDragStart(id)}
+                        onDragOver={(e) => onDragOver(e, id)}
+                        onDragEnd={onDragEnd}
+                        style={{
+                          flex: '1 1 280px', minWidth: 220,
+                          height: h,
+                          position: 'relative',
+                          cursor: editMode ? 'grab' : 'default',
+                          outline: editMode ? '2px dashed rgba(61,110,138,.3)' : 'none',
+                          outlineOffset: 3,
+                          borderRadius: 18,
+                          transition: 'outline .15s',
+                        }}>
+                        {/* Inhoud */}
+                        <div style={{ height: '100%', pointerEvents: editMode ? 'none' : 'auto' }}>
+                          {renderWidget(id)}
+                        </div>
+                        {/* Bewerkoverlay */}
+                        {editMode && (
+                          <div style={{
+                            position: 'absolute', inset: 0, zIndex: 2,
+                            display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end',
+                            padding: 8, borderRadius: 18,
+                          }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                              <span style={{ fontSize: 18, color: 'rgba(61,110,138,.4)', lineHeight: 1, userSelect: 'none' }}>⠿</span>
+                              <button onClick={() => removeWidget(id)} title="Verwijder widget"
+                                style={{
+                                  width: 24, height: 24, borderRadius: '50%',
+                                  background: '#b43c3c', border: 'none', color: '#fff',
+                                  fontSize: 16, lineHeight: 1, cursor: 'pointer',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  boxShadow: '0 2px 8px rgba(180,60,60,.4)',
+                                }}>−</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          });
+        })()}
+      </div>
+
+      {/* FASE MODAL — via portal buiten root div zodat fixed positioning altijd werkt */}
+      {faseModal && ReactDOM.createPortal(
 
       {/* FASE MODAL — via portal buiten root div zodat fixed positioning altijd werkt */}
       {faseModal && ReactDOM.createPortal(
