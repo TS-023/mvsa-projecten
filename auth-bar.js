@@ -15,7 +15,7 @@
       return;
     }
 
-    const { data: profile } = await db.from('profiles')
+    let { data: profile } = await db.from('profiles')
       .select('*')
       .eq('id', user.id).maybeSingle();
 

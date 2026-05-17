@@ -20,7 +20,7 @@
   try {
     const { data: { user } } = await db.auth.getUser();
     if (user) {
-      const { data: profile } = await db.from('profiles')
+      let { data: profile } = await db.from('profiles')
         .select('*').eq('id', user.id).maybeSingle();
       if (profile && profile.status === 'approved') {
         isApproved = true;
@@ -81,7 +81,6 @@
           <span class="icon">⚙️</span> Beheer
         </a>
       ` : ''}
-    ` : ''}
 
     </nav>
 

@@ -422,6 +422,54 @@
   .fase-modal-body{ overflow-y:auto; padding:8px 0; }
   .fase-empty{ padding:48px; text-align:center; color:var(--muted); font-size:14px; }
   .fase-empty-icon{ font-size:32px; margin-bottom:12px; }
+
+  /* ── Projecten-overzicht modal ── */
+  .pov-modal{
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    z-index:201; background:var(--card); border-radius:20px;
+    box-shadow:0 24px 64px -12px rgba(17,20,24,.3);
+    width:min(740px, 96vw); max-height:85vh;
+    display:flex; flex-direction:column; overflow:hidden;
+    animation:slideUp .25s ease;
+  }
+  .pov-header{
+    padding:24px 28px 16px; border-bottom:1px solid var(--line);
+    display:flex; align-items:flex-start; justify-content:space-between; flex-shrink:0;
+  }
+  .pov-header h2{ font-size:20px; font-weight:700; letter-spacing:-.02em; margin:0 0 2px; }
+  .pov-header .sub{ font-size:12px; color:var(--muted); }
+  .pov-body{ overflow-y:auto; padding:0 0 12px; }
+  .pov-week{
+    padding:14px 28px 6px; font-size:10px; letter-spacing:.18em; text-transform:uppercase;
+    font-weight:700; color:var(--muted); display:flex; align-items:center; gap:10px;
+    position:sticky; top:0; background:var(--card); z-index:1; border-bottom:1px solid var(--line);
+  }
+  .pov-week-badge{
+    display:inline-flex; align-items:center; gap:4px;
+    padding:2px 9px; border-radius:999px; font-size:10px; font-weight:700;
+    letter-spacing:.06em;
+  }
+  .pov-week-badge.up{ background:rgba(34,139,84,.12); color:#1a7a4a; }
+  .pov-week-badge.down{ background:rgba(180,60,60,.12); color:#b43c3c; }
+  .pov-week-badge.neutral{ background:rgba(100,110,130,.1); color:var(--muted); }
+  .pov-row{
+    display:flex; align-items:center; gap:14px;
+    padding:10px 28px; text-decoration:none; color:inherit;
+    border-bottom:1px solid var(--line); transition:background .1s;
+    cursor:pointer;
+  }
+  .pov-row:last-child{ border-bottom:none; }
+  .pov-row:hover{ background:var(--bg); }
+  .pov-num{ font-size:10px; font-weight:700; letter-spacing:.08em; color:var(--muted); width:48px; flex-shrink:0; }
+  .pov-name{ font-size:13px; font-weight:600; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pov-meta{ font-size:11px; color:var(--muted); flex-shrink:0; }
+  .pov-by{ font-size:11px; color:var(--accent); flex-shrink:0; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pov-fase{ font-size:9px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; padding:2px 7px; border-radius:999px; background:rgba(61,110,138,.1); color:var(--accent); flex-shrink:0; }
+  .pov-search{ padding:12px 28px; border-bottom:1px solid var(--line); flex-shrink:0; }
+  .pov-search input{ width:100%; padding:8px 14px; border:1px solid var(--line); border-radius:999px; font-family:inherit; font-size:13px; color:var(--ink); background:var(--bg); outline:none; }
+  .pov-search input:focus{ border-color:var(--accent); }
+  .stat.left-1{ cursor:pointer; transition:box-shadow .15s, transform .15s; }
+  .stat.left-1:hover{ box-shadow:0 8px 32px -8px rgba(61,110,138,.25); transform:translateY(-2px); }
   .fase-project-row{
     display:flex; align-items:center; gap:14px;
     padding:12px 28px; text-decoration:none; color:inherit;
@@ -721,14 +769,209 @@ function SectionTitle({ children }) {
    ============================================================ */
 
 
-/* ── AantalProjecten: grote teller bovenlinks ── */
-function AantalProjecten({ projectsFilled }) {
+/* ── ProjectenOverzichtModal: alle projecten gesorteerd per week ── */
+function ProjectenOverzichtModal({ onClose }) {
+  const [projects, setProjects] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [profileMap, setProfileMap] = React.useState({});
+  const [q, setQ] = React.useState('');
+
+  React.useEffect(() => {
+    // Sluit op Escape
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await db.from('projects')
+          .select('id, projectnummer, projectnaam, stad, fase, created_at, created_by')
+          .order('created_at', { ascending: false });
+        setProjects(data || []);
+
+        // Haal alle profielen op voor naam-lookup
+        const { data: profiles } = await db.from('profiles').select('id, naam');
+        const map = {};
+        (profiles || []).forEach(p => { map[p.id] = p.naam; });
+        setProfileMap(map);
+      } catch(e) {}
+      setLoading(false);
+    })();
+  }, []);
+
+  // Groepeer per week (maandag = start)
+  const getWeekStart = (dateStr) => {
+    const d = new Date(dateStr);
+    const day = d.getDay(); // 0=zo, 1=ma, ...
+    const diff = (day === 0) ? -6 : 1 - day;
+    const mon = new Date(d);
+    mon.setDate(d.getDate() + diff);
+    mon.setHours(0,0,0,0);
+    return mon;
+  };
+
+  const filtered = q.trim().length >= 2
+    ? projects.filter(p =>
+        (p.projectnaam||'').toLowerCase().includes(q.toLowerCase()) ||
+        (p.projectnummer||'').toLowerCase().includes(q.toLowerCase()) ||
+        (p.stad||'').toLowerCase().includes(q.toLowerCase()) ||
+        (profileMap[p.created_by]||'').toLowerCase().includes(q.toLowerCase())
+      )
+    : projects;
+
+  // Groepeer per week
+  const weeks = [];
+  const weekMap = {};
+  filtered.forEach(p => {
+    const ws = getWeekStart(p.created_at);
+    const key = ws.toISOString();
+    if (!weekMap[key]) {
+      weekMap[key] = { start: ws, projects: [] };
+      weeks.push(weekMap[key]);
+    }
+    weekMap[key].projects.push(p);
+  });
+
+  // Trend-badge per week t.o.v. vorige week
+  const formatWeekLabel = (ws) => {
+    const now = new Date();
+    const thisWeekStart = getWeekStart(now.toISOString());
+    const diff = Math.round((thisWeekStart - ws) / (7 * 24 * 3600 * 1000));
+    if (diff === 0) return 'Deze week';
+    if (diff === 1) return 'Vorige week';
+    const end = new Date(ws); end.setDate(ws.getDate() + 6);
+    const fmt = (d) => d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+    return `${fmt(ws)} – ${fmt(end)}`;
+  };
+
+  const totalThisWeek = weeks[0]?.projects.length || 0;
+  const totalLastWeek = weeks[1]?.projects.length || 0;
+
+  return ReactDOM.createPortal(
+    <>
+      <div className="fase-backdrop" onClick={onClose} />
+      <div className="pov-modal">
+        <div className="pov-header">
+          <div>
+            <div className="fase-modal-label">Overzicht</div>
+            <h2>Ingevulde projecten</h2>
+            <div className="sub">
+              {projects.length} projecten totaal
+              {totalThisWeek > 0 && (
+                <span style={{marginLeft:10}}>
+                  · deze week: <b>{totalThisWeek}</b>
+                  {totalLastWeek > 0 && (
+                    <span style={{
+                      marginLeft:6, fontSize:11, fontWeight:700, padding:'1px 7px',
+                      borderRadius:999, display:'inline-block',
+                      background: totalThisWeek > totalLastWeek ? 'rgba(34,139,84,.12)' : totalThisWeek < totalLastWeek ? 'rgba(180,60,60,.12)' : 'rgba(100,110,130,.1)',
+                      color: totalThisWeek > totalLastWeek ? '#1a7a4a' : totalThisWeek < totalLastWeek ? '#b43c3c' : 'var(--muted)',
+                    }}>
+                      {totalThisWeek > totalLastWeek ? '▲' : totalThisWeek < totalLastWeek ? '▼' : '='}
+                      {' '}{Math.abs(totalThisWeek - totalLastWeek)} t.o.v. vorige week
+                    </span>
+                  )}
+                </span>
+              )}
+            </div>
+          </div>
+          <button className="fase-modal-close" onClick={onClose}>×</button>
+        </div>
+
+        <div className="pov-search">
+          <input
+            type="search"
+            placeholder="Zoek op naam, nummer, stad of persoon…"
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            autoFocus
+          />
+        </div>
+
+        <div className="pov-body">
+          {loading && (
+            <div style={{padding:48, textAlign:'center', color:'var(--muted)', fontSize:13}}>Laden…</div>
+          )}
+          {!loading && weeks.length === 0 && (
+            <div style={{padding:48, textAlign:'center', color:'var(--muted)', fontSize:13}}>Geen projecten gevonden.</div>
+          )}
+          {!loading && weeks.map((week, wi) => {
+            const prevCount = weeks[wi + 1]?.projects.length;
+            const thisCount = week.projects.length;
+            const badge = prevCount == null ? 'neutral'
+              : thisCount > prevCount ? 'up'
+              : thisCount < prevCount ? 'down'
+              : 'neutral';
+            const badgeIcon = badge === 'up' ? '▲' : badge === 'down' ? '▼' : '=';
+            const badgeLabel = prevCount != null
+              ? `${badgeIcon} ${Math.abs(thisCount - prevCount)} t.o.v. week ervoor`
+              : `${thisCount} project${thisCount !== 1 ? 'en' : ''}`;
+
+            return (
+              <div key={week.start.toISOString()}>
+                <div className="pov-week">
+                  {formatWeekLabel(week.start)}
+                  <span style={{marginLeft:4, color:'var(--ink)', fontWeight:800}}>{thisCount}</span>
+                  <span className={`pov-week-badge ${badge}`}>{badgeLabel}</span>
+                </div>
+                {week.projects.map(p => (
+                  <a key={p.id}
+                     className="pov-row"
+                     href={`project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}`}>
+                    <span className="pov-num">{p.projectnummer || '—'}</span>
+                    <span className="pov-name">{p.projectnaam}</span>
+                    {p.stad && <span className="pov-meta">{p.stad}</span>}
+                    {profileMap[p.created_by] && (
+                      <span className="pov-by">👤 {profileMap[p.created_by]}</span>
+                    )}
+                    {p.fase && <span className="pov-fase">{p.fase}</span>}
+                  </a>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </>,
+    document.body
+  );
+}
+
+/* ── AantalProjecten: grote teller bovenlinks (klikbaar) ── */
+function AantalProjecten({ projectsFilled, allProjects }) {
+  const [open, setOpen] = React.useState(false);
+
+  // Bereken week-delta live
+  const now = new Date();
+  const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
+  const twoWeeksAgo = new Date(now); twoWeeksAgo.setDate(now.getDate() - 14);
+  const thisWeek = allProjects.filter(p => new Date(p.created_at) >= weekAgo).length;
+  const lastWeek = allProjects.filter(p => {
+    const d = new Date(p.created_at);
+    return d >= twoWeeksAgo && d < weekAgo;
+  }).length;
+  const delta = thisWeek - lastWeek;
+  const deltaColor = delta > 0 ? '#1a7a4a' : delta < 0 ? '#b43c3c' : 'var(--muted)';
+  const deltaSign = delta > 0 ? '+' : '';
+
   return (
-    <div className="card stat left-1">
-      <h3>Aantal projecten ingevuld</h3>
-      <div className="num">{projectsFilled}</div>
-      <div className="delta">van <b>104</b> totaal · <b>+6</b> deze week</div>
-    </div>
+    <>
+      <div className="card stat left-1" onClick={() => setOpen(true)} title="Klik voor overzicht">
+        <h3>Aantal projecten ingevuld</h3>
+        <div className="num">{projectsFilled}</div>
+        <div className="delta">
+          van <b>{allProjects.length || '—'}</b> totaal
+          {thisWeek > 0 && (
+            <span style={{marginLeft:8, fontWeight:700, color:deltaColor}}>
+              · {deltaSign}{delta} deze week
+            </span>
+          )}
+        </div>
+      </div>
+      {open && <ProjectenOverzichtModal onClose={() => setOpen(false)} />}
+    </>
   );
 }
 
@@ -838,12 +1081,12 @@ function RecentCard({ project, position }) {
 
 
 /* ── DataSection: samengesteld blok (alle data-widgets samen) ── */
-function DataSection({ d, leaderPhoto }) {
+function DataSection({ d, leaderPhoto, allProjects }) {
   return (
     <>
       <SectionTitle>Data</SectionTitle>
       <div className="grid grid-data">
-        <AantalProjecten projectsFilled={d.projectsFilled} />
+        <AantalProjecten projectsFilled={d.projectsFilled} allProjects={allProjects} />
         <VeldenIngevuld fieldsFilled={d.fieldsFilled} />
         <RandomProject project={d.randomProject} onShuffle={() => {
           const projects = window._allProjects || [];
@@ -2056,7 +2299,7 @@ function App(){
       </header>
 
 
-      <DataSection d={{...(liveData || MOCK.data), randomProject: randomProject || (liveData || MOCK.data).randomProject}} leaderPhoto={liveLeaderPhoto} />
+      <DataSection d={{...(liveData || MOCK.data), randomProject: randomProject || (liveData || MOCK.data).randomProject}} leaderPhoto={liveLeaderPhoto} allProjects={allProjects} />
       <AlgemeenSection a={liveAlgemeen || MOCK.algemeen} onBarClick={(d) => {
         const filtered = allProjects.filter(p => {
           if (!p.fase) return false;
