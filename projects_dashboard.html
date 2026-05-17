@@ -17,6 +17,8 @@
     --line: #e8e4dd;
     --shadow: 0 1px 0 rgba(20,30,45,.04), 0 8px 24px -12px rgba(20,30,45,.18);
     --radius: 16px;
+    --h-tall: 340px;   /* hoge widget */
+    --h-mid:  160px;   /* middel widget */
   }
   *{ box-sizing: border-box; }
   html, body{ margin:0; padding:0; background: var(--bg); color: var(--ink); font-family: 'Inter', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
@@ -67,7 +69,7 @@
   /* ── Data sectie (grote nummers bovenaan) ── */
   .grid-data{
     grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: repeat(4, 1fr);
+    grid-template-rows: var(--h-mid) var(--h-mid) var(--h-mid) var(--h-mid);
     grid-auto-flow: column;
   }
   .grid-data .left-1{ grid-column: 1; grid-row: 1 / span 2; }
@@ -87,6 +89,7 @@
     padding: 18px 20px;
     border: 1px solid rgba(255,255,255,.6);
     transition: transform .2s ease, box-shadow .2s ease;
+    overflow: hidden;
   }
   .card:hover{
     transform: translateY(-3px);
@@ -245,9 +248,11 @@
   /* ── Algemeen sectie ── */
   .grid-alg-1{
     grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: var(--h-tall);
   }
   .grid-alg-2{
     grid-template-columns: 1fr 2fr;
+    grid-template-rows: var(--h-tall);
   }
   .grid-alg-2 .card{
     height: 100%;
@@ -288,7 +293,7 @@
 
 
   /* ── Locatie sectie ── */
-  .grid-loc{ grid-template-columns: 1fr 1fr 1fr; }
+  .grid-loc{ grid-template-columns: 1fr 1fr 1fr; grid-template-rows: var(--h-tall); }
 
   .loc-split{ display:grid; grid-template-rows: 1fr 1fr; gap: 6px; }
   .loc-split .cell{ padding: 10px 4px; }
@@ -302,7 +307,7 @@
   /* ── Metrage sectie ── */
   .grid-metrage{
     grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: auto auto;
+    grid-template-rows: var(--h-mid) var(--h-mid);
     align-items: stretch;
   }
   .grid-metrage .type-prog{ grid-column: 1; grid-row: 1 / span 2; display:flex; flex-direction:column; }
@@ -371,6 +376,7 @@
   /* ── Mobiliteit & ratio ── */
   .grid-mob-ratio{
     grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: var(--h-tall);
   }
   .grid-mob-ratio .mob-col{ display:grid; gap: 14px; grid-auto-rows: 1fr; }
 
@@ -887,7 +893,7 @@ function ProjectenOverzichtModal({ onClose }) {
             placeholder="Zoek op naam, nummer, stad of persoon…"
             value={q}
             onChange={e => setQ(e.target.value)}
-            autoFocus
+            autoComplete="off"
           />
         </div>
 
@@ -2443,7 +2449,7 @@ function App(){
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 <script src="transitions.js"></script>
-<script>window.scrollTo(0, 0);</script>
+
 <script>
 (async function() {
   try {
