@@ -452,18 +452,20 @@
   .pov-week-badge.down{ background:rgba(180,60,60,.12); color:#b43c3c; }
   .pov-week-badge.neutral{ background:rgba(100,110,130,.1); color:var(--muted); }
   .pov-row{
-    display:flex; align-items:center; gap:14px;
+    display:grid;
+    grid-template-columns: 52px 1fr 110px 130px 72px;
+    align-items:center; gap:0;
     padding:10px 28px; text-decoration:none; color:inherit;
     border-bottom:1px solid var(--line); transition:background .1s;
     cursor:pointer;
   }
   .pov-row:last-child{ border-bottom:none; }
   .pov-row:hover{ background:var(--bg); }
-  .pov-num{ font-size:10px; font-weight:700; letter-spacing:.08em; color:var(--muted); width:48px; flex-shrink:0; }
-  .pov-name{ font-size:13px; font-weight:600; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .pov-meta{ font-size:11px; color:var(--muted); flex-shrink:0; }
-  .pov-by{ font-size:11px; color:var(--accent); flex-shrink:0; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .pov-fase{ font-size:9px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; padding:2px 7px; border-radius:999px; background:rgba(61,110,138,.1); color:var(--accent); flex-shrink:0; }
+  .pov-num{ font-size:10px; font-weight:700; letter-spacing:.08em; color:var(--muted); }
+  .pov-name{ font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:12px; }
+  .pov-meta{ font-size:11px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:12px; }
+  .pov-by{ font-size:11px; color:var(--accent); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:12px; }
+  .pov-fase{ font-size:9px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; padding:2px 7px; border-radius:999px; background:rgba(61,110,138,.1); color:var(--accent); justify-self:end; white-space:nowrap; }
   .pov-search{ padding:12px 28px; border-bottom:1px solid var(--line); flex-shrink:0; }
   .pov-search input{ width:100%; padding:8px 14px; border:1px solid var(--line); border-radius:999px; font-family:inherit; font-size:13px; color:var(--ink); background:var(--bg); outline:none; }
   .pov-search input:focus{ border-color:var(--accent); }
@@ -921,11 +923,9 @@ function ProjectenOverzichtModal({ onClose }) {
                      href={`project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}`}>
                     <span className="pov-num">{p.projectnummer || '—'}</span>
                     <span className="pov-name">{p.projectnaam}</span>
-                    {p.stad && <span className="pov-meta">{p.stad}</span>}
-                    {profileMap[p.created_by] && (
-                      <span className="pov-by">👤 {profileMap[p.created_by]}</span>
-                    )}
-                    {p.fase && <span className="pov-fase">{p.fase}</span>}
+                    <span className="pov-meta">{p.stad || ''}</span>
+                    <span className="pov-by">{profileMap[p.created_by] ? '👤 ' + profileMap[p.created_by] : ''}</span>
+                    <span className="pov-fase">{p.fase || ''}</span>
                   </a>
                 ))}
               </div>
@@ -990,9 +990,6 @@ function RandomProject({ project, onShuffle }) {
   return (
     <div className="card random-project left-3" style={{ paddingBottom: 0 }}>
       <h3>Random project uitgelicht</h3>
-      <a className="rp-img" href={projectHref(project.name)}>
-        <span className="label">PLACE IMAGE HERE</span>
-      </a>
       <div className="name">
         <a href={projectHref(project.name)}
            style={{ color: 'inherit', textDecoration: 'none' }}
