@@ -281,9 +281,10 @@
   .duo-stat .row .num{ font-size: 32px; font-weight: 700; letter-spacing:-.03em; }
 
   .phase-legend{
-    list-style: none; padding: 0; margin: 12px 0 0;
+    list-style: none; padding: 0; margin: 0;
     display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px 20px;
     border-top: 1px solid var(--line); padding-top: 10px;
+    flex-shrink: 0;
   }
   .phase-legend li{
     display:flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted);
@@ -294,6 +295,14 @@
     font-size: 10px; letter-spacing: .06em; min-width: 22px; flex-shrink: 0;
   }
   .phase-legend li span{ font-family: 'Inter', sans-serif; letter-spacing: 0; font-size: 11px; }
+
+  /* chart-card: vaste verdeling — grafiek neemt resterende ruimte, legenda altijd onderaan */
+  .chart-card{ display: flex; flex-direction: column; }
+  .chart-card .chart-svg-wrap{
+    flex: 1; min-height: 0;
+    display: flex; align-items: flex-end;
+  }
+  .chart-card .chart-svg-wrap svg{ width: 100%; }
 
 
   /* ── Locatie sectie ── */
@@ -1165,9 +1174,11 @@ function ProjecttypeChart({ data }) {
   return (
     <div className="card chart-card">
       <div className="chart-title">Projecttype</div>
-      <BarChart data={data} />
-      <ul className="phase-legend">
-        {data.map((d, i) => (
+      <div className="chart-svg-wrap">
+        <BarChart data={data} height={120} />
+      </div>
+      <ul className="phase-legend" style={{ marginTop: 10 }}>
+        {data.slice(0, 8).map((d, i) => (
           <li key={i}><b>{d.label}</b><span>{TYPE_NAMES[d.label] || d.label}</span></li>
         ))}
       </ul>
@@ -1365,14 +1376,16 @@ function FasesChart({ fases, onBarClick }) {
   return (
     <div className="card chart-card">
       <div className="chart-title">Fases</div>
-      <BarChart
-        data={fases}
-        height={120}
-        hoverPalette={['#5a4a8a', '#3d6e8a', '#3d8a6e', '#8a7a3d', '#8a4a4a', '#6e3d8a', '#3d8a8a', '#8a6e3d']}
-        onBarClick={onBarClick}
-      />
-      <ul className="phase-legend">
-        {fases.map((f, i) => (
+      <div className="chart-svg-wrap">
+        <BarChart
+          data={fases}
+          height={120}
+          hoverPalette={['#5a4a8a', '#3d6e8a', '#3d8a6e', '#8a7a3d', '#8a4a4a', '#6e3d8a', '#3d8a8a', '#8a6e3d']}
+          onBarClick={onBarClick}
+        />
+      </div>
+      <ul className="phase-legend" style={{ marginTop: 10 }}>
+        {fases.slice(0, 8).map((f, i) => (
           <li key={i}><b>{f.label}</b><span>{f.full}</span></li>
         ))}
       </ul>
