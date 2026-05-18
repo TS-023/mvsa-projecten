@@ -2265,7 +2265,23 @@ function App(){
     localStorage.setItem('mvsa.preset', presetId);
   };
 
-  const applyPreset = (preset) => saveWidgets(preset.widgets, preset.id);
+  // Slimme default spans per widget
+  const DEFAULT_SPANS = {
+    'leaderboard': { col: 2, row: 2 }, 'grootste-gebouw': { col: 2, row: 2 },
+    'bvo-lijst': { col: 4, row: 2 }, 'fases': { col: 4, row: 2 },
+    'ratio-wonen': { col: 2, row: 2 }, 'ratio-kantoor': { col: 2, row: 2 },
+    'hoogste-gebouw': { col: 2, row: 2 }, 'meeste-awards': { col: 2, row: 2 },
+    'type-programma': { col: 2, row: 2 }, 'duurzaamheid-score': { col: 2, row: 2 },
+    'daktuin': { col: 2, row: 2 }, 'zonnepanelen': { col: 2, row: 2 },
+  };
+
+  const applyPreset = (preset) => {
+    saveWidgets(preset.widgets, preset.id);
+    // Reset layout naar slimme defaults voor dit preset
+    const newLayout = {};
+    preset.widgets.forEach(id => { if (DEFAULT_SPANS[id]) newLayout[id] = DEFAULT_SPANS[id]; });
+    saveLayout(newLayout);
+  };
   const removeWidget  = (id) => saveWidgets(activeWidgets.filter(w => w !== id));
   const addWidget     = (id) => saveWidgets([...activeWidgets, id]);
   const inactiveWidgets = ALL_WIDGETS.filter(w => !activeWidgets.includes(w.id));
@@ -2478,38 +2494,40 @@ function App(){
               </div>
             ))}
           </div>
-          <div style={{ padding: '12px 18px', borderTop: '1px solid var(--line)', fontSize: 11, color: 'var(--muted)', flexShrink: 0 }}>
-            Sleep widgets om te herordenen
+          <div style={{ padding: '12px 18px', borderTop: '1px solid var(--line)', fontSize: 11, color: 'var(--muted)', flexShrink: 0, lineHeight: 1.5 }}>
+            <b style={{color:'var(--ink)'}}>Sleep</b> om te herordenen<br/>
+            <b style={{color:'var(--ink)'}}>⤡</b> om formaat aan te passen
           </div>
         </div>
       )}
 
       {/* ── WIDGET GRID ── */}
       <div style={editMode ? { marginLeft: 240, transition: 'margin .2s' } : { transition: 'margin .2s' }}>
-        {/* Groepeer actieve widgets per sectie voor layout, maar los versleepbaar */}
+        {/* ── 12-koloms grid layout met vrij instelbare breedte + hoogte ── */}
         {(() => {
           const GROUPS = [
-            { title: 'Data',        ids: ['aantal-projecten','random-project','leaderboard','recent-1','recent-2'] },
-            { title: 'Algemeen',    ids: ['projecttype','functie','verkregen','ontwerp-opgeleverd','fases'] },
-            { title: 'Locatie',     ids: ['binnen-buiten','top-provincies','top-steden'] },
-            { title: 'Metrage',     ids: ['type-programma','totaal-bvo','grootste-gebouw','bvo-lijst'] },
-            { title: 'Mobiliteit',  ids: ['autoparkeren','fietsparkeren','ratio-wonen','ratio-kantoor'] },
-            { title: 'Duurzaamheid',ids: ['duurzaamheid-score','daktuin','zonnepanelen'] },
-            { title: 'Bouw & Overig',ids:['hoogste-gebouw','tevredenheid','awards','labels','meeste-awards'] },
+            { title: 'Data',         ids: ['aantal-projecten','random-project','leaderboard','recent-1','recent-2'] },
+            { title: 'Algemeen',     ids: ['projecttype','functie','verkregen','ontwerp-opgeleverd','fases'] },
+            { title: 'Locatie',      ids: ['binnen-buiten','top-provincies','top-steden'] },
+            { title: 'Metrage',      ids: ['type-programma','totaal-bvo','grootste-gebouw','bvo-lijst'] },
+            { title: 'Mobiliteit',   ids: ['autoparkeren','fietsparkeren','ratio-wonen','ratio-kantoor'] },
+            { title: 'Duurzaamheid', ids: ['duurzaamheid-score','daktuin','zonnepanelen'] },
+            { title: 'Bouw & Overig',ids: ['hoogste-gebouw','tevredenheid','awards','labels','meeste-awards'] },
           ];
 
-          // Helper: render een individueel widget
-          const renderWidget = (id) => {
-            const d  = liveData      || MOCK.data;
-            const a  = liveAlgemeen  || MOCK.algemeen;
-            const l  = liveLocatie   || MOCK.locatie;
-            const m  = liveMetrage   || MOCK.metrage;
-            const mo = liveMobiliteit|| MOCK.mobiliteit;
-            const du = liveDuurzaamheid || MOCK.duurzaamheid;
-            const b  = liveBouw      || MOCK.bouwOverig;
-            const rp = randomProject || d.randomProject;
-            const recent = d.recent || [];
+          // Hoogte per rowspan
+          const ROW_H = { 1: 160, 2: 340 };
 
+          const renderWidget = (id) => {
+            const d  = liveData         || MOCK.data;
+            const a  = liveAlgemeen     || MOCK.algemeen;
+            const l  = liveLocatie      || MOCK.locatie;
+            const m  = liveMetrage      || MOCK.metrage;
+            const mo = liveMobiliteit   || MOCK.mobiliteit;
+            const du = liveDuurzaamheid || MOCK.duurzaamheid;
+            const b  = liveBouw         || MOCK.bouwOverig;
+            const rp = randomProject    || d.randomProject;
+            const recent = d.recent     || [];
             switch(id) {
               case 'aantal-projecten':  return <AantalProjecten projectsFilled={d.projectsFilled} allProjects={allProjects} />;
               case 'random-project':    return <RandomProject project={rp} onShuffle={() => {
@@ -2556,7 +2574,51 @@ function App(){
             }
           };
 
-          // Render groepen die minstens 1 actieve widget hebben
+          // ── SizePopover: pikt breedte (1-6) en hoogte (1-2) ──
+          const SizePopover = ({ id, span, onClose }) => {
+            const cols = [1,2,3,4,5,6];
+            return (
+              <div onClick={e => e.stopPropagation()}
+                style={{
+                  position:'absolute', top:36, right:0, zIndex:20,
+                  background:'#fff', borderRadius:12, padding:'10px 12px',
+                  boxShadow:'0 8px 32px -8px rgba(20,30,45,.22)',
+                  border:'1px solid rgba(17,20,24,.08)',
+                  minWidth:160,
+                }}>
+                <div style={{fontSize:9,fontWeight:700,letterSpacing:'.14em',textTransform:'uppercase',color:'var(--muted)',marginBottom:6}}>Breedte (kolommen)</div>
+                <div style={{display:'flex',gap:4,marginBottom:10}}>
+                  {cols.map(c => (
+                    <button key={c} onClick={() => { setSpan(id, c, span.row); onClose(); }}
+                      style={{
+                        flex:1, padding:'5px 0', borderRadius:6, border:'1px solid',
+                        borderColor: span.col === c ? 'var(--ink)' : 'var(--line)',
+                        background: span.col === c ? 'var(--ink)' : 'transparent',
+                        color: span.col === c ? '#fff' : 'var(--ink)',
+                        fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                      }}>{c}</button>
+                  ))}
+                </div>
+                <div style={{fontSize:9,fontWeight:700,letterSpacing:'.14em',textTransform:'uppercase',color:'var(--muted)',marginBottom:6}}>Hoogte</div>
+                <div style={{display:'flex',gap:6}}>
+                  {[{r:1,label:'Klein',h:'160px'},{r:2,label:'Groot',h:'340px'}].map(({r,label,h}) => (
+                    <button key={r} onClick={() => { setSpan(id, span.col, r); onClose(); }}
+                      style={{
+                        flex:1, padding:'6px 0', borderRadius:8, border:'1px solid',
+                        borderColor: span.row === r ? 'var(--ink)' : 'var(--line)',
+                        background: span.row === r ? 'var(--ink)' : 'transparent',
+                        color: span.row === r ? '#fff' : 'var(--ink)',
+                        fontSize:10, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                      }}>
+                      <div>{label}</div>
+                      <div style={{fontSize:9,opacity:.6,fontWeight:400,marginTop:1}}>{h}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          };
+
           return GROUPS.map(group => {
             const visible = group.ids.filter(id => activeWidgets.includes(id))
               .sort((wa, wb) => activeWidgets.indexOf(wa) - activeWidgets.indexOf(wb));
@@ -2565,10 +2627,27 @@ function App(){
             return (
               <div key={group.title}>
                 <SectionTitle>{group.title}</SectionTitle>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 14 }}>
+                {/* 12-koloms grid */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(6, 1fr)',
+                  gap: 14,
+                  marginBottom: 14,
+                  alignItems: 'start',
+                }}>
                   {visible.map(id => {
-                    const meta = ALL_WIDGETS.find(w => w.id === id);
-                    const h = meta?.size === 'tall' ? 'var(--h-tall)' : 'var(--h-mid)';
+                    const span = getSpan(id);
+                    const h = ROW_H[span.row] || 160;
+                    const [popoverOpen, setPopoverOpen] = React.useState(false);
+
+                    // Sluit popover bij klik buiten
+                    React.useEffect(() => {
+                      if (!popoverOpen) return;
+                      const handler = () => setPopoverOpen(false);
+                      document.addEventListener('mousedown', handler);
+                      return () => document.removeEventListener('mousedown', handler);
+                    }, [popoverOpen]);
+
                     return (
                       <div key={id}
                         draggable={editMode}
@@ -2576,37 +2655,65 @@ function App(){
                         onDragOver={(e) => onDragOver(e, id)}
                         onDragEnd={onDragEnd}
                         style={{
-                          flex: '1 1 280px', minWidth: 220,
+                          gridColumn: `span ${span.col}`,
                           height: h,
                           position: 'relative',
                           cursor: editMode ? 'grab' : 'default',
                           outline: editMode ? '2px dashed rgba(61,110,138,.3)' : 'none',
                           outlineOffset: 3,
                           borderRadius: 18,
-                          transition: 'outline .15s',
+                          transition: 'outline .15s, height .2s ease',
                         }}>
-                        {/* Inhoud */}
-                        <div style={{ height: '100%', pointerEvents: editMode ? 'none' : 'auto' }}>
+                        {/* Widget inhoud */}
+                        <div style={{ height: '100%', overflow: 'hidden', borderRadius: 18, pointerEvents: editMode ? 'none' : 'auto' }}>
                           {renderWidget(id)}
                         </div>
-                        {/* Bewerkoverlay */}
+
+                        {/* Bewerk-overlay */}
                         {editMode && (
                           <div style={{
-                            position: 'absolute', inset: 0, zIndex: 2,
-                            display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end',
-                            padding: 8, borderRadius: 18,
+                            position: 'absolute', inset: 0, zIndex: 10,
+                            borderRadius: 18,
+                            background: 'rgba(17,20,24,.03)',
                           }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-                              <span style={{ fontSize: 18, color: 'rgba(61,110,138,.4)', lineHeight: 1, userSelect: 'none' }}>⠿</span>
-                              <button onClick={() => removeWidget(id)} title="Verwijder widget"
+                            {/* Sleep-handle linksboven */}
+                            <div style={{
+                              position:'absolute', top:8, left:8,
+                              color:'rgba(61,110,138,.5)', fontSize:16, userSelect:'none',
+                              cursor:'grab', lineHeight:1,
+                            }}>⠿</div>
+
+                            {/* Actieknoppen rechtsboven */}
+                            <div style={{
+                              position:'absolute', top:8, right:8,
+                              display:'flex', alignItems:'center', gap:5,
+                            }}>
+                              {/* Formaat knop */}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setPopoverOpen(v => !v); }}
+                                title="Formaat aanpassen"
                                 style={{
-                                  width: 24, height: 24, borderRadius: '50%',
-                                  background: '#b43c3c', border: 'none', color: '#fff',
-                                  fontSize: 16, lineHeight: 1, cursor: 'pointer',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  boxShadow: '0 2px 8px rgba(180,60,60,.4)',
+                                  width:28, height:28, borderRadius:8,
+                                  background:'rgba(255,255,255,.92)', border:'1px solid rgba(17,20,24,.12)',
+                                  cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+                                  fontSize:13, backdropFilter:'blur(4px)',
+                                  boxShadow:'0 2px 8px rgba(0,0,0,.08)',
+                                }}>⤡</button>
+
+                              {/* Verwijder knop */}
+                              <button onClick={() => removeWidget(id)} title="Widget verbergen"
+                                style={{
+                                  width:28, height:28, borderRadius:8,
+                                  background:'rgba(180,60,60,.9)', border:'none', color:'#fff',
+                                  fontSize:16, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+                                  boxShadow:'0 2px 8px rgba(180,60,60,.3)',
                                 }}>−</button>
                             </div>
+
+                            {/* Formaat popover */}
+                            {popoverOpen && (
+                              <SizePopover id={id} span={span} onClose={() => setPopoverOpen(false)} />
+                            )}
                           </div>
                         )}
                       </div>
