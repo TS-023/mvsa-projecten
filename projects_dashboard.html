@@ -2703,11 +2703,36 @@ function App(){
         };
         const H = { half: 160, full: 340 };
 
+        // Helper: render widget-rijen als gestructureerde layout
+        // Leaderboard (full = 2 rijen) staat altijd rechts en de
+        // twee half-widgets links ervan vullen samen exact die 2 rijen.
+        const renderSection = (ids) => {
+          // Splits ids op in rijen van 3, waarbij 'full' widgets gridRow span 2 krijgen
+          return ids.map(id => {
+            const widget = renderWidget(id);
+            if (!widget) return null;
+            const rows = WIDGET_HEIGHT[id] === 'full' ? 2 : 1;
+            return (
+              <div key={id} style={{
+                gridRow: `span ${rows}`,
+                borderRadius: 16,
+                overflow: 'hidden',
+                height: rows === 2 ? H.full : H.half,
+                display: 'flex', flexDirection: 'column',
+              }}>
+                <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                  {widget}
+                </div>
+              </div>
+            );
+          });
+        };
+
         const TAB_SECTIONS = {
           algemeen: [
-            { title: 'Overzicht',  ids: ['aantal-projecten', 'leaderboard', 'recent-1', 'recent-2'] },
+            { title: 'Overzicht',  ids: ['aantal-projecten', 'random-project', 'leaderboard', 'recent-1', 'recent-2'] },
             { title: 'Projecten',  ids: ['fases', 'projecttype', 'functie'] },
-            { title: 'Activiteit', ids: ['ontwerp-opgeleverd', 'verkregen', 'random-project'] },
+            { title: 'Activiteit', ids: ['ontwerp-opgeleverd', 'verkregen'] },
             { title: 'Locatie',    ids: ['binnen-buiten', 'top-provincies', 'top-steden'] },
           ],
           meters: [
@@ -2755,24 +2780,7 @@ function App(){
                   gap: 14,
                   marginBottom: 14,
                 }}>
-                  {section.ids.map(id => {
-                    const widget = renderWidget(id);
-                    if (!widget) return null;
-                    const rows = WIDGET_HEIGHT[id] === 'full' ? 2 : 1;
-                    return (
-                      <div key={id} style={{
-                        gridRow: `span ${rows}`,
-                        borderRadius: 16,
-                        overflow: 'hidden',
-                        height: H[WIDGET_HEIGHT[id] || 'half'],
-                        display: 'flex', flexDirection: 'column',
-                      }}>
-                        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-                          {widget}
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {renderSection(section.ids)}
                 </div>
               </div>
             ))}
