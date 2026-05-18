@@ -2447,7 +2447,12 @@ function App(){
   };
 
   const [editMode, setEditMode] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState(() => localStorage.getItem('mvsa.tab') || 'algemeen');
+  const [activeTab, setActiveTab] = React.useState(() => {
+    const saved = localStorage.getItem('mvsa.tab');
+    // migreer oude 'opdrachtgevers' waarde naar 'portfolio'
+    if (saved === 'opdrachtgevers') return 'portfolio';
+    return saved || 'algemeen';
+  });
   const [activePreset, setActivePreset] = React.useState(() => localStorage.getItem('mvsa.preset') || 'custom');
   const [activeWidgets, setActiveWidgets] = React.useState(() => {
     try {
@@ -2601,9 +2606,9 @@ function App(){
       {/* ── TABBLADEN ── */}
       {(() => {
         const TABS = [
-          { id: 'algemeen',       label: 'Algemeen',       icon: '📊' },
-          { id: 'meters',         label: 'Meters',         icon: '📐' },
-          { id: 'opdrachtgevers', label: 'Opdrachtgevers', icon: '🏢' },
+          { id: 'algemeen',  label: 'Algemeen',  icon: '📊' },
+          { id: 'meters',    label: 'Meters',    icon: '📐' },
+          { id: 'portfolio', label: 'Portfolio', icon: '🏆' },
         ];
 
         const d  = liveData         || MOCK.data;
@@ -2698,25 +2703,24 @@ function App(){
         };
         const H = { half: 160, full: 340 };
 
-        // ── Widgets per tabblad ──
-        // Leaderboard staat op elk tabblad rechts in de eerste sectie
         const TAB_SECTIONS = {
           algemeen: [
-            { title: 'Overzicht', ids: ['aantal-projecten', 'random-project', 'leaderboard', 'recent-1', 'recent-2'] },
-            { title: 'Projecten', ids: ['projecttype', 'functie', 'verkregen', 'ontwerp-opgeleverd', 'fases'] },
-            { title: 'Locatie',   ids: ['binnen-buiten', 'top-provincies', 'top-steden'] },
+            { title: 'Overzicht',  ids: ['aantal-projecten', 'leaderboard', 'recent-1', 'recent-2'] },
+            { title: 'Projecten',  ids: ['fases', 'projecttype', 'functie'] },
+            { title: 'Activiteit', ids: ['ontwerp-opgeleverd', 'verkregen', 'random-project'] },
+            { title: 'Locatie',    ids: ['binnen-buiten', 'top-provincies', 'top-steden'] },
           ],
           meters: [
-            { title: 'Team',        ids: ['leaderboard', 'totaal-bvo', 'type-programma'] },
-            { title: 'Programma',   ids: ['grootste-gebouw', 'bvo-lijst'] },
-            { title: 'Mobiliteit',  ids: ['autoparkeren', 'fietsparkeren', 'ratio-wonen', 'ratio-kantoor'] },
-            { title: 'Duurzaamheid',ids: ['duurzaamheid-score', 'daktuin', 'zonnepanelen'] },
-            { title: 'Bouwhoogte & Overig', ids: ['hoogste-gebouw', 'tevredenheid', 'awards', 'labels', 'meeste-awards'] },
+            { title: 'Schaal',       ids: ['totaal-bvo', 'leaderboard', 'type-programma'] },
+            { title: 'Gebouwen',     ids: ['grootste-gebouw', 'hoogste-gebouw', 'bvo-lijst'] },
+            { title: 'Mobiliteit',   ids: ['autoparkeren', 'fietsparkeren', 'ratio-wonen', 'ratio-kantoor'] },
+            { title: 'Duurzaamheid', ids: ['duurzaamheid-score', 'daktuin', 'zonnepanelen'] },
           ],
-          opdrachtgevers: [
-            { title: 'Team',             ids: ['leaderboard', 'aantal-projecten', 'verkregen'] },
-            { title: 'Fases & types',    ids: ['fases', 'projecttype', 'functie'] },
-            { title: 'Locatie',          ids: ['binnen-buiten', 'top-provincies', 'top-steden'] },
+          portfolio: [
+            { title: 'Reputatie',   ids: ['awards', 'tevredenheid', 'leaderboard'] },
+            { title: 'Kwaliteit',   ids: ['labels', 'meeste-awards', 'duurzaamheid-score'] },
+            { title: 'Acquisitie',  ids: ['verkregen', 'fases', 'ontwerp-opgeleverd'] },
+            { title: 'Projecten',   ids: ['recent-1', 'recent-2', 'random-project'] },
           ],
         };
 
