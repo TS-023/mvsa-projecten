@@ -1916,6 +1916,129 @@ function projectHref(name){
    App
 --------------------------------------------------------------------------- */
 
+/* ============================================================
+   SizePopover — formaat-kiezer (breedte 1-6, hoogte klein/groot)
+   ============================================================ */
+function SizePopover({ id, span, onSetSpan, onClose }) {
+  return (
+    <div onClick={e => e.stopPropagation()} style={{
+      position:'absolute', top:40, right:0, zIndex:200,
+      background:'#fff', borderRadius:14, padding:'12px 14px',
+      boxShadow:'0 12px 40px -8px rgba(20,30,45,.28)',
+      border:'1px solid rgba(17,20,24,.08)', minWidth:172,
+    }}>
+      <div style={{fontSize:9,fontWeight:700,letterSpacing:'.14em',textTransform:'uppercase',color:'var(--muted)',marginBottom:7}}>Breedte (kolommen)</div>
+      <div style={{display:'flex',gap:4,marginBottom:12}}>
+        {[1,2,3,4,5,6].map(c => (
+          <button key={c} onClick={() => { onSetSpan(id, c, span.row); onClose(); }} style={{
+            flex:1, padding:'6px 0', borderRadius:6, border:'1px solid',
+            borderColor: span.col===c ? 'var(--ink)' : 'var(--line)',
+            background: span.col===c ? 'var(--ink)' : 'transparent',
+            color: span.col===c ? '#fff' : 'var(--ink)',
+            fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+            transition:'all .1s',
+          }}>{c}</button>
+        ))}
+      </div>
+      <div style={{fontSize:9,fontWeight:700,letterSpacing:'.14em',textTransform:'uppercase',color:'var(--muted)',marginBottom:7}}>Hoogte</div>
+      <div style={{display:'flex',gap:6}}>
+        {[{r:1,label:'Klein',h:'160px'},{r:2,label:'Groot',h:'340px'}].map(({r,label,h}) => (
+          <button key={r} onClick={() => { onSetSpan(id, span.col, r); onClose(); }} style={{
+            flex:1, padding:'7px 0', borderRadius:8, border:'1px solid',
+            borderColor: span.row===r ? 'var(--ink)' : 'var(--line)',
+            background: span.row===r ? 'var(--ink)' : 'transparent',
+            color: span.row===r ? '#fff' : 'var(--ink)',
+            fontSize:10, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+            transition:'all .1s',
+          }}>
+            <div>{label}</div>
+            <div style={{fontSize:9,opacity:.55,fontWeight:400,marginTop:1}}>{h}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   WidgetCell — wrapper per widget met drag + resize in editMode
+   Top-level component zodat useState/useEffect stabiel zijn.
+   ============================================================ */
+const ROW_H_MAP = { 1: 160, 2: 340 };
+
+function WidgetCell({ id, editMode, span, onDragStart, onDragOver, onDragEnd, onRemove, onSetSpan, renderWidget }) {
+  const [popoverOpen, setPopoverOpen] = React.useState(false);
+  const cellRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!popoverOpen) return;
+    const handler = (e) => {
+      if (cellRef.current && !cellRef.current.contains(e.target)) setPopoverOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [popoverOpen]);
+
+  const h = ROW_H_MAP[span.row] || 160;
+
+  return (
+    <div
+      ref={cellRef}
+      draggable={editMode}
+      onDragStart={() => onDragStart(id)}
+      onDragOver={(e) => onDragOver(e, id)}
+      onDragEnd={onDragEnd}
+      style={{
+        gridColumn: `span ${span.col}`,
+        height: h,
+        position: 'relative',
+        borderRadius: 18,
+        transition: 'height .2s ease',
+        cursor: editMode ? 'grab' : 'default',
+        outline: editMode ? '2px dashed rgba(61,110,138,.25)' : 'none',
+        outlineOffset: 3,
+      }}>
+      <div style={{ height:'100%', overflow:'hidden', borderRadius:18, pointerEvents: editMode ? 'none' : 'auto' }}>
+        {renderWidget(id)}
+      </div>
+      {editMode && (
+        <div style={{ position:'absolute', inset:0, zIndex:10, borderRadius:18 }}>
+          <div style={{
+            position:'absolute', top:8, left:10,
+            fontSize:15, color:'rgba(61,110,138,.5)',
+            userSelect:'none', cursor:'grab', lineHeight:1,
+          }}>⠿</div>
+          <div style={{ position:'absolute', top:8, right:8, display:'flex', gap:5 }}>
+            <button
+              onMouseDown={e => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); setPopoverOpen(v => !v); }}
+              title="Formaat aanpassen"
+              style={{
+                width:28, height:28, borderRadius:8,
+                background:'rgba(255,255,255,.95)', border:'1px solid rgba(17,20,24,.12)',
+                cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize:14, boxShadow:'0 2px 8px rgba(0,0,0,.1)',
+              }}>⤡</button>
+            <button
+              onMouseDown={e => e.stopPropagation()}
+              onClick={() => onRemove(id)}
+              title="Widget verbergen"
+              style={{
+                width:28, height:28, borderRadius:8,
+                background:'rgba(180,60,60,.9)', border:'none', color:'#fff',
+                cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize:17, boxShadow:'0 2px 8px rgba(180,60,60,.3)',
+              }}>−</button>
+          </div>
+          {popoverOpen && (
+            <SizePopover id={id} span={span} onSetSpan={onSetSpan} onClose={() => setPopoverOpen(false)} />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════════
    APP — HOOFDCOMPONENT
    Beheert alle state en laadt data uit Supabase.
@@ -2585,136 +2708,10 @@ function App(){
             }
           };
 
-          // ── SizePopover: pikt breedte (1-6) en hoogte (1-2) ──
-          const SizePopover = ({ id, span, onClose }) => {
-            const cols = [1,2,3,4,5,6];
-            return (
-              <div onClick={e => e.stopPropagation()}
-                style={{
-                  position:'absolute', top:36, right:0, zIndex:20,
-                  background:'#fff', borderRadius:12, padding:'10px 12px',
-                  boxShadow:'0 8px 32px -8px rgba(20,30,45,.22)',
-                  border:'1px solid rgba(17,20,24,.08)',
-                  minWidth:160,
-                }}>
-                <div style={{fontSize:9,fontWeight:700,letterSpacing:'.14em',textTransform:'uppercase',color:'var(--muted)',marginBottom:6}}>Breedte (kolommen)</div>
-                <div style={{display:'flex',gap:4,marginBottom:10}}>
-                  {cols.map(c => (
-                    <button key={c} onClick={() => { setSpan(id, c, span.row); onClose(); }}
-                      style={{
-                        flex:1, padding:'5px 0', borderRadius:6, border:'1px solid',
-                        borderColor: span.col === c ? 'var(--ink)' : 'var(--line)',
-                        background: span.col === c ? 'var(--ink)' : 'transparent',
-                        color: span.col === c ? '#fff' : 'var(--ink)',
-                        fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
-                      }}>{c}</button>
-                  ))}
-                </div>
-                <div style={{fontSize:9,fontWeight:700,letterSpacing:'.14em',textTransform:'uppercase',color:'var(--muted)',marginBottom:6}}>Hoogte</div>
-                <div style={{display:'flex',gap:6}}>
-                  {[{r:1,label:'Klein',h:'160px'},{r:2,label:'Groot',h:'340px'}].map(({r,label,h}) => (
-                    <button key={r} onClick={() => { setSpan(id, span.col, r); onClose(); }}
-                      style={{
-                        flex:1, padding:'6px 0', borderRadius:8, border:'1px solid',
-                        borderColor: span.row === r ? 'var(--ink)' : 'var(--line)',
-                        background: span.row === r ? 'var(--ink)' : 'transparent',
-                        color: span.row === r ? '#fff' : 'var(--ink)',
-                        fontSize:10, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
-                      }}>
-                      <div>{label}</div>
-                      <div style={{fontSize:9,opacity:.6,fontWeight:400,marginTop:1}}>{h}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
-          };
-
-          // WidgetCell als echte component zodat hooks (useState/useEffect) legaal zijn
-          const WidgetCell = ({ id }) => {
-            const span = getSpan(id);
-            const h = ROW_H[span.row] || 160;
-            const [popoverOpen, setPopoverOpen] = React.useState(false);
-
-            React.useEffect(() => {
-              if (!popoverOpen) return;
-              const handler = () => setPopoverOpen(false);
-              document.addEventListener('mousedown', handler);
-              return () => document.removeEventListener('mousedown', handler);
-            }, [popoverOpen]);
-
-            return (
-              <div
-                draggable={editMode}
-                onDragStart={() => onDragStart(id)}
-                onDragOver={(e) => onDragOver(e, id)}
-                onDragEnd={onDragEnd}
-                style={{
-                  gridColumn: `span ${span.col}`,
-                  height: h,
-                  position: 'relative',
-                  cursor: editMode ? 'grab' : 'default',
-                  outline: editMode ? '2px dashed rgba(61,110,138,.3)' : 'none',
-                  outlineOffset: 3,
-                  borderRadius: 18,
-                  transition: 'outline .15s, height .2s ease',
-                }}>
-                {/* Widget inhoud */}
-                <div style={{ height: '100%', overflow: 'hidden', borderRadius: 18, pointerEvents: editMode ? 'none' : 'auto' }}>
-                  {renderWidget(id)}
-                </div>
-
-                {/* Bewerk-overlay */}
-                {editMode && (
-                  <div style={{
-                    position: 'absolute', inset: 0, zIndex: 10,
-                    borderRadius: 18,
-                    background: 'rgba(17,20,24,.03)',
-                  }}>
-                    <div style={{
-                      position:'absolute', top:8, left:8,
-                      color:'rgba(61,110,138,.5)', fontSize:16, userSelect:'none',
-                      cursor:'grab', lineHeight:1,
-                    }}>⠿</div>
-
-                    <div style={{
-                      position:'absolute', top:8, right:8,
-                      display:'flex', alignItems:'center', gap:5,
-                    }}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setPopoverOpen(v => !v); }}
-                        title="Formaat aanpassen"
-                        style={{
-                          width:28, height:28, borderRadius:8,
-                          background:'rgba(255,255,255,.92)', border:'1px solid rgba(17,20,24,.12)',
-                          cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-                          fontSize:13, backdropFilter:'blur(4px)',
-                          boxShadow:'0 2px 8px rgba(0,0,0,.08)',
-                        }}>⤡</button>
-
-                      <button onClick={() => removeWidget(id)} title="Widget verbergen"
-                        style={{
-                          width:28, height:28, borderRadius:8,
-                          background:'rgba(180,60,60,.9)', border:'none', color:'#fff',
-                          fontSize:16, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-                          boxShadow:'0 2px 8px rgba(180,60,60,.3)',
-                        }}>−</button>
-                    </div>
-
-                    {popoverOpen && (
-                      <SizePopover id={id} span={span} onClose={() => setPopoverOpen(false)} />
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          };
-
           return GROUPS.map(group => {
             const visible = group.ids.filter(id => activeWidgets.includes(id))
               .sort((wa, wb) => activeWidgets.indexOf(wa) - activeWidgets.indexOf(wb));
             if (!visible.length) return null;
-
             return (
               <div key={group.title}>
                 <SectionTitle>{group.title}</SectionTitle>
@@ -2725,7 +2722,19 @@ function App(){
                   marginBottom: 14,
                   alignItems: 'start',
                 }}>
-                  {visible.map(id => <WidgetCell key={id} id={id} />)}
+                  {visible.map(id => (
+                    <WidgetCell
+                      key={id} id={id}
+                      editMode={editMode}
+                      span={getSpan(id)}
+                      onDragStart={onDragStart}
+                      onDragOver={onDragOver}
+                      onDragEnd={onDragEnd}
+                      onRemove={removeWidget}
+                      onSetSpan={setSpan}
+                      renderWidget={renderWidget}
+                    />
+                  ))}
                 </div>
               </div>
             );
