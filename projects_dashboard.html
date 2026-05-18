@@ -1206,11 +1206,16 @@ function FunctieDonut({ data }) {
   return (
     <div className="card chart-card" style={{ transition: 'all .25s ease' }}>
       <div className="chart-title">Functie</div>
+      <div className="chart-svg-wrap" style={{ alignItems: 'center', justifyContent: 'center' }}>
 
       <ClickableDonut data={data} shades={shades} selected={active} onSegmentClick={handleSegmentClick} onSegmentHover={setHoveredLabel} />
+      </div>
 
       {/* Legenda */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', justifyContent: 'center', marginTop: 8 }}>
+      <div style={{
+        borderTop: '1px solid var(--line)', paddingTop: 10, marginTop: 10,
+        display: 'flex', flexWrap: 'wrap', gap: '5px 20px', flexShrink: 0,
+      }}>
         {data.map((d, i) => (
           <div key={i}
             onClick={() => handleSegmentClick(d.label)}
