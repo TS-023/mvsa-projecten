@@ -282,18 +282,18 @@
 
   .phase-legend{
     list-style: none; padding: 0; margin: 12px 0 0;
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px 14px;
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px 20px;
     border-top: 1px solid var(--line); padding-top: 10px;
   }
   .phase-legend li{
-    display:flex; align-items: baseline; gap: 8px; font-size: 11px; color: var(--muted);
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    display:flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted);
+    font-family: 'Inter', sans-serif;
   }
   .phase-legend li b{
     font-family: 'Inter', sans-serif; font-weight: 700; color: var(--ink);
-    font-size: 10px; letter-spacing: .08em; min-width: 22px;
+    font-size: 10px; letter-spacing: .06em; min-width: 22px; flex-shrink: 0;
   }
-  .phase-legend li span{ font-family: 'Inter', sans-serif; letter-spacing: 0; }
+  .phase-legend li span{ font-family: 'Inter', sans-serif; letter-spacing: 0; font-size: 11px; }
 
 
   /* ── Locatie sectie ── */
@@ -528,6 +528,8 @@
   }
   .fase-tab.active .fase-tab-count{ color:rgba(255,255,255,.6); }
 
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
   /* ── Dashboard tabbladen ── */
   .dash-tabs{
     display:flex; gap:4px; margin-bottom:28px;
@@ -608,11 +610,18 @@ function BarChart({ data, height = 180, gap = 10, showLabels = true, padTop = 14
             <rect className="bar-bg" x={x} y={padTop} width={bw} height={chartH} rx="2" />
             <rect x={x} y={y} width={bw} height={bh} rx="2"
                   style={{ fill, transition: 'fill .15s ease' }} />
-            <text x={x + bw / 2} y={y - 4} textAnchor="middle"
-                  style={{ fontSize: 10, fontWeight: 700, fill: 'var(--muted)', fontFamily: "'Inter',sans-serif", pointerEvents: 'none', transition: 'fill .15s ease',
-                    ...(isHov ? { fill: 'var(--ink)' } : {}) }}>
-              {d.v > 0 ? d.v : ''}
-            </text>
+            {d.v > 0 && bh > 16 && (
+              <text x={x + bw / 2} y={y + bh / 2 + 4} textAnchor="middle"
+                    style={{ fontSize: 10, fontWeight: 700, fill: '#fff', fontFamily: "'Inter',sans-serif", pointerEvents: 'none' }}>
+                {d.v}
+              </text>
+            )}
+            {d.v > 0 && bh <= 16 && (
+              <text x={x + bw / 2} y={y - 4} textAnchor="middle"
+                    style={{ fontSize: 10, fontWeight: 700, fill: 'var(--ink)', fontFamily: "'Inter',sans-serif", pointerEvents: 'none' }}>
+                {d.v}
+              </text>
+            )}
             {showLabels && (
               <text className="axis-label" x={x + bw / 2} y={h - 8} textAnchor="middle">{d.label}</text>
             )}
@@ -1154,24 +1163,158 @@ function ProjecttypeChart({ data }) {
 }
 
 
-/* ── FunctieDonut: rol van MVSA per project als taartdiagram ── */
+/* ── FunctieDonut: rol van MVSA per project als taartdiagram, klikbaar ── */
 function FunctieDonut({ data }) {
   const shades = ['#111418', '#2f343b', '#535a63', '#8a929c', '#c1c8d0'];
   const total = data.reduce((s, d) => s + d.v, 0);
+  const [selected, setSelected] = React.useState(null);
+
+  const handleSegmentClick = (label) => {
+    setSelected(prev => prev === label ? null : label);
+  };
+
+  const filteredProjects = React.useMemo(() => {
+    if (!selected) return [];
+    const all = window._allProjects || [];
+    return all.filter(p =>
+      p.functie && p.functie.trim().toLowerCase() === selected.toLowerCase()
+    );
+  }, [selected]);
+
+  const selectedIdx = selected ? data.findIndex(d => d.label === selected) : -1;
+  const selectedColor = selectedIdx >= 0 ? shades[selectedIdx % shades.length] : '#111418';
+
   return (
-    <div className="card chart-card">
+    <div className="card chart-card" style={{ transition: 'all .25s ease' }}>
       <div className="chart-title">Functie</div>
-      <Donut data={data} />
+
+      <ClickableDonut data={data} shades={shades} selected={selected} onSegmentClick={handleSegmentClick} />
+
+      {/* Legenda */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', justifyContent: 'center', marginTop: 8 }}>
         {data.map((d, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--ink-2)' }}>
+          <div key={i}
+            onClick={() => handleSegmentClick(d.label)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              fontSize: 11, cursor: 'pointer',
+              color: selected === d.label ? 'var(--ink)' : 'var(--ink-2)',
+              fontWeight: selected === d.label ? 700 : 400,
+              padding: '2px 6px', borderRadius: 6,
+              background: selected === d.label ? 'rgba(17,20,24,.06)' : 'transparent',
+              transition: 'all .15s',
+            }}>
             <span style={{ width: 8, height: 8, borderRadius: 2, background: shades[i % shades.length], flexShrink: 0, display: 'inline-block' }}></span>
             <span>{d.label}</span>
             <span style={{ color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>{Math.round((d.v / total) * 100)}%</span>
           </div>
         ))}
       </div>
+
+      {/* Uitklapbare projectlijst */}
+      {selected && (
+        <div style={{
+          marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 10,
+          animation: 'fadeIn .2s ease',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 8, height: 8, borderRadius: 2, background: selectedColor, display: 'inline-block' }}></span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{selected}</span>
+              <span style={{ fontSize: 11, color: 'var(--muted)' }}>{filteredProjects.length} projecten</span>
+            </div>
+            <button onClick={() => setSelected(null)} style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: 16, color: 'var(--muted)', lineHeight: 1, padding: '0 2px',
+            }}>×</button>
+          </div>
+          {filteredProjects.length === 0 ? (
+            <div style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>Geen projecten gevonden</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 160, overflowY: 'auto' }}>
+              {filteredProjects.map((p, i) => (
+                <div key={i} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '5px 8px', borderRadius: 8,
+                  background: 'rgba(17,20,24,.03)',
+                  fontSize: 12,
+                }}>
+                  <span style={{ fontWeight: 600, color: 'var(--ink)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {p.projectnaam || '—'}
+                  </span>
+                  <span style={{ color: 'var(--muted)', fontSize: 11, marginLeft: 8, flexShrink: 0 }}>
+                    {p.stad || p.land || ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
+  );
+}
+
+/* ── ClickableDonut: donut waarbij segmenten klikbaar zijn ── */
+function ClickableDonut({ data, shades, selected, onSegmentClick }) {
+  const w = 320, h = 180;
+  const cx = w / 2, cy = h / 2;
+  const baseR = Math.min(w, h) / 2 - 22;
+  const hoverR = baseR + 8;
+  const total = data.reduce((s, d) => s + d.v, 0);
+  const [hovered, setHovered] = React.useState(null);
+
+  let acc = 0;
+  const slices = data.map((d, i) => {
+    const start = (acc / total) * Math.PI * 2 - Math.PI / 2;
+    acc += d.v;
+    const end = (acc / total) * Math.PI * 2 - Math.PI / 2;
+    const mid = (start + end) / 2;
+    const pct = Math.round((d.v / total) * 100);
+    return { d, i, start, end, mid, pct };
+  });
+
+  const arcPath = (start, end, r) => {
+    const large = (end - start) > Math.PI ? 1 : 0;
+    const x1 = cx + Math.cos(start) * r;
+    const y1 = cy + Math.sin(start) * r;
+    const x2 = cx + Math.cos(end) * r;
+    const y2 = cy + Math.sin(end) * r;
+    return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
+  };
+
+  const activeSlice = hovered != null ? slices[hovered] : null;
+
+  return (
+    <svg className="chart-svg" viewBox={`0 0 ${w} ${h}`} onMouseLeave={() => setHovered(null)}>
+      {slices.map((s) => {
+        const isSelected = selected === s.d.label;
+        const isHov = hovered === s.i;
+        const r = (isHov || isSelected) ? hoverR : baseR;
+        return (
+          <path key={s.i} d={arcPath(s.start, s.end, r)}
+                fill={shades[s.i % shades.length]}
+                opacity={selected && !isSelected ? 0.35 : 1}
+                style={{ transition: 'opacity .2s, d .18s ease', cursor: 'pointer' }}
+                onMouseEnter={() => setHovered(s.i)}
+                onClick={() => onSegmentClick(s.d.label)} />
+        );
+      })}
+      <circle cx={cx} cy={cy} r={baseR * 0.55} fill="#ffffff" pointerEvents="none" />
+      <g pointerEvents="none">
+        {activeSlice ? (
+          <>
+            <text x={cx} y={cy - 4} textAnchor="middle" style={{ fontSize: 11, fontWeight: 600, fill: '#2a2f36' }}>{activeSlice.d.label}</text>
+            <text x={cx} y={cy + 18} textAnchor="middle" style={{ fontSize: 22, fontWeight: 700, fill: '#111418', letterSpacing: '-0.02em' }}>{activeSlice.pct}%</text>
+          </>
+        ) : (
+          <>
+            <text x={cx} y={cy - 2} textAnchor="middle" className="axis-label" style={{ fontSize: 9, fill: '#6b7480' }}>TOTAAL</text>
+            <text x={cx} y={cy + 16} textAnchor="middle" style={{ fontSize: 18, fontWeight: 700, fill: '#111418' }}>{total}</text>
+          </>
+        )}
+      </g>
+    </svg>
   );
 }
 
@@ -2730,7 +2873,7 @@ function App(){
 
         const TAB_SECTIONS = {
           algemeen: [
-            { title: 'Overzicht',  ids: ['aantal-projecten', 'random-project', 'leaderboard', 'recent-1', 'recent-2'] },
+            { title: 'Overzicht',  ids: ['aantal-projecten', 'recent-1', 'leaderboard', 'random-project', 'recent-2'] },
             { title: 'Projecten',  ids: ['fases', 'projecttype', 'functie'] },
             { title: 'Activiteit', ids: ['ontwerp-opgeleverd', 'verkregen'] },
             { title: 'Locatie',    ids: ['binnen-buiten', 'top-provincies', 'top-steden'] },
