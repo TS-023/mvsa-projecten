@@ -524,6 +524,27 @@
   }
   .fase-tab.active .fase-tab-count{ color:rgba(255,255,255,.6); }
 
+  /* ── Dashboard tabbladen ── */
+  .dash-tabs{
+    display:flex; gap:4px; margin-bottom:28px;
+    background:rgba(17,20,24,.05); border-radius:14px; padding:4px;
+    width:fit-content;
+  }
+  .dash-tab{
+    display:flex; align-items:center; gap:8px;
+    padding:9px 20px; border-radius:10px; border:none;
+    background:none; cursor:pointer; font-family:inherit;
+    font-size:12px; font-weight:600; letter-spacing:.04em;
+    color:var(--muted); transition:all .18s ease;
+    white-space:nowrap;
+  }
+  .dash-tab:hover{ color:var(--ink); background:rgba(255,255,255,.6); }
+  .dash-tab.active{
+    background:#fff; color:var(--ink);
+    box-shadow:0 1px 0 rgba(20,30,45,.04), 0 4px 12px -4px rgba(20,30,45,.14);
+  }
+  .dash-tab .tab-icon{ font-size:15px; line-height:1; }
+
 </style>
 <script src="nav.js" defer></script>
 </head>
@@ -2422,6 +2443,7 @@ function App(){
   };
 
   const [editMode, setEditMode] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState(() => localStorage.getItem('mvsa.tab') || 'algemeen');
   const [activePreset, setActivePreset] = React.useState(() => localStorage.getItem('mvsa.preset') || 'custom');
   const [activeWidgets, setActiveWidgets] = React.useState(() => {
     try {
@@ -2568,219 +2590,141 @@ function App(){
 
         {/* NAVIGATIE KNOPPEN — rechts */}
         <div className="meta">
-          <button
-            onClick={() => setEditMode(m => !m)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '6px 14px', borderRadius: 999,
-              border: editMode ? 'none' : '1px solid rgba(17,20,24,.12)',
-              background: editMode ? 'var(--ink)' : 'none',
-              color: editMode ? '#fff' : 'var(--muted)',
-              fontSize: 11, fontWeight: 700, letterSpacing: '.08em',
-              textTransform: 'uppercase', cursor: 'pointer',
-              fontFamily: 'inherit', transition: 'all .15s',
-            }}>
-            {editMode ? '✓ Klaar' : `⠿ ${PRESETS.find(p=>p.id===activePreset)?.label || 'Bewerk indeling'}`}
-          </button>
         </div>
       </header>
 
 
-      {/* ── WIDGET ZIJPANEEL ── */}
-      {editMode && (
-        <div style={{
-          position: 'fixed', left: 0, top: 0, bottom: 0, width: 240,
-          background: 'var(--card)', borderRight: '1px solid var(--line)',
-          zIndex: 8000, display: 'flex', flexDirection: 'column',
-          boxShadow: '4px 0 24px -8px rgba(20,30,45,.15)',
-          fontFamily: 'inherit',
-        }}>
-          <div style={{ padding: '20px 18px 12px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
-            <div style={{ fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--muted)', fontWeight: 700, marginBottom: 10 }}>Presets</div>
-            {PRESETS.map(p => (
-              <button key={p.id} onClick={() => applyPreset(p)} style={{
-                width: '100%', marginBottom: 6, padding: '9px 12px',
-                borderRadius: 10, border: '1px solid',
-                borderColor: activePreset === p.id ? 'var(--accent)' : 'var(--line)',
-                background: activePreset === p.id ? 'rgba(61,110,138,.08)' : 'var(--bg)',
-                cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', gap: 10,
-                transition: 'all .15s',
-              }}>
-                <span style={{ fontSize: 18, flexShrink: 0 }}>{p.icon}</span>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: activePreset === p.id ? 'var(--accent)' : 'var(--ink)' }}>{p.label}</div>
-                  <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 1 }}>{p.desc}</div>
-                </div>
-                {activePreset === p.id && <span style={{ marginLeft: 'auto', color: 'var(--accent)', fontSize: 14 }}>✓</span>}
-              </button>
-            ))}
-          </div>
-          <div style={{ padding: '14px 18px 10px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
-            <div style={{ fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--muted)', fontWeight: 700, marginBottom: 4 }}>Widget bibliotheek</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)' }}>{inactiveWidgets.length} verborgen</div>
-          </div>
-          <div style={{ overflowY: 'auto', flex: 1, padding: '10px 12px' }}>
-            {inactiveWidgets.length === 0 && (
-              <div style={{ padding: '24px 8px', textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>Alle widgets zijn zichtbaar</div>
-            )}
-            {inactiveWidgets.map(w => (
-              <div key={w.id} style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '9px 10px', borderRadius: 10, marginBottom: 4,
-                border: '1px dashed rgba(17,20,24,.12)',
-                background: 'var(--bg)', cursor: 'default',
-              }}>
-                <span style={{ fontSize: 16, flexShrink: 0 }}>{w.icon}</span>
-                <span style={{ fontSize: 12, fontWeight: 600, flex: 1, color: 'var(--ink)' }}>{w.label}</span>
-                <button onClick={() => addWidget(w.id)} title="Toevoegen" style={{
-                  background: 'var(--ink)', border: 'none', borderRadius: '50%',
-                  width: 22, height: 22, color: '#fff', fontSize: 16, lineHeight: 1,
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0, fontWeight: 300,
-                }}>+</button>
-              </div>
-            ))}
-          </div>
-          <div style={{ padding: '12px 18px', borderTop: '1px solid var(--line)', fontSize: 11, color: 'var(--muted)', flexShrink: 0, lineHeight: 1.7 }}>
-            <b style={{color:'var(--ink)'}}>Sleep</b> om van positie te wisselen<br/>
-            <b style={{color:'var(--ink)'}}>⤡ S/M/L/XL</b> om formaat aan te passen
-          </div>
-        </div>
-      )}
+      {/* ── TABBLADEN ── */}
+      {(() => {
+        const TABS = [
+          { id: 'algemeen',       label: 'Algemeen',       icon: '📊' },
+          { id: 'meters',         label: 'Meters',         icon: '📐' },
+          { id: 'opdrachtgevers', label: 'Opdrachtgevers', icon: '🏢' },
+        ];
 
-      {/* ── WIDGET GRID ── */}
-      <div style={editMode ? { marginLeft: 240, transition: 'margin .2s' } : { transition: 'margin .2s' }}>
-        {/* ── 12-koloms grid layout met vrij instelbare breedte + hoogte ── */}
-        {(() => {
-          const GROUPS = [
-            { title: 'Data',         ids: ['aantal-projecten','random-project','leaderboard','recent-1','recent-2'] },
-            { title: 'Algemeen',     ids: ['projecttype','functie','verkregen','ontwerp-opgeleverd','fases'] },
-            { title: 'Locatie',      ids: ['binnen-buiten','top-provincies','top-steden'] },
-            { title: 'Metrage',      ids: ['type-programma','totaal-bvo','grootste-gebouw','bvo-lijst'] },
-            { title: 'Mobiliteit',   ids: ['autoparkeren','fietsparkeren','ratio-wonen','ratio-kantoor'] },
-            { title: 'Duurzaamheid', ids: ['duurzaamheid-score','daktuin','zonnepanelen'] },
-            { title: 'Bouw & Overig',ids: ['hoogste-gebouw','tevredenheid','awards','labels','meeste-awards'] },
-          ];
+        const d  = liveData         || MOCK.data;
+        const a  = liveAlgemeen     || MOCK.algemeen;
+        const l  = liveLocatie      || MOCK.locatie;
+        const m  = liveMetrage      || MOCK.metrage;
+        const mo = liveMobiliteit   || MOCK.mobiliteit;
+        const du = liveDuurzaamheid || MOCK.duurzaamheid;
+        const b  = liveBouw         || MOCK.bouwOverig;
+        const rp = randomProject    || d.randomProject;
+        const recent = d.recent     || [];
 
-          // Hoogte per rowspan
-          const ROW_H = { 1: 160, 2: 340 };
-
-          const renderWidget = (id) => {
-            const d  = liveData         || MOCK.data;
-            const a  = liveAlgemeen     || MOCK.algemeen;
-            const l  = liveLocatie      || MOCK.locatie;
-            const m  = liveMetrage      || MOCK.metrage;
-            const mo = liveMobiliteit   || MOCK.mobiliteit;
-            const du = liveDuurzaamheid || MOCK.duurzaamheid;
-            const b  = liveBouw         || MOCK.bouwOverig;
-            const rp = randomProject    || d.randomProject;
-            const recent = d.recent     || [];
-            switch(id) {
-              case 'aantal-projecten':  return <AantalProjecten projectsFilled={d.projectsFilled} allProjects={allProjects} />;
-              case 'random-project':    return <RandomProject project={rp} onShuffle={() => {
-                const projects = window._allProjects || [];
-                if (!projects.length) return;
-                const pick = projects[Math.floor(Math.random() * projects.length)];
-                setRandomProject({ name: pick.projectnaam, city: pick.stad || pick.land || '', tags: [pick.project_type, pick.fase, pick.opgave].filter(Boolean).slice(0,3) });
-              }} />;
-              case 'leaderboard':       return <Leaderboard leaderboard={d.leaderboard} leaderPhoto={liveLeaderPhoto} />;
-              case 'recent-1':          return recent[0] ? <RecentCard project={recent[0]} position={0} /> : null;
-              case 'recent-2':          return recent[1] ? <RecentCard project={recent[1]} position={1} /> : null;
-              case 'projecttype':       return <ProjecttypeChart data={a.projecttype} />;
-              case 'functie':           return <FunctieDonut data={a.functie} />;
-              case 'verkregen':         return <VerkregenChart data={a.verkregen} />;
-              case 'ontwerp-opgeleverd':return <OntwerpOpgeleverd ontwerp={a.ontwerp} opgeleverd={a.opgeleverd} />;
-              case 'fases':             return <FasesChart fases={a.fases} onBarClick={(barData) => {
-                const filtered = allProjects.filter(p => {
-                  if (!p.fase) return false;
-                  const f = p.fase.trim().toUpperCase();
-                  return f === barData.label || f.startsWith(barData.label+' ') || f.includes('('+barData.label+')') || f.startsWith(barData.full ? barData.full.toUpperCase() : '____');
-                });
-                setFaseModal({ label: barData.label, fullName: barData.full || FASE_NAMES[barData.label] || barData.label, projects: filtered });
-              }} />;
-              case 'binnen-buiten':     return <BinnenBuitenland binnenland={l.binnenland} buitenland={l.buitenland} />;
-              case 'top-provincies':    return <TopProvincies provincies={l.provincies} />;
-              case 'top-steden':        return <TopSteden steden={l.steden} />;
-              case 'type-programma':    return <TypeProgrammaDonut data={m.typeProgramma} />;
-              case 'totaal-bvo':        return <TotaalGerealiseerd waarde={m.totaalGerealiseerd} />;
-              case 'grootste-gebouw':   return <GrootsteGebouw data={m.grootsteGebouw} />;
-              case 'bvo-lijst':         return <BvoLijst lijst={m.bvoLijst} />;
-              case 'autoparkeren':      return <AutoParkeren items={mo.auto} />;
-              case 'fietsparkeren':     return <FietsParkeren items={mo.fiets} />;
-              case 'ratio-wonen':       return <RatioWonen items={MOCK.ratio.wonen} />;
-              case 'ratio-kantoor':     return <RatioKantoor items={MOCK.ratio.kantoor} />;
-              case 'duurzaamheid-score':return <DuurzaamheidsScore items={du.score} />;
-              case 'daktuin':           return <DaktuinWidget items={du.daktuin} />;
-              case 'zonnepanelen':      return <ZonnepanelenWidget items={du.zonnepanelen} />;
-              case 'hoogste-gebouw':    return <HoogsteGebouw items={b.hoogsteGebouw} />;
-              case 'tevredenheid':      return <TevredenheidStat waarde={b.tevredenheid} />;
-              case 'awards':            return <TotaalAwardsStat waarde={b.totaalAwards} />;
-              case 'labels':            return <LabelsList items={b.labels} />;
-              case 'meeste-awards':     return <MeesteAwards items={b.awards} />;
-              default: return null;
-            }
-          };
-
-          // In editMode: één grote 3-koloms grid, vrij sleepbaar
-          if (editMode) {
-            return (
-              <div>
-                <div style={{
-                  background:'rgba(61,110,138,.07)', borderRadius:10,
-                  padding:'9px 14px', marginBottom:16,
-                  fontSize:11, color:'var(--accent)', fontWeight:600,
-                  display:'flex', alignItems:'center', gap:8,
-                }}>
-                  <span style={{opacity:.7}}>⠿</span>
-                  Sleep om van positie te wisselen · klik <b style={{background:'rgba(61,110,138,.12)',padding:'1px 5px',borderRadius:4}}>⤡ M</b> om het formaat aan te passen
-                </div>
-                <div style={{
-                  display:'grid', gridTemplateColumns:'repeat(3, 1fr)',
-                  gap:14, alignItems:'start',
-                }}>
-                  {activeWidgets.map(id => (
-                    <WidgetCell key={id} id={id}
-                      sizeKey={getSizeKey(id)}
-                      editMode={true}
-                      onDragStart={onDragStart} onDragOver={onDragOver}
-                      onDrop={onDrop} onDragEnd={onDragEnd}
-                      onRemove={removeWidget} onSetSize={setSize}
-                      renderWidget={renderWidget}
-                    />
-                  ))}
-                </div>
-              </div>
-            );
+        // ── Widget renderer ──
+        const renderWidget = (id) => {
+          switch(id) {
+            case 'aantal-projecten':  return <AantalProjecten projectsFilled={d.projectsFilled} allProjects={allProjects} />;
+            case 'random-project':    return <RandomProject project={rp} onShuffle={() => {
+              const projects = window._allProjects || [];
+              if (!projects.length) return;
+              const pick = projects[Math.floor(Math.random() * projects.length)];
+              setRandomProject({ name: pick.projectnaam, city: pick.stad || pick.land || '', tags: [pick.project_type, pick.fase, pick.opgave].filter(Boolean).slice(0,3) });
+            }} />;
+            case 'leaderboard':       return <Leaderboard leaderboard={d.leaderboard} leaderPhoto={liveLeaderPhoto} />;
+            case 'recent-1':          return recent[0] ? <RecentCard project={recent[0]} position={0} /> : null;
+            case 'recent-2':          return recent[1] ? <RecentCard project={recent[1]} position={1} /> : null;
+            case 'projecttype':       return <ProjecttypeChart data={a.projecttype} />;
+            case 'functie':           return <FunctieDonut data={a.functie} />;
+            case 'verkregen':         return <VerkregenChart data={a.verkregen} />;
+            case 'ontwerp-opgeleverd':return <OntwerpOpgeleverd ontwerp={a.ontwerp} opgeleverd={a.opgeleverd} />;
+            case 'fases':             return <FasesChart fases={a.fases} onBarClick={(barData) => {
+              const filtered = allProjects.filter(p => {
+                if (!p.fase) return false;
+                const f = p.fase.trim().toUpperCase();
+                return f === barData.label || f.startsWith(barData.label+' ') || f.includes('('+barData.label+')') || f.startsWith(barData.full ? barData.full.toUpperCase() : '____');
+              });
+              setFaseModal({ label: barData.label, fullName: barData.full || FASE_NAMES[barData.label] || barData.label, projects: filtered });
+            }} />;
+            case 'binnen-buiten':     return <BinnenBuitenland binnenland={l.binnenland} buitenland={l.buitenland} />;
+            case 'top-provincies':    return <TopProvincies provincies={l.provincies} />;
+            case 'top-steden':        return <TopSteden steden={l.steden} />;
+            case 'type-programma':    return <TypeProgrammaDonut data={m.typeProgramma} />;
+            case 'totaal-bvo':        return <TotaalGerealiseerd waarde={m.totaalGerealiseerd} />;
+            case 'grootste-gebouw':   return <GrootsteGebouw data={m.grootsteGebouw} />;
+            case 'bvo-lijst':         return <BvoLijst lijst={m.bvoLijst} />;
+            case 'autoparkeren':      return <AutoParkeren items={mo.auto} />;
+            case 'fietsparkeren':     return <FietsParkeren items={mo.fiets} />;
+            case 'ratio-wonen':       return <RatioWonen items={MOCK.ratio.wonen} />;
+            case 'ratio-kantoor':     return <RatioKantoor items={MOCK.ratio.kantoor} />;
+            case 'duurzaamheid-score':return <DuurzaamheidsScore items={du.score} />;
+            case 'daktuin':           return <DaktuinWidget items={du.daktuin} />;
+            case 'zonnepanelen':      return <ZonnepanelenWidget items={du.zonnepanelen} />;
+            case 'hoogste-gebouw':    return <HoogsteGebouw items={b.hoogsteGebouw} />;
+            case 'tevredenheid':      return <TevredenheidStat waarde={b.tevredenheid} />;
+            case 'awards':            return <TotaalAwardsStat waarde={b.totaalAwards} />;
+            case 'labels':            return <LabelsList items={b.labels} />;
+            case 'meeste-awards':     return <MeesteAwards items={b.awards} />;
+            default: return null;
           }
+        };
 
-          // View mode: gegroepeerd per sectie, nette 3-koloms grid
-          return GROUPS.map(group => {
-            const visible = group.ids.filter(id => activeWidgets.includes(id))
-              .sort((wa, wb) => activeWidgets.indexOf(wa) - activeWidgets.indexOf(wb));
-            if (!visible.length) return null;
-            return (
-              <div key={group.title}>
-                <SectionTitle>{group.title}</SectionTitle>
+        // ── Widgets per tabblad ──
+        const TAB_SECTIONS = {
+          algemeen: [
+            { title: 'Overzicht', ids: ['aantal-projecten', 'random-project', 'leaderboard', 'recent-1', 'recent-2'] },
+            { title: 'Projecten', ids: ['projecttype', 'functie', 'verkregen', 'ontwerp-opgeleverd', 'fases'] },
+            { title: 'Locatie',   ids: ['binnen-buiten', 'top-provincies', 'top-steden'] },
+          ],
+          meters: [
+            { title: 'Programma',  ids: ['type-programma', 'totaal-bvo', 'grootste-gebouw'] },
+            { title: 'BVO per type', ids: ['bvo-lijst'] },
+            { title: 'Mobiliteit', ids: ['autoparkeren', 'fietsparkeren', 'ratio-wonen', 'ratio-kantoor'] },
+            { title: 'Duurzaamheid', ids: ['duurzaamheid-score', 'daktuin', 'zonnepanelen'] },
+            { title: 'Bouwhoogte & Overig', ids: ['hoogste-gebouw', 'tevredenheid', 'awards', 'labels', 'meeste-awards'] },
+          ],
+          opdrachtgevers: [
+            { title: 'Opdrachten', ids: ['aantal-projecten', 'verkregen', 'ontwerp-opgeleverd'] },
+            { title: 'Fases & types', ids: ['fases', 'projecttype', 'functie'] },
+            { title: 'Locatie opdrachtgevers', ids: ['binnen-buiten', 'top-provincies', 'top-steden'] },
+          ],
+        };
+
+        const sections = TAB_SECTIONS[activeTab] || TAB_SECTIONS.algemeen;
+
+        return (
+          <div>
+            {/* Tab-balk */}
+            <div className="dash-tabs">
+              {TABS.map(tab => (
+                <button
+                  key={tab.id}
+                  className={`dash-tab${activeTab === tab.id ? ' active' : ''}`}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    localStorage.setItem('mvsa.tab', tab.id);
+                  }}>
+                  <span className="tab-icon">{tab.icon}</span>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Widget secties van actief tabblad */}
+            {sections.map(section => (
+              <div key={section.title}>
+                <SectionTitle>{section.title}</SectionTitle>
                 <div style={{
-                  display:'grid', gridTemplateColumns:'repeat(3, 1fr)',
-                  gap:14, marginBottom:14, alignItems:'start',
+                  display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: 14, marginBottom: 14, alignItems: 'start',
                 }}>
-                  {visible.map(id => (
-                    <WidgetCell key={id} id={id}
-                      sizeKey={getSizeKey(id)}
-                      editMode={false}
-                      onDragStart={onDragStart} onDragOver={onDragOver}
-                      onDrop={onDrop} onDragEnd={onDragEnd}
-                      onRemove={removeWidget} onSetSize={setSize}
-                      renderWidget={renderWidget}
-                    />
-                  ))}
+                  {section.ids.map(id => {
+                    const widget = renderWidget(id);
+                    if (!widget) return null;
+                    return (
+                      <div key={id} style={{ borderRadius: 16 }}>
+                        {widget}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            );
-          });        })()}
-      </div>
+            ))}
+          </div>
+        );
+      })()}
+
 
       {/* FASE MODAL — via portal buiten root div zodat fixed positioning altijd werkt */}
       {faseModal && ReactDOM.createPortal(
