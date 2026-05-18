@@ -2248,6 +2248,17 @@ function App(){
   ];
   const DEFAULT_ACTIVE = PRESETS[0].widgets;
 
+  // ── Widget layout: colSpan (1-6) en rowH (1=klein, 2=groot) ──
+  const [widgetLayout, setWidgetLayout] = React.useState(() => {
+    try { return JSON.parse(localStorage.getItem('mvsa.layout') || '{}'); } catch(e) { return {}; }
+  });
+  const saveLayout = (next) => {
+    setWidgetLayout(next);
+    localStorage.setItem('mvsa.layout', JSON.stringify(next));
+  };
+  const getSpan = (id) => widgetLayout[id] || { col: 2, row: 1 };
+  const setSpan = (id, col, row) => saveLayout({ ...widgetLayout, [id]: { col, row } });
+
   const [editMode, setEditMode] = React.useState(false);
   const [activePreset, setActivePreset] = React.useState(() => localStorage.getItem('mvsa.preset') || 'custom');
   const [activeWidgets, setActiveWidgets] = React.useState(() => {
