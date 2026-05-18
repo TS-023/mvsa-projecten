@@ -1966,8 +1966,9 @@ function SizePopover({ id, span, onSetSpan, onClose }) {
    ============================================================ */
 const ROW_H_MAP = { 1: 160, 2: 340 };
 
-function WidgetCell({ id, editMode, span, onDragStart, onDragOver, onDragEnd, onRemove, onSetSpan, renderWidget }) {
+function WidgetCell({ id, editMode, span, onDragStart, onDragOver, onDrop, onDragEnd, onRemove, onSetSpan, renderWidget }) {
   const [popoverOpen, setPopoverOpen] = React.useState(false);
+  const [dragOver, setDragOver]       = React.useState(false);
   const cellRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -1986,28 +1987,38 @@ function WidgetCell({ id, editMode, span, onDragStart, onDragOver, onDragEnd, on
       ref={cellRef}
       draggable={editMode}
       onDragStart={() => onDragStart(id)}
-      onDragOver={(e) => onDragOver(e, id)}
-      onDragEnd={onDragEnd}
+      onDragOver={(e) => { onDragOver(e); if (editMode) setDragOver(true); }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => { e.preventDefault(); setDragOver(false); onDrop(id); }}
+      onDragEnd={() => { setDragOver(false); onDragEnd(); }}
       style={{
         gridColumn: `span ${span.col}`,
         height: h,
         position: 'relative',
         borderRadius: 18,
-        transition: 'height .2s ease',
+        transition: 'height .2s ease, box-shadow .15s ease',
         cursor: editMode ? 'grab' : 'default',
-        outline: editMode ? '2px dashed rgba(61,110,138,.25)' : 'none',
+        outline: editMode
+          ? dragOver
+            ? '2px solid rgba(61,110,138,.7)'
+            : '2px dashed rgba(61,110,138,.25)'
+          : 'none',
         outlineOffset: 3,
+        boxShadow: dragOver ? '0 0 0 4px rgba(61,110,138,.15)' : 'none',
       }}>
       <div style={{ height:'100%', overflow:'hidden', borderRadius:18, pointerEvents: editMode ? 'none' : 'auto' }}>
         {renderWidget(id)}
       </div>
       {editMode && (
         <div style={{ position:'absolute', inset:0, zIndex:10, borderRadius:18 }}>
+          {/* Sleep-handle — alleen dit gebied is draggable */}
           <div style={{
-            position:'absolute', top:8, left:10,
-            fontSize:15, color:'rgba(61,110,138,.5)',
-            userSelect:'none', cursor:'grab', lineHeight:1,
-          }}>⠿</div>
+            position:'absolute', top:0, left:0, right:0, height:40,
+            display:'flex', alignItems:'center', paddingLeft:10,
+            cursor:'grab',
+          }}>
+            <span style={{ fontSize:15, color:'rgba(61,110,138,.5)', userSelect:'none', lineHeight:1 }}>⠿ sleep</span>
+          </div>
           <div style={{ position:'absolute', top:8, right:8, display:'flex', gap:5 }}>
             <button
               onMouseDown={e => e.stopPropagation()}
@@ -2371,7 +2382,7 @@ function App(){
   ];
   const DEFAULT_ACTIVE = PRESETS[0].widgets;
 
-  // ── Widget layout: colSpan (1-6) en rowH (1=klein, 2=groot) ──
+  // ── Widget layout: { col (breedte 1-6), row (hoogte 1-2) } per widget ──
   const [widgetLayout, setWidgetLayout] = React.useState(() => {
     try { return JSON.parse(localStorage.getItem('mvsa.layout') || '{}'); } catch(e) { return {}; }
   });
@@ -2381,6 +2392,19 @@ function App(){
   };
   const getSpan = (id) => widgetLayout[id] || { col: 2, row: 1 };
   const setSpan = (id, col, row) => saveLayout({ ...widgetLayout, [id]: { col, row } });
+
+  // Drag-to-swap: wissel posities van twee widgets
+  const dragSrcId = React.useRef(null);
+  const swapWidgets = (fromId, toId) => {
+    if (fromId === toId) return;
+    const next = [...activeWidgets];
+    const fi = next.indexOf(fromId);
+    const ti = next.indexOf(toId);
+    if (fi < 0 || ti < 0) return;
+    [next[fi], next[ti]] = [next[ti], next[fi]];
+    setActiveWidgets(next);
+    localStorage.setItem('mvsa.widgets', JSON.stringify(next));
+  };
 
   const [editMode, setEditMode] = React.useState(false);
   const [activePreset, setActivePreset] = React.useState(() => localStorage.getItem('mvsa.preset') || 'custom');
@@ -2420,22 +2444,10 @@ function App(){
   const addWidget     = (id) => saveWidgets([...activeWidgets, id]);
   const inactiveWidgets = ALL_WIDGETS.filter(w => !activeWidgets.includes(w.id));
 
-  const dragSrc = React.useRef(null);
-  const onDragStart = (id) => { dragSrc.current = id; };
-  const onDragOver  = (e, id) => {
-    e.preventDefault();
-    if (!dragSrc.current || dragSrc.current === id) return;
-    const next = [...activeWidgets];
-    const from = next.indexOf(dragSrc.current);
-    const to   = next.indexOf(id);
-    if (from < 0 || to < 0) return;
-    next.splice(from, 1);
-    next.splice(to, 0, dragSrc.current);
-    setActiveWidgets(next);
-  };
-  const onDragEnd = () => {
-    localStorage.setItem('mvsa.widgets', JSON.stringify(activeWidgets));
-  };
+  const onDragStart = (id) => { dragSrcId.current = id; };
+  const onDragOver  = (e) => { e.preventDefault(); };
+  const onDrop      = (toId) => { if (dragSrcId.current) swapWidgets(dragSrcId.current, toId); dragSrcId.current = null; };
+  const onDragEnd   = () => { dragSrcId.current = null; };
   // ────────────────────────────────────────────────────────────
   React.useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : '');
@@ -2708,6 +2720,46 @@ function App(){
             }
           };
 
+          // In editMode: één grote vrije grid zonder sectiegrenzen
+          // In viewMode: gesorteerd per sectie met titels
+          if (editMode) {
+            return (
+              <div>
+                <div style={{
+                  background:'rgba(61,110,138,.06)', borderRadius:12,
+                  padding:'10px 14px', marginBottom:14,
+                  fontSize:11, color:'var(--accent)', fontWeight:600, letterSpacing:'.04em',
+                  display:'flex', alignItems:'center', gap:8,
+                }}>
+                  <span>⠿</span>
+                  <span>Sleep widgets naar een andere positie · klik <b>⤡</b> om het formaat aan te passen</span>
+                </div>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(6, 1fr)',
+                  gap: 14,
+                  alignItems: 'start',
+                }}>
+                  {activeWidgets.map(id => (
+                    <WidgetCell
+                      key={id} id={id}
+                      editMode={editMode}
+                      span={getSpan(id)}
+                      onDragStart={onDragStart}
+                      onDragOver={onDragOver}
+                      onDrop={onDrop}
+                      onDragEnd={onDragEnd}
+                      onRemove={removeWidget}
+                      onSetSpan={setSpan}
+                      renderWidget={renderWidget}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          }
+
+          // View mode: gesorteerd per sectie
           return GROUPS.map(group => {
             const visible = group.ids.filter(id => activeWidgets.includes(id))
               .sort((wa, wb) => activeWidgets.indexOf(wa) - activeWidgets.indexOf(wb));
@@ -2725,10 +2777,11 @@ function App(){
                   {visible.map(id => (
                     <WidgetCell
                       key={id} id={id}
-                      editMode={editMode}
+                      editMode={false}
                       span={getSpan(id)}
                       onDragStart={onDragStart}
                       onDragOver={onDragOver}
+                      onDrop={onDrop}
                       onDragEnd={onDragEnd}
                       onRemove={removeWidget}
                       onSetSpan={setSpan}
