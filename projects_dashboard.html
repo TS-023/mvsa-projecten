@@ -1919,40 +1919,59 @@ function projectHref(name){
 /* ============================================================
    SizePopover — formaat-kiezer (breedte 1-6, hoogte klein/groot)
    ============================================================ */
-function SizePopover({ id, span, onSetSpan, onClose }) {
+/* ============================================================
+   WIDGET GROOTTES — S / M / L
+   S = 1 kolom × 160px   (kleine stat)
+   M = 2 kolommen × 300px (standaard)
+   L = 3 kolommen × 300px (breed / grafiek)
+   XL = 3 kolommen × 480px (kaart / ranglijst)
+   Grid is altijd 3 kolommen breed.
+   ============================================================ */
+const SIZES = {
+  S:  { col: 1, h: 160,  label: 'S',  desc: 'Klein'  },
+  M:  { col: 2, h: 300,  label: 'M',  desc: 'Normaal' },
+  L:  { col: 3, h: 300,  label: 'L',  desc: 'Breed'  },
+  XL: { col: 3, h: 480,  label: 'XL', desc: 'Groot'  },
+};
+
+// Default grootte per widget-type
+const DEFAULT_SIZE = {
+  'aantal-projecten': 'S', 'random-project': 'M', 'leaderboard': 'M',
+  'recent-1': 'M', 'recent-2': 'M', 'projecttype': 'M', 'functie': 'M',
+  'verkregen': 'M', 'ontwerp-opgeleverd': 'S', 'fases': 'L',
+  'binnen-buiten': 'S', 'top-provincies': 'M', 'top-steden': 'M',
+  'type-programma': 'M', 'totaal-bvo': 'S', 'grootste-gebouw': 'M',
+  'bvo-lijst': 'L', 'autoparkeren': 'M', 'fietsparkeren': 'M',
+  'ratio-wonen': 'M', 'ratio-kantoor': 'M', 'duurzaamheid-score': 'M',
+  'daktuin': 'M', 'zonnepanelen': 'M', 'hoogste-gebouw': 'XL',
+  'tevredenheid': 'S', 'awards': 'S', 'labels': 'M', 'meeste-awards': 'M',
+};
+
+function getSize(sizeKey) { return SIZES[sizeKey] || SIZES.M; }
+
+/* ── SizePicker: kies S / M / L / XL ── */
+function SizePicker({ id, current, onSetSize, onClose }) {
   return (
     <div onClick={e => e.stopPropagation()} style={{
-      position:'absolute', top:40, right:0, zIndex:200,
+      position:'absolute', top:42, right:0, zIndex:300,
       background:'#fff', borderRadius:14, padding:'12px 14px',
       boxShadow:'0 12px 40px -8px rgba(20,30,45,.28)',
-      border:'1px solid rgba(17,20,24,.08)', minWidth:172,
+      border:'1px solid rgba(17,20,24,.08)', minWidth:200,
     }}>
-      <div style={{fontSize:9,fontWeight:700,letterSpacing:'.14em',textTransform:'uppercase',color:'var(--muted)',marginBottom:7}}>Breedte (kolommen)</div>
-      <div style={{display:'flex',gap:4,marginBottom:12}}>
-        {[1,2,3,4,5,6].map(c => (
-          <button key={c} onClick={() => { onSetSpan(id, c, span.row); onClose(); }} style={{
-            flex:1, padding:'6px 0', borderRadius:6, border:'1px solid',
-            borderColor: span.col===c ? 'var(--ink)' : 'var(--line)',
-            background: span.col===c ? 'var(--ink)' : 'transparent',
-            color: span.col===c ? '#fff' : 'var(--ink)',
-            fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
-            transition:'all .1s',
-          }}>{c}</button>
-        ))}
-      </div>
-      <div style={{fontSize:9,fontWeight:700,letterSpacing:'.14em',textTransform:'uppercase',color:'var(--muted)',marginBottom:7}}>Hoogte</div>
-      <div style={{display:'flex',gap:6}}>
-        {[{r:1,label:'Klein',h:'160px'},{r:2,label:'Groot',h:'340px'}].map(({r,label,h}) => (
-          <button key={r} onClick={() => { onSetSpan(id, span.col, r); onClose(); }} style={{
-            flex:1, padding:'7px 0', borderRadius:8, border:'1px solid',
-            borderColor: span.row===r ? 'var(--ink)' : 'var(--line)',
-            background: span.row===r ? 'var(--ink)' : 'transparent',
-            color: span.row===r ? '#fff' : 'var(--ink)',
-            fontSize:10, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
-            transition:'all .1s',
+      <div style={{fontSize:9,fontWeight:700,letterSpacing:'.14em',textTransform:'uppercase',
+        color:'var(--muted)',marginBottom:8}}>Formaat</div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
+        {Object.entries(SIZES).map(([key, sz]) => (
+          <button key={key} onClick={() => { onSetSize(id, key); onClose(); }} style={{
+            padding:'8px 10px', borderRadius:10, border:'1.5px solid',
+            borderColor: current===key ? 'var(--ink)' : 'var(--line)',
+            background: current===key ? 'var(--ink)' : '#fafafa',
+            color: current===key ? '#fff' : 'var(--ink)',
+            cursor:'pointer', fontFamily:'inherit', textAlign:'left',
+            transition:'all .12s',
           }}>
-            <div>{label}</div>
-            <div style={{fontSize:9,opacity:.55,fontWeight:400,marginTop:1}}>{h}</div>
+            <div style={{fontSize:13,fontWeight:800}}>{sz.label}</div>
+            <div style={{fontSize:10,opacity: current===key ? .7 : .5, marginTop:1}}>{sz.desc}</div>
           </button>
         ))}
       </div>
@@ -1960,89 +1979,88 @@ function SizePopover({ id, span, onSetSpan, onClose }) {
   );
 }
 
-/* ============================================================
-   WidgetCell — wrapper per widget met drag + resize in editMode
-   Top-level component zodat useState/useEffect stabiel zijn.
-   ============================================================ */
-const ROW_H_MAP = { 1: 160, 2: 340 };
-
-function WidgetCell({ id, editMode, span, onDragStart, onDragOver, onDrop, onDragEnd, onRemove, onSetSpan, renderWidget }) {
-  const [popoverOpen, setPopoverOpen] = React.useState(false);
-  const [dragOver, setDragOver]       = React.useState(false);
+/* ── WidgetCell — top-level component, stabiele hooks ── */
+function WidgetCell({ id, sizeKey, editMode, onDragStart, onDragOver, onDrop, onDragEnd, onRemove, onSetSize, renderWidget }) {
+  const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [dragOver, setDragOver]     = React.useState(false);
   const cellRef = React.useRef(null);
 
   React.useEffect(() => {
-    if (!popoverOpen) return;
+    if (!pickerOpen) return;
     const handler = (e) => {
-      if (cellRef.current && !cellRef.current.contains(e.target)) setPopoverOpen(false);
+      if (cellRef.current && !cellRef.current.contains(e.target)) setPickerOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [popoverOpen]);
+  }, [pickerOpen]);
 
-  const h = ROW_H_MAP[span.row] || 160;
+  const sz = getSize(sizeKey);
 
   return (
     <div
       ref={cellRef}
       draggable={editMode}
-      onDragStart={() => onDragStart(id)}
-      onDragOver={(e) => { onDragOver(e); if (editMode) setDragOver(true); }}
+      onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; onDragStart(id); }}
+      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (editMode) setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}
       onDrop={(e) => { e.preventDefault(); setDragOver(false); onDrop(id); }}
       onDragEnd={() => { setDragOver(false); onDragEnd(); }}
       style={{
-        gridColumn: `span ${span.col}`,
-        height: h,
+        gridColumn: `span ${sz.col}`,
+        height: sz.h,
         position: 'relative',
-        borderRadius: 18,
-        transition: 'height .2s ease, box-shadow .15s ease',
-        cursor: editMode ? 'grab' : 'default',
-        outline: editMode
-          ? dragOver
-            ? '2px solid rgba(61,110,138,.7)'
-            : '2px dashed rgba(61,110,138,.25)'
-          : 'none',
-        outlineOffset: 3,
-        boxShadow: dragOver ? '0 0 0 4px rgba(61,110,138,.15)' : 'none',
+        borderRadius: 16,
+        transition: 'height .25s ease',
+        // Geen stippellijnen — subtiele ring alleen bij dragover
+        boxShadow: dragOver
+          ? '0 0 0 2px var(--accent), 0 8px 32px -8px rgba(61,110,138,.25)'
+          : editMode
+            ? '0 0 0 1.5px rgba(61,110,138,.18)'
+            : 'none',
       }}>
-      <div style={{ height:'100%', overflow:'hidden', borderRadius:18, pointerEvents: editMode ? 'none' : 'auto' }}>
+
+      {/* Widget inhoud */}
+      <div style={{ height:'100%', overflow:'hidden', borderRadius:16,
+        pointerEvents: editMode ? 'none' : 'auto' }}>
         {renderWidget(id)}
       </div>
+
+      {/* Edit overlay — alleen in editMode */}
       {editMode && (
-        <div style={{ position:'absolute', inset:0, zIndex:10, borderRadius:18 }}>
-          {/* Sleep-handle — alleen dit gebied is draggable */}
-          <div style={{
-            position:'absolute', top:0, left:0, right:0, height:40,
-            display:'flex', alignItems:'center', paddingLeft:10,
-            cursor:'grab',
-          }}>
-            <span style={{ fontSize:15, color:'rgba(61,110,138,.5)', userSelect:'none', lineHeight:1 }}>⠿ sleep</span>
-          </div>
-          <div style={{ position:'absolute', top:8, right:8, display:'flex', gap:5 }}>
+        <div style={{ position:'absolute', inset:0, zIndex:10, borderRadius:16,
+          background:'rgba(17,20,24,.04)', cursor:'grab' }}>
+
+          {/* Knoppen rechtsboven */}
+          <div style={{ position:'absolute', top:8, right:8, display:'flex', gap:4 }}>
             <button
               onMouseDown={e => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); setPopoverOpen(v => !v); }}
-              title="Formaat aanpassen"
+              onClick={(e) => { e.stopPropagation(); setPickerOpen(v => !v); }}
+              title="Formaat"
               style={{
-                width:28, height:28, borderRadius:8,
+                height:26, padding:'0 10px', borderRadius:999,
                 background:'rgba(255,255,255,.95)', border:'1px solid rgba(17,20,24,.12)',
-                cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:14, boxShadow:'0 2px 8px rgba(0,0,0,.1)',
-              }}>⤡</button>
+                cursor:'pointer', display:'flex', alignItems:'center', gap:4,
+                fontSize:10, fontWeight:700, color:'var(--ink)',
+                boxShadow:'0 1px 4px rgba(0,0,0,.08)', fontFamily:'inherit',
+                letterSpacing:'.04em',
+              }}>
+              <span style={{fontSize:12}}>⤡</span> {sz.label}
+            </button>
             <button
               onMouseDown={e => e.stopPropagation()}
               onClick={() => onRemove(id)}
-              title="Widget verbergen"
+              title="Verbergen"
               style={{
-                width:28, height:28, borderRadius:8,
-                background:'rgba(180,60,60,.9)', border:'none', color:'#fff',
+                width:26, height:26, borderRadius:999,
+                background:'rgba(180,60,60,.88)', border:'none', color:'#fff',
                 cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:17, boxShadow:'0 2px 8px rgba(180,60,60,.3)',
-              }}>−</button>
+                fontSize:15, boxShadow:'0 1px 4px rgba(180,60,60,.3)',
+              }}>×</button>
           </div>
-          {popoverOpen && (
-            <SizePopover id={id} span={span} onSetSpan={onSetSpan} onClose={() => setPopoverOpen(false)} />
+
+          {/* Formaat picker */}
+          {pickerOpen && (
+            <SizePicker id={id} current={sizeKey} onSetSize={onSetSize} onClose={() => setPickerOpen(false)} />
           )}
         </div>
       )}
@@ -2382,16 +2400,13 @@ function App(){
   ];
   const DEFAULT_ACTIVE = PRESETS[0].widgets;
 
-  // ── Widget layout: { col (breedte 1-6), row (hoogte 1-2) } per widget ──
-  const [widgetLayout, setWidgetLayout] = React.useState(() => {
-    try { return JSON.parse(localStorage.getItem('mvsa.layout') || '{}'); } catch(e) { return {}; }
+  // ── Widget formaat: sizeKey (S/M/L/XL) per widget ──
+  const [sizeMap, setSizeMap] = React.useState(() => {
+    try { return JSON.parse(localStorage.getItem('mvsa.sizes') || '{}'); } catch(e) { return {}; }
   });
-  const saveLayout = (next) => {
-    setWidgetLayout(next);
-    localStorage.setItem('mvsa.layout', JSON.stringify(next));
-  };
-  const getSpan = (id) => widgetLayout[id] || { col: 2, row: 1 };
-  const setSpan = (id, col, row) => saveLayout({ ...widgetLayout, [id]: { col, row } });
+  const saveSizes = (next) => { setSizeMap(next); localStorage.setItem('mvsa.sizes', JSON.stringify(next)); };
+  const getSizeKey = (id) => sizeMap[id] || DEFAULT_SIZE[id] || 'M';
+  const setSize    = (id, key) => saveSizes({ ...sizeMap, [id]: key });
 
   // Drag-to-swap: wissel posities van twee widgets
   const dragSrcId = React.useRef(null);
@@ -2423,22 +2438,9 @@ function App(){
     localStorage.setItem('mvsa.preset', presetId);
   };
 
-  // Slimme default spans per widget
-  const DEFAULT_SPANS = {
-    'leaderboard': { col: 2, row: 2 }, 'grootste-gebouw': { col: 2, row: 2 },
-    'bvo-lijst': { col: 4, row: 2 }, 'fases': { col: 4, row: 2 },
-    'ratio-wonen': { col: 2, row: 2 }, 'ratio-kantoor': { col: 2, row: 2 },
-    'hoogste-gebouw': { col: 2, row: 2 }, 'meeste-awards': { col: 2, row: 2 },
-    'type-programma': { col: 2, row: 2 }, 'duurzaamheid-score': { col: 2, row: 2 },
-    'daktuin': { col: 2, row: 2 }, 'zonnepanelen': { col: 2, row: 2 },
-  };
-
   const applyPreset = (preset) => {
     saveWidgets(preset.widgets, preset.id);
-    // Reset layout naar slimme defaults voor dit preset
-    const newLayout = {};
-    preset.widgets.forEach(id => { if (DEFAULT_SPANS[id]) newLayout[id] = DEFAULT_SPANS[id]; });
-    saveLayout(newLayout);
+    saveSizes({});  // reset naar DEFAULT_SIZE per widget
   };
   const removeWidget  = (id) => saveWidgets(activeWidgets.filter(w => w !== id));
   const addWidget     = (id) => saveWidgets([...activeWidgets, id]);
@@ -2640,9 +2642,9 @@ function App(){
               </div>
             ))}
           </div>
-          <div style={{ padding: '12px 18px', borderTop: '1px solid var(--line)', fontSize: 11, color: 'var(--muted)', flexShrink: 0, lineHeight: 1.5 }}>
-            <b style={{color:'var(--ink)'}}>Sleep</b> om te herordenen<br/>
-            <b style={{color:'var(--ink)'}}>⤡</b> om formaat aan te passen
+          <div style={{ padding: '12px 18px', borderTop: '1px solid var(--line)', fontSize: 11, color: 'var(--muted)', flexShrink: 0, lineHeight: 1.7 }}>
+            <b style={{color:'var(--ink)'}}>Sleep</b> om van positie te wisselen<br/>
+            <b style={{color:'var(--ink)'}}>⤡ S/M/L/XL</b> om formaat aan te passen
           </div>
         </div>
       )}
@@ -2720,37 +2722,30 @@ function App(){
             }
           };
 
-          // In editMode: één grote vrije grid zonder sectiegrenzen
-          // In viewMode: gesorteerd per sectie met titels
+          // In editMode: één grote 3-koloms grid, vrij sleepbaar
           if (editMode) {
             return (
               <div>
                 <div style={{
-                  background:'rgba(61,110,138,.06)', borderRadius:12,
-                  padding:'10px 14px', marginBottom:14,
-                  fontSize:11, color:'var(--accent)', fontWeight:600, letterSpacing:'.04em',
+                  background:'rgba(61,110,138,.07)', borderRadius:10,
+                  padding:'9px 14px', marginBottom:16,
+                  fontSize:11, color:'var(--accent)', fontWeight:600,
                   display:'flex', alignItems:'center', gap:8,
                 }}>
-                  <span>⠿</span>
-                  <span>Sleep widgets naar een andere positie · klik <b>⤡</b> om het formaat aan te passen</span>
+                  <span style={{opacity:.7}}>⠿</span>
+                  Sleep om van positie te wisselen · klik <b style={{background:'rgba(61,110,138,.12)',padding:'1px 5px',borderRadius:4}}>⤡ M</b> om het formaat aan te passen
                 </div>
                 <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(6, 1fr)',
-                  gap: 14,
-                  alignItems: 'start',
+                  display:'grid', gridTemplateColumns:'repeat(3, 1fr)',
+                  gap:14, alignItems:'start',
                 }}>
                   {activeWidgets.map(id => (
-                    <WidgetCell
-                      key={id} id={id}
-                      editMode={editMode}
-                      span={getSpan(id)}
-                      onDragStart={onDragStart}
-                      onDragOver={onDragOver}
-                      onDrop={onDrop}
-                      onDragEnd={onDragEnd}
-                      onRemove={removeWidget}
-                      onSetSpan={setSpan}
+                    <WidgetCell key={id} id={id}
+                      sizeKey={getSizeKey(id)}
+                      editMode={true}
+                      onDragStart={onDragStart} onDragOver={onDragOver}
+                      onDrop={onDrop} onDragEnd={onDragEnd}
+                      onRemove={removeWidget} onSetSize={setSize}
                       renderWidget={renderWidget}
                     />
                   ))}
@@ -2759,7 +2754,7 @@ function App(){
             );
           }
 
-          // View mode: gesorteerd per sectie
+          // View mode: gegroepeerd per sectie, nette 3-koloms grid
           return GROUPS.map(group => {
             const visible = group.ids.filter(id => activeWidgets.includes(id))
               .sort((wa, wb) => activeWidgets.indexOf(wa) - activeWidgets.indexOf(wb));
@@ -2768,31 +2763,23 @@ function App(){
               <div key={group.title}>
                 <SectionTitle>{group.title}</SectionTitle>
                 <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(6, 1fr)',
-                  gap: 14,
-                  marginBottom: 14,
-                  alignItems: 'start',
+                  display:'grid', gridTemplateColumns:'repeat(3, 1fr)',
+                  gap:14, marginBottom:14, alignItems:'start',
                 }}>
                   {visible.map(id => (
-                    <WidgetCell
-                      key={id} id={id}
+                    <WidgetCell key={id} id={id}
+                      sizeKey={getSizeKey(id)}
                       editMode={false}
-                      span={getSpan(id)}
-                      onDragStart={onDragStart}
-                      onDragOver={onDragOver}
-                      onDrop={onDrop}
-                      onDragEnd={onDragEnd}
-                      onRemove={removeWidget}
-                      onSetSpan={setSpan}
+                      onDragStart={onDragStart} onDragOver={onDragOver}
+                      onDrop={onDrop} onDragEnd={onDragEnd}
+                      onRemove={removeWidget} onSetSize={setSize}
                       renderWidget={renderWidget}
                     />
                   ))}
                 </div>
               </div>
             );
-          });
-        })()}
+          });        })()}
       </div>
 
       {/* FASE MODAL — via portal buiten root div zodat fixed positioning altijd werkt */}
