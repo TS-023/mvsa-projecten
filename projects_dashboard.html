@@ -1154,10 +1154,23 @@ function DataSection({ d, leaderPhoto, allProjects, onShuffle }) {
 
 /* ── ProjecttypeChart: verdeling projecttypes als staafdiagram ── */
 function ProjecttypeChart({ data }) {
+  const TYPE_NAMES = {
+    'Won':  'Woningbouw',
+    'Util': 'Utiliteitsbouw',
+    'Mix':  'Mixed Use',
+    'Zorg': 'Zorg',
+    'Onw':  'Onderwijsbouw',
+    'Ovr':  'Overig',
+  };
   return (
     <div className="card chart-card">
       <div className="chart-title">Projecttype</div>
       <BarChart data={data} />
+      <ul className="phase-legend">
+        {data.map((d, i) => (
+          <li key={i}><b>{d.label}</b><span>{TYPE_NAMES[d.label] || d.label}</span></li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -1168,40 +1181,37 @@ function FunctieDonut({ data }) {
   const shades = ['#111418', '#2f343b', '#535a63', '#8a929c', '#c1c8d0'];
   const total = data.reduce((s, d) => s + d.v, 0);
   const [selected, setSelected] = React.useState(null);
-
-  const handleSegmentClick = (label) => {
-    setSelected(prev => prev === label ? null : label);
-  };
-
+  const [hoveredLabel, setHoveredLabel] = React.useState(null);
+  const active = hoveredLabel || selected;
+  const handleSegmentClick = (label) => { setSelected(prev => prev === label ? null : label); };
   const filteredProjects = React.useMemo(() => {
-    if (!selected) return [];
+    if (!active) return [];
     const all = window._allProjects || [];
-    return all.filter(p =>
-      p.functie && p.functie.trim().toLowerCase() === selected.toLowerCase()
-    );
-  }, [selected]);
-
-  const selectedIdx = selected ? data.findIndex(d => d.label === selected) : -1;
-  const selectedColor = selectedIdx >= 0 ? shades[selectedIdx % shades.length] : '#111418';
+    return all.filter(p => p.functie && p.functie.trim().toLowerCase() === active.toLowerCase());
+  }, [active]);
+  const activeIdx = active ? data.findIndex(d => d.label === active) : -1;
+  const selectedColor = activeIdx >= 0 ? shades[activeIdx % shades.length] : '#111418';
 
   return (
     <div className="card chart-card" style={{ transition: 'all .25s ease' }}>
       <div className="chart-title">Functie</div>
 
-      <ClickableDonut data={data} shades={shades} selected={selected} onSegmentClick={handleSegmentClick} />
+      <ClickableDonut data={data} shades={shades} selected={active} onSegmentClick={handleSegmentClick} onSegmentHover={setHoveredLabel} />
 
       {/* Legenda */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', justifyContent: 'center', marginTop: 8 }}>
         {data.map((d, i) => (
           <div key={i}
             onClick={() => handleSegmentClick(d.label)}
+            onMouseEnter={() => setHoveredLabel(d.label)}
+            onMouseLeave={() => setHoveredLabel(null)}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               fontSize: 11, cursor: 'pointer',
-              color: selected === d.label ? 'var(--ink)' : 'var(--ink-2)',
-              fontWeight: selected === d.label ? 700 : 400,
+              color: active === d.label ? 'var(--ink)' : 'var(--ink-2)',
+              fontWeight: active === d.label ? 700 : 400,
               padding: '2px 6px', borderRadius: 6,
-              background: selected === d.label ? 'rgba(17,20,24,.06)' : 'transparent',
+              background: active === d.label ? 'rgba(17,20,24,.06)' : 'transparent',
               transition: 'all .15s',
             }}>
             <span style={{ width: 8, height: 8, borderRadius: 2, background: shades[i % shades.length], flexShrink: 0, display: 'inline-block' }}></span>
@@ -1212,21 +1222,21 @@ function FunctieDonut({ data }) {
       </div>
 
       {/* Uitklapbare projectlijst */}
-      {selected && (
+      {active && (
         <div style={{
           marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 10,
-          animation: 'fadeIn .2s ease',
+          animation: 'fadeIn .15s ease',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ width: 8, height: 8, borderRadius: 2, background: selectedColor, display: 'inline-block' }}></span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{selected}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{active}</span>
               <span style={{ fontSize: 11, color: 'var(--muted)' }}>{filteredProjects.length} projecten</span>
             </div>
-            <button onClick={() => setSelected(null)} style={{
+            {selected && <button onClick={() => setSelected(null)} style={{
               background: 'none', border: 'none', cursor: 'pointer',
               fontSize: 16, color: 'var(--muted)', lineHeight: 1, padding: '0 2px',
-            }}>×</button>
+            }}>×</button>}
           </div>
           {filteredProjects.length === 0 ? (
             <div style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>Geen projecten gevonden</div>
@@ -1236,8 +1246,7 @@ function FunctieDonut({ data }) {
                 <div key={i} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   padding: '5px 8px', borderRadius: 8,
-                  background: 'rgba(17,20,24,.03)',
-                  fontSize: 12,
+                  background: 'rgba(17,20,24,.03)', fontSize: 12,
                 }}>
                   <span style={{ fontWeight: 600, color: 'var(--ink)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {p.projectnaam || '—'}
@@ -1256,13 +1265,16 @@ function FunctieDonut({ data }) {
 }
 
 /* ── ClickableDonut: donut waarbij segmenten klikbaar zijn ── */
-function ClickableDonut({ data, shades, selected, onSegmentClick }) {
+function ClickableDonut({ data, shades, selected, onSegmentClick, onSegmentHover }) {
   const w = 320, h = 180;
   const cx = w / 2, cy = h / 2;
   const baseR = Math.min(w, h) / 2 - 22;
   const hoverR = baseR + 8;
   const total = data.reduce((s, d) => s + d.v, 0);
   const [hovered, setHovered] = React.useState(null);
+
+  const handleEnter = (label) => { setHovered(label); onSegmentHover && onSegmentHover(label); };
+  const handleLeave = () => { setHovered(null); onSegmentHover && onSegmentHover(null); };
 
   let acc = 0;
   const slices = data.map((d, i) => {
@@ -1283,29 +1295,29 @@ function ClickableDonut({ data, shades, selected, onSegmentClick }) {
     return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
   };
 
-  const activeSlice = hovered != null ? slices[hovered] : null;
-
   return (
-    <svg className="chart-svg" viewBox={`0 0 ${w} ${h}`} onMouseLeave={() => setHovered(null)}>
+    <svg className="chart-svg" viewBox={`0 0 ${w} ${h}`} onMouseLeave={handleLeave}>
       {slices.map((s) => {
         const isSelected = selected === s.d.label;
-        const isHov = hovered === s.i;
+        const isHov = hovered === s.d.label;
         const r = (isHov || isSelected) ? hoverR : baseR;
         return (
           <path key={s.i} d={arcPath(s.start, s.end, r)}
                 fill={shades[s.i % shades.length]}
                 opacity={selected && !isSelected ? 0.35 : 1}
                 style={{ transition: 'opacity .2s, d .18s ease', cursor: 'pointer' }}
-                onMouseEnter={() => setHovered(s.i)}
+                onMouseEnter={() => handleEnter(s.d.label)}
                 onClick={() => onSegmentClick(s.d.label)} />
         );
       })}
       <circle cx={cx} cy={cy} r={baseR * 0.55} fill="#ffffff" pointerEvents="none" />
       <g pointerEvents="none">
-        {activeSlice ? (
+        {hovered ? (
           <>
-            <text x={cx} y={cy - 4} textAnchor="middle" style={{ fontSize: 11, fontWeight: 600, fill: '#2a2f36' }}>{activeSlice.d.label}</text>
-            <text x={cx} y={cy + 18} textAnchor="middle" style={{ fontSize: 22, fontWeight: 700, fill: '#111418', letterSpacing: '-0.02em' }}>{activeSlice.pct}%</text>
+            <text x={cx} y={cy - 4} textAnchor="middle" style={{ fontSize: 11, fontWeight: 600, fill: '#2a2f36' }}>{hovered}</text>
+            <text x={cx} y={cy + 18} textAnchor="middle" style={{ fontSize: 22, fontWeight: 700, fill: '#111418', letterSpacing: '-0.02em' }}>
+              {Math.round((data.find(d => d.label === hovered)?.v || 0) / total * 100)}%
+            </text>
           </>
         ) : (
           <>
