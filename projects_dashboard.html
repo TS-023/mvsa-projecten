@@ -2630,6 +2630,86 @@ function App(){
             );
           };
 
+          // WidgetCell als echte component zodat hooks (useState/useEffect) legaal zijn
+          const WidgetCell = ({ id }) => {
+            const span = getSpan(id);
+            const h = ROW_H[span.row] || 160;
+            const [popoverOpen, setPopoverOpen] = React.useState(false);
+
+            React.useEffect(() => {
+              if (!popoverOpen) return;
+              const handler = () => setPopoverOpen(false);
+              document.addEventListener('mousedown', handler);
+              return () => document.removeEventListener('mousedown', handler);
+            }, [popoverOpen]);
+
+            return (
+              <div
+                draggable={editMode}
+                onDragStart={() => onDragStart(id)}
+                onDragOver={(e) => onDragOver(e, id)}
+                onDragEnd={onDragEnd}
+                style={{
+                  gridColumn: `span ${span.col}`,
+                  height: h,
+                  position: 'relative',
+                  cursor: editMode ? 'grab' : 'default',
+                  outline: editMode ? '2px dashed rgba(61,110,138,.3)' : 'none',
+                  outlineOffset: 3,
+                  borderRadius: 18,
+                  transition: 'outline .15s, height .2s ease',
+                }}>
+                {/* Widget inhoud */}
+                <div style={{ height: '100%', overflow: 'hidden', borderRadius: 18, pointerEvents: editMode ? 'none' : 'auto' }}>
+                  {renderWidget(id)}
+                </div>
+
+                {/* Bewerk-overlay */}
+                {editMode && (
+                  <div style={{
+                    position: 'absolute', inset: 0, zIndex: 10,
+                    borderRadius: 18,
+                    background: 'rgba(17,20,24,.03)',
+                  }}>
+                    <div style={{
+                      position:'absolute', top:8, left:8,
+                      color:'rgba(61,110,138,.5)', fontSize:16, userSelect:'none',
+                      cursor:'grab', lineHeight:1,
+                    }}>⠿</div>
+
+                    <div style={{
+                      position:'absolute', top:8, right:8,
+                      display:'flex', alignItems:'center', gap:5,
+                    }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setPopoverOpen(v => !v); }}
+                        title="Formaat aanpassen"
+                        style={{
+                          width:28, height:28, borderRadius:8,
+                          background:'rgba(255,255,255,.92)', border:'1px solid rgba(17,20,24,.12)',
+                          cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+                          fontSize:13, backdropFilter:'blur(4px)',
+                          boxShadow:'0 2px 8px rgba(0,0,0,.08)',
+                        }}>⤡</button>
+
+                      <button onClick={() => removeWidget(id)} title="Widget verbergen"
+                        style={{
+                          width:28, height:28, borderRadius:8,
+                          background:'rgba(180,60,60,.9)', border:'none', color:'#fff',
+                          fontSize:16, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+                          boxShadow:'0 2px 8px rgba(180,60,60,.3)',
+                        }}>−</button>
+                    </div>
+
+                    {popoverOpen && (
+                      <SizePopover id={id} span={span} onClose={() => setPopoverOpen(false)} />
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          };
+
           return GROUPS.map(group => {
             const visible = group.ids.filter(id => activeWidgets.includes(id))
               .sort((wa, wb) => activeWidgets.indexOf(wa) - activeWidgets.indexOf(wb));
@@ -2638,7 +2718,6 @@ function App(){
             return (
               <div key={group.title}>
                 <SectionTitle>{group.title}</SectionTitle>
-                {/* 12-koloms grid */}
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(6, 1fr)',
@@ -2646,90 +2725,7 @@ function App(){
                   marginBottom: 14,
                   alignItems: 'start',
                 }}>
-                  {visible.map(id => {
-                    const span = getSpan(id);
-                    const h = ROW_H[span.row] || 160;
-                    const [popoverOpen, setPopoverOpen] = React.useState(false);
-
-                    // Sluit popover bij klik buiten
-                    React.useEffect(() => {
-                      if (!popoverOpen) return;
-                      const handler = () => setPopoverOpen(false);
-                      document.addEventListener('mousedown', handler);
-                      return () => document.removeEventListener('mousedown', handler);
-                    }, [popoverOpen]);
-
-                    return (
-                      <div key={id}
-                        draggable={editMode}
-                        onDragStart={() => onDragStart(id)}
-                        onDragOver={(e) => onDragOver(e, id)}
-                        onDragEnd={onDragEnd}
-                        style={{
-                          gridColumn: `span ${span.col}`,
-                          height: h,
-                          position: 'relative',
-                          cursor: editMode ? 'grab' : 'default',
-                          outline: editMode ? '2px dashed rgba(61,110,138,.3)' : 'none',
-                          outlineOffset: 3,
-                          borderRadius: 18,
-                          transition: 'outline .15s, height .2s ease',
-                        }}>
-                        {/* Widget inhoud */}
-                        <div style={{ height: '100%', overflow: 'hidden', borderRadius: 18, pointerEvents: editMode ? 'none' : 'auto' }}>
-                          {renderWidget(id)}
-                        </div>
-
-                        {/* Bewerk-overlay */}
-                        {editMode && (
-                          <div style={{
-                            position: 'absolute', inset: 0, zIndex: 10,
-                            borderRadius: 18,
-                            background: 'rgba(17,20,24,.03)',
-                          }}>
-                            {/* Sleep-handle linksboven */}
-                            <div style={{
-                              position:'absolute', top:8, left:8,
-                              color:'rgba(61,110,138,.5)', fontSize:16, userSelect:'none',
-                              cursor:'grab', lineHeight:1,
-                            }}>⠿</div>
-
-                            {/* Actieknoppen rechtsboven */}
-                            <div style={{
-                              position:'absolute', top:8, right:8,
-                              display:'flex', alignItems:'center', gap:5,
-                            }}>
-                              {/* Formaat knop */}
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setPopoverOpen(v => !v); }}
-                                title="Formaat aanpassen"
-                                style={{
-                                  width:28, height:28, borderRadius:8,
-                                  background:'rgba(255,255,255,.92)', border:'1px solid rgba(17,20,24,.12)',
-                                  cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-                                  fontSize:13, backdropFilter:'blur(4px)',
-                                  boxShadow:'0 2px 8px rgba(0,0,0,.08)',
-                                }}>⤡</button>
-
-                              {/* Verwijder knop */}
-                              <button onClick={() => removeWidget(id)} title="Widget verbergen"
-                                style={{
-                                  width:28, height:28, borderRadius:8,
-                                  background:'rgba(180,60,60,.9)', border:'none', color:'#fff',
-                                  fontSize:16, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-                                  boxShadow:'0 2px 8px rgba(180,60,60,.3)',
-                                }}>−</button>
-                            </div>
-
-                            {/* Formaat popover */}
-                            {popoverOpen && (
-                              <SizePopover id={id} span={span} onClose={() => setPopoverOpen(false)} />
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {visible.map(id => <WidgetCell key={id} id={id} />)}
                 </div>
               </div>
             );
