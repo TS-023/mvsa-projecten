@@ -90,6 +90,10 @@
     border: 1px solid rgba(255,255,255,.6);
     transition: transform .2s ease, box-shadow .2s ease;
     overflow: hidden;
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
   }
   .card:hover{
     transform: translateY(-3px);
@@ -2660,7 +2664,42 @@ function App(){
           }
         };
 
+        // ── Vaste hoogte per widget: 'half' = 160px, 'full' = 340px ──
+        const WIDGET_HEIGHT = {
+          'aantal-projecten':   'half',
+          'random-project':     'half',
+          'leaderboard':        'full',
+          'recent-1':           'half',
+          'recent-2':           'half',
+          'projecttype':        'full',
+          'functie':            'full',
+          'verkregen':          'full',
+          'ontwerp-opgeleverd': 'full',
+          'fases':              'full',
+          'binnen-buiten':      'full',
+          'top-provincies':     'full',
+          'top-steden':         'full',
+          'type-programma':     'full',
+          'totaal-bvo':         'half',
+          'grootste-gebouw':    'full',
+          'bvo-lijst':          'full',
+          'autoparkeren':       'half',
+          'fietsparkeren':      'half',
+          'ratio-wonen':        'full',
+          'ratio-kantoor':      'full',
+          'duurzaamheid-score': 'full',
+          'daktuin':            'full',
+          'zonnepanelen':       'full',
+          'hoogste-gebouw':     'full',
+          'tevredenheid':       'half',
+          'awards':             'half',
+          'labels':             'full',
+          'meeste-awards':      'full',
+        };
+        const H = { half: 160, full: 340 };
+
         // ── Widgets per tabblad ──
+        // Leaderboard staat op elk tabblad rechts in de eerste sectie
         const TAB_SECTIONS = {
           algemeen: [
             { title: 'Overzicht', ids: ['aantal-projecten', 'random-project', 'leaderboard', 'recent-1', 'recent-2'] },
@@ -2668,16 +2707,16 @@ function App(){
             { title: 'Locatie',   ids: ['binnen-buiten', 'top-provincies', 'top-steden'] },
           ],
           meters: [
-            { title: 'Programma',  ids: ['type-programma', 'totaal-bvo', 'grootste-gebouw'] },
-            { title: 'BVO per type', ids: ['bvo-lijst'] },
-            { title: 'Mobiliteit', ids: ['autoparkeren', 'fietsparkeren', 'ratio-wonen', 'ratio-kantoor'] },
-            { title: 'Duurzaamheid', ids: ['duurzaamheid-score', 'daktuin', 'zonnepanelen'] },
+            { title: 'Team',        ids: ['leaderboard', 'totaal-bvo', 'type-programma'] },
+            { title: 'Programma',   ids: ['grootste-gebouw', 'bvo-lijst'] },
+            { title: 'Mobiliteit',  ids: ['autoparkeren', 'fietsparkeren', 'ratio-wonen', 'ratio-kantoor'] },
+            { title: 'Duurzaamheid',ids: ['duurzaamheid-score', 'daktuin', 'zonnepanelen'] },
             { title: 'Bouwhoogte & Overig', ids: ['hoogste-gebouw', 'tevredenheid', 'awards', 'labels', 'meeste-awards'] },
           ],
           opdrachtgevers: [
-            { title: 'Opdrachten', ids: ['aantal-projecten', 'verkregen', 'ontwerp-opgeleverd'] },
-            { title: 'Fases & types', ids: ['fases', 'projecttype', 'functie'] },
-            { title: 'Locatie opdrachtgevers', ids: ['binnen-buiten', 'top-provincies', 'top-steden'] },
+            { title: 'Team',             ids: ['leaderboard', 'aantal-projecten', 'verkregen'] },
+            { title: 'Fases & types',    ids: ['fases', 'projecttype', 'functie'] },
+            { title: 'Locatie',          ids: ['binnen-buiten', 'top-provincies', 'top-steden'] },
           ],
         };
 
@@ -2706,15 +2745,27 @@ function App(){
               <div key={section.title}>
                 <SectionTitle>{section.title}</SectionTitle>
                 <div style={{
-                  display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: 14, marginBottom: 14, alignItems: 'start',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gridAutoRows: `${H.half}px`,
+                  gap: 14,
+                  marginBottom: 14,
                 }}>
                   {section.ids.map(id => {
                     const widget = renderWidget(id);
                     if (!widget) return null;
+                    const rows = WIDGET_HEIGHT[id] === 'full' ? 2 : 1;
                     return (
-                      <div key={id} style={{ borderRadius: 16 }}>
-                        {widget}
+                      <div key={id} style={{
+                        gridRow: `span ${rows}`,
+                        borderRadius: 16,
+                        overflow: 'hidden',
+                        height: H[WIDGET_HEIGHT[id] || 'half'],
+                        display: 'flex', flexDirection: 'column',
+                      }}>
+                        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                          {widget}
+                        </div>
                       </div>
                     );
                   })}
