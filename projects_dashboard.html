@@ -19,8 +19,8 @@
     --shadow: 0 1px 3px rgba(26,35,50,.06), 0 8px 24px -8px rgba(26,35,50,.12);
     --radius: 14px;
     --h-s: 160px;    /* klein  — 1 rij */
-    --h-m: 334px;    /* middel — 2 rijen */
-    --h-l: 508px;    /* groot  — 3 rijen (= 3× klein) */
+    --h-m: 247px;    /* middel — 2 rijen */
+    --h-l: 508px;    /* groot  — 3 rijen = 2× middel = 3× klein */
   }
   *{ box-sizing: border-box; }
   html, body{ margin:0; padding:0; background: var(--bg); color: var(--ink); font-family: 'Inter', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
@@ -2131,7 +2131,7 @@ function projectHref(name){
    ============================================================ */
 const SIZES = {
   S:  { col: 1, h: 160,  label: 'S',  desc: 'Klein'   },
-  M:  { col: 2, h: 334,  label: 'M',  desc: 'Middel'  },
+  M:  { col: 2, h: 247,  label: 'M',  desc: 'Middel'  },
   L:  { col: 3, h: 508,  label: 'L',  desc: 'Groot'   },
   XL: { col: 3, h: 508,  label: 'XL', desc: 'Groot'   },
 };
@@ -2878,7 +2878,7 @@ function App(){
           'labels':             'medium',
           'meeste-awards':      'medium',
         };
-        const H = { half: 160, full: 334, large: 508, xlarge: 682 };
+        const H = { half: 160, full: 247, large: 508, xlarge: 508 };
 
         // Helper: render widget-rijen als gestructureerde layout
         // Leaderboard (full = 2 rijen) staat altijd rechts en de
@@ -2891,12 +2891,10 @@ function App(){
             const widget = renderWidget(id);
             if (!widget) return null;
             const tier = WIDGET_HEIGHT[id] || 'medium';
-            const rows = rowsMap[tier];
             const h = heightMap[tier];
             const colOverride = colOverrides[id] ? { gridColumn: colOverrides[id] } : {};
             return (
               <div key={id} style={{
-                gridRow: `span ${rows}`,
                 ...colOverride,
                 borderRadius: 16,
                 overflow: 'hidden',
@@ -2913,7 +2911,7 @@ function App(){
 
         const TAB_SECTIONS = {
           algemeen: [
-            { title: 'Overzicht',  ids: ['aantal-projecten', 'recent-1', 'leaderboard', 'random-project', 'ontwerp-opgeleverd', 'totaal-bvo', 'recent-2'], colOverrides: { 'ontwerp-opgeleverd': 2, 'totaal-bvo': 2, 'recent-2': 2 } },
+            { title: 'Overzicht',  ids: ['aantal-projecten', 'recent-1', 'leaderboard', 'random-project', 'ontwerp-opgeleverd', 'recent-2'] },
             { title: 'Projecten',  ids: ['fases', 'projecttype', 'functie'] },
             { title: 'Activiteit', ids: ['ontwerp-opgeleverd', 'verkregen'] },
             { title: 'Locatie',    ids: ['binnen-buiten', 'top-provincies', 'top-steden'] },
@@ -2959,7 +2957,7 @@ function App(){
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(3, 1fr)',
-                  gridAutoRows: `${H.half}px`,  /* base rij-hoogte = S (klein) = 160px */
+                  gridAutoRows: 'auto',
                   gap: 14,
                   marginBottom: 14,
                 }}>
