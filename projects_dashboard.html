@@ -2911,7 +2911,7 @@ function App(){
 
         const TAB_SECTIONS = {
           algemeen: [
-            { title: 'Overzicht',  ids: ['aantal-projecten', 'recent-1', 'leaderboard', 'random-project', 'ontwerp-opgeleverd', 'recent-2'] },
+            { title: 'Overzicht',  ids: ['aantal-projecten', 'random-project', 'ontwerp-opgeleverd', 'recent-1', 'recent-2', 'leaderboard'], colLayout: [[0,1,2],[3,4],[5]] },
             { title: 'Projecten',  ids: ['fases', 'projecttype', 'functie'] },
             { title: 'Activiteit', ids: ['ontwerp-opgeleverd', 'verkregen'] },
             { title: 'Locatie',    ids: ['binnen-buiten', 'top-provincies', 'top-steden'] },
@@ -2954,15 +2954,38 @@ function App(){
             {sections.map(section => (
               <div key={section.title}>
                 <SectionTitle>{section.title}</SectionTitle>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gridAutoRows: 'auto',
-                  gap: 14,
-                  marginBottom: 14,
-                }}>
-                  {renderSection(section.ids, section.colOverrides || {})}
-                </div>
+                {section.colLayout ? (
+                  // Kolom-gebaseerde layout: elk array = één kolom
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 14, alignItems: 'start' }}>
+                    {section.colLayout.map((colIds, ci) => (
+                      <div key={ci} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        {colIds.map(idx => {
+                          const id = section.ids[idx];
+                          const widget = renderWidget(id);
+                          if (!widget) return null;
+                          const tier = WIDGET_HEIGHT[id] || 'medium';
+                          const heightMap = { small: H.half, medium: H.full, large: H.large, xlarge: H.xlarge };
+                          const h = heightMap[tier];
+                          return (
+                            <div key={id} style={{ borderRadius: 16, overflow: 'hidden', height: h, display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+                              <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>{widget}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gridAutoRows: 'auto',
+                    gap: 14,
+                    marginBottom: 14,
+                  }}>
+                    {renderSection(section.ids, section.colOverrides || {})}
+                  </div>
+                )}
               </div>
             ))}
           </div>
