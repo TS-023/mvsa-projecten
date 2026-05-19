@@ -4,19 +4,19 @@
    ═══════════════════════════════════════════════════════════ */
 
 :root{
-  --bg: #f4f1ec;
+  --bg: #eef0f3;
   --card: #ffffff;
-  --ink: #1a1c1e;
-  --ink-2: #2e3136;
-  --muted: #8a8d93;
-  --line: #e8e4dd;
-  --accent: #3d6e8a;
-  --accent-light: rgba(61,110,138,.08);
+  --ink: #1a2332;
+  --ink-2: #2d3a4a;
+  --muted: #7f8fa0;
+  --line: #dde3ea;
+  --accent: #4e7d9c;
+  --accent-light: rgba(78,125,156,.08);
   --danger: #c44040;
   --success: #2d8a5e;
   --warning: #c8900a;
   --shadow: 0 1px 3px rgba(0,0,0,.04), 0 6px 16px -4px rgba(0,0,0,.08);
-  --radius: 16px;
+  --radius: 14px;
 }
 [data-theme="dark"]{
   --bg: #111315;

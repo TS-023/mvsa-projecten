@@ -9,14 +9,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
   :root{
-    --bg: #f4f1ec;
+    --bg: #eef0f3;
     --card: #ffffff;
-    --ink: #111418;
-    --ink-2: #2a2f36;
-    --muted: #8a8d93;
-    --line: #e8e4dd;
-    --shadow: 0 1px 0 rgba(20,30,45,.04), 0 8px 24px -12px rgba(20,30,45,.18);
-    --radius: 16px;
+    --ink: #1a2332;
+    --ink-2: #2d3a4a;
+    --muted: #7f8fa0;
+    --line: #dde3ea;
+    --accent: #4e7d9c;
+    --shadow: 0 1px 3px rgba(26,35,50,.06), 0 8px 24px -8px rgba(26,35,50,.12);
+    --radius: 14px;
     --h-tall: 340px;   /* hoge widget */
     --h-mid:  160px;   /* middel widget */
   }
@@ -42,7 +43,7 @@
   .crumbs{ font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
   .crumbs strong{ color: var(--ink); font-weight:600; }
   .topbar .meta{ font-size:12px; color:var(--muted); display:flex; gap:18px; align-items:center; }
-  .dot{ width:6px; height:6px; border-radius:50%; background:#16a34a; display:inline-block; margin-right:6px; vertical-align:middle; }
+  .dot{ width:6px; height:6px; border-radius:50%; background:#4e7d9c; display:inline-block; margin-right:6px; vertical-align:middle; }
 
 
   /* ── Sectietitels ── */
@@ -77,7 +78,7 @@
   .grid-data .middle{ grid-column: 2; grid-row: 1 / -1; }
   .card.middle{ transition: transform .15s ease, box-shadow .15s ease; }
   .card.middle:hover{ transform: translateY(-2px); box-shadow: 0 1px 0 rgba(20,30,45,.04), 0 16px 32px -12px rgba(20,30,45,.28); }
-  .card.middle:hover h3::after{ content: " →"; color: #3d6e8a; }
+  .card.middle:hover h3::after{ content: " →"; color: var(--accent); }
   .grid-data .right-1{ grid-column: 3; grid-row: 1 / span 2; }
   .grid-data .right-2{ grid-column: 3; grid-row: 3 / span 2; }
   .grid-data > .card{ display:flex; flex-direction: column; min-height: 0; }
@@ -96,8 +97,8 @@
     flex-direction: column;
   }
   .card:hover{
-    transform: translateY(-3px);
-    box-shadow: 0 2px 8px rgba(0,0,0,.06), 0 16px 40px -8px rgba(20,30,45,.18);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(26,35,50,.06), 0 16px 40px -8px rgba(26,35,50,.16);
   }
   .card h3{
     margin:0 0 10px;
@@ -130,7 +131,7 @@
   .random-project h3{ text-align:center; margin-bottom:10px; }
   .random-project .rp-img{
     width: 100%; flex: 1; min-height: 0; border-radius: 12px; overflow:hidden; position:relative;
-    background:#b9a584;
+    background:#8aaec4;
     margin-bottom: 12px;
   }
   .random-project .rp-img::before{
@@ -159,7 +160,7 @@
   .lead-photo .ph{
     position:absolute; inset:0;
     background:
-      radial-gradient(120% 80% at 30% 30%, #3a3f47 0%, #1a1d22 60%, #0c0e11 100%);
+      radial-gradient(120% 80% at 30% 30%, #2d4a62 0%, #1a2e3e 60%, #0d1820 100%);
   }
   .lead-photo .ph::after{
     content:""; position:absolute; inset:0;
@@ -182,7 +183,7 @@
   .ranklist .rk{ color: var(--muted); font-variant-numeric: tabular-nums; }
   .ranklist .nm{ font-weight:600; letter-spacing:.02em; text-transform:uppercase; font-size: 12px; }
   .ranklist .nm a, .ranklist .nm.link{ color: var(--ink); text-decoration: none; cursor: pointer; transition: color .15s ease; }
-  .ranklist .nm a:hover, .ranklist .nm.link:hover{ color: #3d6e8a; text-decoration: underline; text-underline-offset: 3px; }
+  .ranklist .nm a:hover, .ranklist .nm.link:hover{ color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
   .ranklist .sc{ color: var(--ink); font-variant-numeric: tabular-nums; font-weight:600; }
 
 
@@ -220,7 +221,7 @@
   /* ── Recente kaarten / thumbnails ── */
   .recent-card{ padding: 0; overflow:hidden; }
   .recent-card .img{
-    flex: 1; min-height: 0; background:#cbb59a; position:relative; overflow:hidden;
+    flex: 1; min-height: 0; background:#8aaec4; position:relative; overflow:hidden;
     display: block;
   }
   a.img{ cursor: pointer; transition: filter .15s ease; }
@@ -228,7 +229,7 @@
   .rp-img{ display: block; }
   a.rp-img{ cursor: pointer; transition: transform .2s ease, box-shadow .2s ease; }
   a.rp-img:hover{ transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(20,30,45,.3); }
-  .recent-card .img.alt{ background:#9aa3ad; }
+  .recent-card .img.alt{ background:#8aaec4; }
   .recent-card .img::before{
     content:""; position:absolute; inset:0;
     background-image: repeating-linear-gradient(180deg, rgba(0,0,0,.18) 0 1px, transparent 1px 8px);
@@ -267,9 +268,9 @@
   .chart-svg{ width: 100%; height: auto; display:block; }
   .chart-card{ display: flex; flex-direction: column; }
   .axis-label{ font-size: 10px; fill: var(--muted); letter-spacing:.04em; font-family:'Inter', Helvetica, Arial, sans-serif; font-weight: 500; }
-  .bar{ fill: #111418; transition: fill .15s ease; }
-  .bar:hover{ fill: #9aa3ad; }
-  .bar-bg{ fill: #f1f4f7; }
+  .bar{ fill: #5b8fa8; transition: fill .15s ease; }
+  .bar:hover{ fill: #3d6e8a; }
+  .bar-bg{ fill: #dde8ef; }
 
   .duo-stat{ display:flex; flex-direction: column; gap: 2px; }
   .duo-stat .row{
@@ -285,6 +286,7 @@
     display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px 20px;
     border-top: 1px solid var(--line); padding-top: 10px;
     flex-shrink: 0;
+    min-height: 95px;
   }
   .phase-legend li{
     display:flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted);
@@ -360,14 +362,14 @@
   .bvo-card .top3 .rk{ color: var(--muted); font-variant-numeric: tabular-nums; }
   .bvo-card .top3 .nm{ font-weight: 600; letter-spacing: .03em; text-transform: uppercase; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bvo-card .top3 .nm a{ color: var(--ink); text-decoration: none; transition: color .15s ease; }
-  .bvo-card .top3 .nm a:hover{ color: #3d6e8a; text-decoration: underline; text-underline-offset: 2px; }
+  .bvo-card .top3 .nm a:hover{ color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
   .recent-card .meta .ttl a{ color: inherit; text-decoration: none; transition: color .15s ease; }
-  .recent-card .meta .ttl a:hover{ color: #3d6e8a; }
+  .recent-card .meta .ttl a:hover{ color: var(--accent); }
   .bvo-card .top3 .v{ font-variant-numeric: tabular-nums; font-size: 10px; color: var(--ink); }
 
   .grootste-gebouw .bg-img{
     width:100%; aspect-ratio: 16/10; border-radius: 12px; overflow:hidden; position:relative;
-    background:#b9a584; margin-bottom: 12px;
+    background:#8aaec4; margin-bottom: 12px;
     display: block; cursor: pointer;
     transition: transform .2s ease, box-shadow .2s ease;
   }
@@ -467,7 +469,7 @@
     padding:2px 9px; border-radius:999px; font-size:10px; font-weight:700;
     letter-spacing:.06em;
   }
-  .pov-week-badge.up{ background:rgba(34,139,84,.12); color:#1a7a4a; }
+  .pov-week-badge.up{ background:rgba(78,125,156,.12); color:#2d5a75; }
   .pov-week-badge.down{ background:rgba(180,60,60,.12); color:#b43c3c; }
   .pov-week-badge.neutral{ background:rgba(100,110,130,.1); color:var(--muted); }
   .pov-row{
@@ -484,19 +486,19 @@
   .pov-name{ font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:12px; }
   .pov-meta{ font-size:11px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:12px; }
   .pov-by{ font-size:11px; color:var(--accent); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:12px; }
-  .pov-fase{ font-size:9px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; padding:2px 7px; border-radius:999px; background:rgba(61,110,138,.1); color:var(--accent); justify-self:end; white-space:nowrap; }
+  .pov-fase{ font-size:9px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; padding:2px 7px; border-radius:999px; background:rgba(78,125,156,.1); color:var(--accent); justify-self:end; white-space:nowrap; }
   .pov-search{ padding:12px 28px; border-bottom:1px solid var(--line); flex-shrink:0; }
   .pov-search input{ width:100%; padding:8px 14px; border:1px solid var(--line); border-radius:999px; font-family:inherit; font-size:13px; color:var(--ink); background:var(--bg); outline:none; }
   .pov-search input:focus{ border-color:var(--accent); }
   .stat.left-1{ cursor:pointer; transition:box-shadow .15s, transform .15s; }
-  .stat.left-1:hover{ box-shadow:0 8px 32px -8px rgba(61,110,138,.25); transform:translateY(-2px); }
+  .stat.left-1:hover{ box-shadow:0 8px 32px -8px rgba(78,125,156,.25); transform:translateY(-2px); }
   .fase-project-row{
     display:flex; align-items:center; gap:14px;
     padding:12px 28px; text-decoration:none; color:inherit;
     border-bottom:1px solid var(--line); transition:background .1s ease;
   }
   .fase-project-row:last-child{ border-bottom:none; }
-  .fase-project-row:hover{ background:rgba(61,110,138,.05); }
+  .fase-project-row:hover{ background:rgba(78,125,156,.05); }
   .fpr-rank{ font-size:12px; color:var(--muted); width:20px; flex-shrink:0; font-variant-numeric:tabular-nums; }
   .fpr-thumb{ width:44px; height:44px; border-radius:10px; object-fit:cover; flex-shrink:0; }
   .fpr-thumb-ph{
@@ -524,7 +526,7 @@
     background:none; cursor:pointer; transition:all .15s ease;
     flex-shrink:0;
   }
-  .fase-tab:hover{ border-color:var(--accent); background:rgba(61,110,138,.06); }
+  .fase-tab:hover{ border-color:var(--accent); background:rgba(78,125,156,.06); }
   .fase-tab.active{ background:var(--ink); border-color:var(--ink); }
   .fase-tab-code{
     font-size:11px; font-weight:800; letter-spacing:.1em;
@@ -610,8 +612,8 @@ function BarChart({ data, height = 180, gap = 10, showLabels = true, padTop = 14
         const baseY = padTop + chartH;
         const valY = baseY - 6;
         const isHov = hov === i;
-        const hoverFill = hoverPalette ? hoverPalette[i % hoverPalette.length] : '#9aa3ad';
-        const fill = isHov ? hoverFill : '#111418';
+        const hoverFill = hoverPalette ? hoverPalette[i % hoverPalette.length] : '#7aaec6';
+        const fill = isHov ? hoverFill : '#5b8fa8';
         return (
           <g key={i} onMouseEnter={() => setHov(i)}
              onClick={() => onBarClick && onBarClick(d)}
@@ -658,7 +660,7 @@ function Donut({ data, height = 180 }) {
   const hoverR = baseR + 8;
   const total = data.reduce((s, d) => s + d.v, 0);
   const [hovered, setHovered] = React.useState(null);
-  const shades = ['#111418', '#2f343b', '#535a63', '#8a929c', '#c1c8d0'];
+  const shades = ['#3a6b87', '#5b8fa8', '#7aaec6', '#a0c8dc', '#ccdfe9'];
 
   let acc = 0;
   const slices = data.map((d, i) => {
@@ -697,7 +699,7 @@ function Donut({ data, height = 180 }) {
       {!hov && (
         <g pointerEvents="none">
           <text x={cx} y={cy - 2} textAnchor="middle" className="axis-label" style={{ fontSize: 9, fill: '#6b7480' }}>TOTAAL</text>
-          <text x={cx} y={cy + 16} textAnchor="middle" style={{ fontSize: 18, fontWeight: 700, fill: '#111418' }}>{total}</text>
+          <text x={cx} y={cy + 16} textAnchor="middle" style={{ fontSize: 18, fontWeight: 700, fill: '#1a2332' }}>{total}</text>
         </g>
       )}
       {hov && (
@@ -705,7 +707,7 @@ function Donut({ data, height = 180 }) {
           <text x={cx} y={cy - 4} textAnchor="middle" style={{ fontSize: 11, fontWeight: 600, fill: '#2a2f36' }}>
             {hov.d.label}
           </text>
-          <text x={cx} y={cy + 18} textAnchor="middle" style={{ fontSize: 22, fontWeight: 700, fill: '#111418', letterSpacing: '-0.02em' }}>
+          <text x={cx} y={cy + 18} textAnchor="middle" style={{ fontSize: 22, fontWeight: 700, fill: '#1a2332', letterSpacing: '-0.02em' }}>
             {hov.pct}%
           </text>
         </g>
@@ -732,8 +734,8 @@ function Donut({ data, height = 180 }) {
 function RankList({ items, suffix, breakdown, scoreFormatter, linkProjects = false, linkEmployees = false, onItemClick }) {
   const [open, setOpen] = React.useState(null);
   const FUNC_COLORS = {
-    wonen:       '#111418',
-    kantoor:     '#3d6e8a',
+    wonen:       '#3a6b87',
+    kantoor:     '#5b8fa8',
     shortstay:   '#8a7a3d',
     commercieel: '#3d8a6e',
     publiek:     '#6e3d8a',
@@ -1189,7 +1191,7 @@ function ProjecttypeChart({ data }) {
 
 /* ── FunctieDonut: rol van MVSA per project als taartdiagram, klikbaar ── */
 function FunctieDonut({ data }) {
-  const shades = ['#111418', '#2f343b', '#535a63', '#8a929c', '#c1c8d0'];
+  const shades = ['#3a6b87', '#5b8fa8', '#7aaec6', '#a0c8dc', '#ccdfe9'];
   const total = data.reduce((s, d) => s + d.v, 0);
   const [selected, setSelected] = React.useState(null);
   const [hoveredLabel, setHoveredLabel] = React.useState(null);
@@ -1201,7 +1203,7 @@ function FunctieDonut({ data }) {
     return all.filter(p => p.functie && p.functie.trim().toLowerCase() === active.toLowerCase());
   }, [active]);
   const activeIdx = active ? data.findIndex(d => d.label === active) : -1;
-  const selectedColor = activeIdx >= 0 ? shades[activeIdx % shades.length] : '#111418';
+  const selectedColor = activeIdx >= 0 ? shades[activeIdx % shades.length] : '#3a6b87';
 
   return (
     <div className="card chart-card" style={{ transition: 'all .25s ease' }}>
@@ -1215,6 +1217,7 @@ function FunctieDonut({ data }) {
       <div style={{
         borderTop: '1px solid var(--line)', paddingTop: 10, marginTop: 10,
         display: 'flex', flexWrap: 'wrap', gap: '5px 20px', flexShrink: 0,
+        minHeight: 95,
       }}>
         {data.map((d, i) => (
           <div key={i}
@@ -1331,14 +1334,14 @@ function ClickableDonut({ data, shades, selected, onSegmentClick, onSegmentHover
         {hovered ? (
           <>
             <text x={cx} y={cy - 4} textAnchor="middle" style={{ fontSize: 11, fontWeight: 600, fill: '#2a2f36' }}>{hovered}</text>
-            <text x={cx} y={cy + 18} textAnchor="middle" style={{ fontSize: 22, fontWeight: 700, fill: '#111418', letterSpacing: '-0.02em' }}>
+            <text x={cx} y={cy + 18} textAnchor="middle" style={{ fontSize: 22, fontWeight: 700, fill: '#1a2332', letterSpacing: '-0.02em' }}>
               {Math.round((data.find(d => d.label === hovered)?.v || 0) / total * 100)}%
             </text>
           </>
         ) : (
           <>
             <text x={cx} y={cy - 2} textAnchor="middle" className="axis-label" style={{ fontSize: 9, fill: '#6b7480' }}>TOTAAL</text>
-            <text x={cx} y={cy + 16} textAnchor="middle" style={{ fontSize: 18, fontWeight: 700, fill: '#111418' }}>{total}</text>
+            <text x={cx} y={cy + 16} textAnchor="middle" style={{ fontSize: 18, fontWeight: 700, fill: '#1a2332' }}>{total}</text>
           </>
         )}
       </g>
@@ -1385,7 +1388,7 @@ function FasesChart({ fases, onBarClick }) {
         <BarChart
           data={fases}
           height={120}
-          hoverPalette={['#5a4a8a', '#3d6e8a', '#3d8a6e', '#8a7a3d', '#8a4a4a', '#6e3d8a', '#3d8a8a', '#8a6e3d']}
+          hoverPalette={['#3a6b87', '#4e7d9c', '#5b8fa8', '#7aaec6', '#a0c8dc', '#2d5a75', '#6b9ab0', '#1a3d52']}
           onBarClick={onBarClick}
         />
       </div>
@@ -1560,7 +1563,7 @@ function MetraagStat({ titel, waarde, icoon, kleur, sublabel }) {
 
 /* ── TotaalGerealiseerd: totaal m² gerealiseerd ── */
 function TotaalGerealiseerd({ waarde }) {
-  return <MetraagStat titel="Totaal gerealiseerd" waarde={waarde} icoon="🏗" kleur="#3d6e8a" sublabel="m² totaal BVO" />;
+  return <MetraagStat titel="Totaal gerealiseerd" waarde={waarde} icoon="🏗" kleur="#4e7d9c" sublabel="m² totaal BVO" />;
 }
 
 /* ── GerenoveerDstat: gerenoveerde m² ── */
@@ -2211,9 +2214,9 @@ function WidgetCell({ id, sizeKey, editMode, onDragStart, onDragOver, onDrop, on
         transition: 'height .25s ease',
         // Geen stippellijnen — subtiele ring alleen bij dragover
         boxShadow: dragOver
-          ? '0 0 0 2px var(--accent), 0 8px 32px -8px rgba(61,110,138,.25)'
+          ? '0 0 0 2px var(--accent), 0 8px 32px -8px rgba(78,125,156,.25)'
           : editMode
-            ? '0 0 0 1.5px rgba(61,110,138,.18)'
+            ? '0 0 0 1.5px rgba(78,125,156,.18)'
             : 'none',
       }}>
 
@@ -2718,7 +2721,7 @@ function App(){
                 boxShadow:'0 4px 16px -4px rgba(20,30,45,.12)',
                 transition:'border-color .2s, box-shadow .2s',
               }}
-              onFocus={e=>{e.target.style.borderColor='var(--accent)';e.target.style.boxShadow='0 4px 20px -4px rgba(61,110,138,.2)';}}
+              onFocus={e=>{e.target.style.borderColor='var(--accent)';e.target.style.boxShadow='0 4px 20px -4px rgba(78,125,156,.2)';}}
               onBlur={e=>{e.target.style.borderColor='rgba(17,20,24,.08)';e.target.style.boxShadow='0 4px 16px -4px rgba(20,30,45,.12)';}}
             />
             {searchQ && (
@@ -2759,7 +2762,7 @@ function App(){
                             <div style={{fontWeight:700,fontSize:12,letterSpacing:'.03em',textTransform:'uppercase',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.projectnaam}</div>
                             <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>{[p.stad,p.land].filter(Boolean).join(' · ')||'—'}</div>
                           </div>
-                          {p.fase && <span style={{fontSize:'9px',letterSpacing:'.12em',fontWeight:700,textTransform:'uppercase',padding:'2px 8px',borderRadius:'999px',background:'rgba(61,110,138,.1)',color:'var(--accent)',flex:'none'}}>{p.fase}</span>}
+                          {p.fase && <span style={{fontSize:'9px',letterSpacing:'.12em',fontWeight:700,textTransform:'uppercase',padding:'2px 8px',borderRadius:'999px',background:'rgba(78,125,156,.1)',color:'var(--accent)',flex:'none'}}>{p.fase}</span>}
                         </a>
                       );
                     })}
@@ -3082,7 +3085,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     const { data: { user } } = await db.auth.getUser();
     const inline = document.getElementById('auth-bar-inline');
     if (!user) {
-      if (inline) inline.innerHTML = '<a href="login.html" style="background:#fff;color:#111418;text-decoration:none;padding:8px 16px;border-radius:999px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;border:1px solid rgba(17,20,24,.12);">🔒 Inloggen</a>';
+      if (inline) inline.innerHTML = '<a href="login.html" style="background:#fff;color:#1a2332;text-decoration:none;padding:8px 16px;border-radius:999px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;border:1px solid rgba(26,35,50,.12);">🔒 Inloggen</a>';
       return;
     }
     const { data: profile } = await db.from('profiles').select('naam,status,is_admin').eq('id', user.id).maybeSingle();
@@ -3092,7 +3095,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
         + (profile.is_admin ? `<a href="admin.html" style="font-size:11px;color:var(--ink);text-decoration:none;padding:8px 14px;border-radius:999px;border:1px solid rgba(17,20,24,.12);background:#fff;letter-spacing:.1em;text-transform:uppercase;font-weight:700;">⚙️ Beheer</a>` : '')
         + `<button onclick="Auth.logout().then(()=>location.reload())" style="background:none;border:1px solid rgba(17,20,24,.12);border-radius:999px;cursor:pointer;font-family:inherit;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--muted);padding:8px 14px;">Uitloggen</button>`;
     } else {
-      if (inline) inline.innerHTML = '<a href="login.html" style="background:#fff;color:#111418;text-decoration:none;padding:8px 16px;border-radius:999px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;border:1px solid rgba(17,20,24,.12);">🔒 Inloggen</a>';
+      if (inline) inline.innerHTML = '<a href="login.html" style="background:#fff;color:#1a2332;text-decoration:none;padding:8px 16px;border-radius:999px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;border:1px solid rgba(26,35,50,.12);">🔒 Inloggen</a>';
     }
   } catch(e) {}
 })();
