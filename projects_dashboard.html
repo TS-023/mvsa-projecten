@@ -2883,7 +2883,7 @@ function App(){
         // Helper: render widget-rijen als gestructureerde layout
         // Leaderboard (full = 2 rijen) staat altijd rechts en de
         // twee half-widgets links ervan vullen samen exact die 2 rijen.
-        const renderSection = (ids) => {
+        const renderSection = (ids, colOverrides = {}) => {
           // 3-tier systeem: small=1 rij (160px), medium=2 rijen (334px), large=3 rijen (508px)
           const rowsMap = { small: 1, medium: 2, large: 3, xlarge: 4 };
           const heightMap = { small: H.half, medium: H.full, large: H.large, xlarge: H.xlarge };
@@ -2893,9 +2893,11 @@ function App(){
             const tier = WIDGET_HEIGHT[id] || 'medium';
             const rows = rowsMap[tier];
             const h = heightMap[tier];
+            const colOverride = colOverrides[id] ? { gridColumn: colOverrides[id] } : {};
             return (
               <div key={id} style={{
                 gridRow: `span ${rows}`,
+                ...colOverride,
                 borderRadius: 16,
                 overflow: 'hidden',
                 height: h,
@@ -2911,7 +2913,7 @@ function App(){
 
         const TAB_SECTIONS = {
           algemeen: [
-            { title: 'Overzicht',  ids: ['aantal-projecten', 'recent-1', 'leaderboard', 'random-project', 'recent-2', 'ontwerp-opgeleverd', 'totaal-bvo'] },
+            { title: 'Overzicht',  ids: ['aantal-projecten', 'recent-1', 'leaderboard', 'random-project', 'ontwerp-opgeleverd', 'totaal-bvo', 'recent-2'], colOverrides: { 'ontwerp-opgeleverd': 2, 'totaal-bvo': 2, 'recent-2': 2 } },
             { title: 'Projecten',  ids: ['fases', 'projecttype', 'functie'] },
             { title: 'Activiteit', ids: ['ontwerp-opgeleverd', 'verkregen'] },
             { title: 'Locatie',    ids: ['binnen-buiten', 'top-provincies', 'top-steden'] },
@@ -2961,7 +2963,7 @@ function App(){
                   gap: 14,
                   marginBottom: 14,
                 }}>
-                  {renderSection(section.ids)}
+                  {renderSection(section.ids, section.colOverrides || {})}
                 </div>
               </div>
             ))}
