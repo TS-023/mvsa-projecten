@@ -49,9 +49,9 @@
 
   /* ── Sectietitels ── */
   .section-title{
-    font-size: 11px;
+    font-size: 16px;
     font-weight: 700;
-    letter-spacing: .22em;
+    letter-spacing: .18em;
     text-transform: uppercase;
     color: var(--ink);
     margin: 28px 0 12px 4px;
@@ -103,10 +103,10 @@
   }
   .card h3{
     margin:0 0 10px;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--ink-2);
-    letter-spacing: .02em;
+    letter-spacing: .01em;
     text-align: center;
   }
 
@@ -265,7 +265,7 @@
     height: 100%;
   }
   .chart-card .chart-title{
-    text-align:center; font-size:12px; font-weight:600; color:var(--ink-2); margin-bottom: 10px;
+    text-align:center; font-size:14px; font-weight:600; color:var(--ink-2); margin-bottom: 10px;
   }
   .chart-svg{ width: 100%; height: 100%; display:block; }
   .chart-card{ display: flex; flex-direction: column; }
@@ -527,22 +527,22 @@
   .fase-tabs::-webkit-scrollbar{ display:none; }
   .fase-tab{
     display:flex; flex-direction:column; align-items:center; gap:2px;
-    padding:7px 14px; border-radius:10px; border:1px solid var(--line);
-    background:var(--card); cursor:pointer; transition:all .15s ease;
+    padding:7px 14px; border-radius:10px; border:1px solid rgba(78,125,156,.2);
+    background:rgba(78,125,156,.06); cursor:pointer; transition:all .15s ease;
     flex-shrink:0;
   }
-  .fase-tab:hover{ border-color:var(--accent); background:rgba(78,125,156,.06); }
-  .fase-tab.active{ background:var(--ink); border-color:var(--ink); box-shadow:0 2px 8px rgba(26,35,50,.15); }
+  .fase-tab:hover{ border-color:var(--accent); background:rgba(78,125,156,.14); }
+  .fase-tab.active{ background:var(--accent); border-color:var(--accent); box-shadow:0 2px 8px rgba(78,125,156,.3); }
   .fase-tab-code{
     font-size:10px; font-weight:800; letter-spacing:.08em;
-    color:var(--ink); transition:color .15s ease;
+    color:var(--accent); transition:color .15s ease;
   }
   .fase-tab.active .fase-tab-code{ color:#fff; }
   .fase-tab-count{
-    font-size:11px; font-weight:600; color:var(--muted); font-variant-numeric:tabular-nums;
-    transition:color .15s ease;
+    font-size:11px; font-weight:600; color:var(--accent); font-variant-numeric:tabular-nums;
+    transition:color .15s ease; opacity:.7;
   }
-  .fase-tab.active .fase-tab-count{ color:rgba(255,255,255,.7); }
+  .fase-tab.active .fase-tab-count{ color:rgba(255,255,255,.8); opacity:1; }
 
   @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
