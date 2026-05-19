@@ -1242,8 +1242,8 @@ function FunctieDonut({ data }) {
         ))}
       </div>
 
-      {/* Uitklapbare projectlijst */}
-      {active && (
+      {/* Uitklapbare projectlijst — alleen bij klik, niet bij hover */}
+      {selected && (
         <div style={{
           marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 10,
           animation: 'fadeIn .15s ease',
@@ -2859,7 +2859,7 @@ function App(){
           'verkregen':          'medium',
           'ontwerp-opgeleverd': 'small',
           'fases':              'xlarge',
-          'binnen-buiten':      'small',
+          'binnen-buiten':      'medium',
           'top-provincies':     'medium',
           'top-steden':         'medium',
           'type-programma':     'large',
