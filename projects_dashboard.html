@@ -2850,9 +2850,9 @@ function App(){
         const WIDGET_HEIGHT = {
           'aantal-projecten':   'small',
           'random-project':     'small',
-          'leaderboard':        'large',
+          'leaderboard':        'xlarge',
           'recent-1':           'medium',
-          'recent-2':           'small',
+          'recent-2':           'medium',
           'projecttype':        'medium',
           'functie':            'medium',
           'verkregen':          'medium',
@@ -2878,15 +2878,15 @@ function App(){
           'labels':             'medium',
           'meeste-awards':      'medium',
         };
-        const H = { half: 160, full: 334, large: 508 };
+        const H = { half: 160, full: 334, large: 508, xlarge: 682 };
 
         // Helper: render widget-rijen als gestructureerde layout
         // Leaderboard (full = 2 rijen) staat altijd rechts en de
         // twee half-widgets links ervan vullen samen exact die 2 rijen.
         const renderSection = (ids) => {
           // 3-tier systeem: small=1 rij (160px), medium=2 rijen (334px), large=3 rijen (508px)
-          const rowsMap = { small: 1, medium: 2, large: 3 };
-          const heightMap = { small: H.half, medium: H.full, large: H.large };
+          const rowsMap = { small: 1, medium: 2, large: 3, xlarge: 4 };
+          const heightMap = { small: H.half, medium: H.full, large: H.large, xlarge: H.xlarge };
           return ids.map(id => {
             const widget = renderWidget(id);
             if (!widget) return null;
@@ -2911,7 +2911,7 @@ function App(){
 
         const TAB_SECTIONS = {
           algemeen: [
-            { title: 'Overzicht',  ids: ['aantal-projecten', 'recent-1', 'leaderboard', 'random-project', 'recent-2', 'ontwerp-opgeleverd'] },
+            { title: 'Overzicht',  ids: ['aantal-projecten', 'recent-1', 'leaderboard', 'random-project', 'recent-2', 'ontwerp-opgeleverd', 'totaal-bvo'] },
             { title: 'Projecten',  ids: ['fases', 'projecttype', 'functie'] },
             { title: 'Activiteit', ids: ['ontwerp-opgeleverd', 'verkregen'] },
             { title: 'Locatie',    ids: ['binnen-buiten', 'top-provincies', 'top-steden'] },
