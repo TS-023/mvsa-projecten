@@ -18,8 +18,9 @@
     --accent: #4e7d9c;
     --shadow: 0 1px 3px rgba(26,35,50,.06), 0 8px 24px -8px rgba(26,35,50,.12);
     --radius: 14px;
-    --h-tall: 340px;   /* hoge widget */
-    --h-mid:  160px;   /* middel widget */
+    --h-s: 160px;    /* klein  — 1 rij */
+    --h-m: 334px;    /* middel — 2 rijen */
+    --h-l: 508px;    /* groot  — 3 rijen (= 3× klein) */
   }
   *{ box-sizing: border-box; }
   html, body{ margin:0; padding:0; background: var(--bg); color: var(--ink); font-family: 'Inter', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
@@ -70,7 +71,7 @@
   /* ── Data sectie (grote nummers bovenaan) ── */
   .grid-data{
     grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: var(--h-mid) var(--h-mid) var(--h-mid) var(--h-mid);
+    grid-template-rows: var(--h-s) var(--h-s) var(--h-s) var(--h-s);
     grid-auto-flow: column;
   }
   .grid-data .left-1{ grid-column: 1; grid-row: 1 / span 2; }
@@ -253,11 +254,11 @@
   /* ── Algemeen sectie ── */
   .grid-alg-1{
     grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: var(--h-tall);
+    grid-template-rows: var(--h-m);
   }
   .grid-alg-2{
     grid-template-columns: 1fr 2fr;
-    grid-template-rows: var(--h-tall);
+    grid-template-rows: var(--h-m);
   }
   .grid-alg-2 .card{
     height: 100%;
@@ -308,7 +309,7 @@
 
 
   /* ── Locatie sectie ── */
-  .grid-loc{ grid-template-columns: 1fr 1fr 1fr; grid-template-rows: var(--h-tall); }
+  .grid-loc{ grid-template-columns: 1fr 1fr 1fr; grid-template-rows: var(--h-m); }
 
   .loc-split{ display:grid; grid-template-rows: 1fr 1fr; gap: 6px; }
   .loc-split .cell{ padding: 10px 4px; }
@@ -322,7 +323,7 @@
   /* ── Metrage sectie ── */
   .grid-metrage{
     grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: var(--h-mid) var(--h-mid);
+    grid-template-rows: var(--h-s) var(--h-s);
     align-items: stretch;
   }
   .grid-metrage .type-prog{ grid-column: 1; grid-row: 1 / span 2; display:flex; flex-direction:column; }
@@ -391,7 +392,7 @@
   /* ── Mobiliteit & ratio ── */
   .grid-mob-ratio{
     grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: var(--h-tall);
+    grid-template-rows: var(--h-m);
   }
   .grid-mob-ratio .mob-col{ display:grid; gap: 14px; grid-auto-rows: 1fr; }
 
@@ -2129,10 +2130,10 @@ function projectHref(name){
    Grid is altijd 3 kolommen breed.
    ============================================================ */
 const SIZES = {
-  S:  { col: 1, h: 160,  label: 'S',  desc: 'Klein'  },
-  M:  { col: 2, h: 300,  label: 'M',  desc: 'Normaal' },
-  L:  { col: 3, h: 300,  label: 'L',  desc: 'Breed'  },
-  XL: { col: 3, h: 480,  label: 'XL', desc: 'Groot'  },
+  S:  { col: 1, h: 160,  label: 'S',  desc: 'Klein'   },
+  M:  { col: 2, h: 334,  label: 'M',  desc: 'Middel'  },
+  L:  { col: 3, h: 508,  label: 'L',  desc: 'Groot'   },
+  XL: { col: 3, h: 508,  label: 'XL', desc: 'Groot'   },
 };
 
 // Default grootte per widget-type
@@ -2847,53 +2848,57 @@ function App(){
 
         // ── Vaste hoogte per widget: 'half' = 160px, 'full' = 340px ──
         const WIDGET_HEIGHT = {
-          'aantal-projecten':   'half',
-          'random-project':     'half',
-          'leaderboard':        'full',
-          'recent-1':           'half',
-          'recent-2':           'half',
-          'projecttype':        'full',
-          'functie':            'full',
-          'verkregen':          'full',
-          'ontwerp-opgeleverd': 'full',
-          'fases':              'full',
-          'binnen-buiten':      'full',
-          'top-provincies':     'full',
-          'top-steden':         'full',
-          'type-programma':     'full',
-          'totaal-bvo':         'half',
-          'grootste-gebouw':    'full',
-          'bvo-lijst':          'full',
-          'autoparkeren':       'half',
-          'fietsparkeren':      'half',
-          'ratio-wonen':        'full',
-          'ratio-kantoor':      'full',
-          'duurzaamheid-score': 'full',
-          'daktuin':            'full',
-          'zonnepanelen':       'full',
-          'hoogste-gebouw':     'full',
-          'tevredenheid':       'half',
-          'awards':             'half',
-          'labels':             'full',
-          'meeste-awards':      'full',
+          'aantal-projecten':   'small',
+          'random-project':     'small',
+          'leaderboard':        'large',
+          'recent-1':           'small',
+          'recent-2':           'small',
+          'projecttype':        'medium',
+          'functie':            'medium',
+          'verkregen':          'medium',
+          'ontwerp-opgeleverd': 'small',
+          'fases':              'medium',
+          'binnen-buiten':      'small',
+          'top-provincies':     'medium',
+          'top-steden':         'medium',
+          'type-programma':     'large',
+          'totaal-bvo':         'small',
+          'grootste-gebouw':    'medium',
+          'bvo-lijst':          'large',
+          'autoparkeren':       'small',
+          'fietsparkeren':      'small',
+          'ratio-wonen':        'medium',
+          'ratio-kantoor':      'medium',
+          'duurzaamheid-score': 'medium',
+          'daktuin':            'medium',
+          'zonnepanelen':       'medium',
+          'hoogste-gebouw':     'large',
+          'tevredenheid':       'small',
+          'awards':             'small',
+          'labels':             'medium',
+          'meeste-awards':      'medium',
         };
-        const H = { half: 160, full: 340 };
+        const H = { half: 160, full: 334, large: 508 };
 
         // Helper: render widget-rijen als gestructureerde layout
         // Leaderboard (full = 2 rijen) staat altijd rechts en de
         // twee half-widgets links ervan vullen samen exact die 2 rijen.
         const renderSection = (ids) => {
-          // Splits ids op in rijen van 3, waarbij 'full' widgets gridRow span 2 krijgen
+          // 3-tier systeem: small=1 rij (160px), medium=2 rijen (334px), large=3 rijen (508px)
+          const rowsMap = { small: 1, medium: 2, large: 3 };
+          const heightMap = { small: H.half, medium: H.full, large: H.large };
           return ids.map(id => {
             const widget = renderWidget(id);
             if (!widget) return null;
-            const rows = WIDGET_HEIGHT[id] === 'full' ? 2 : 1;
+            const tier = WIDGET_HEIGHT[id] || 'medium';
+            const rows = rowsMap[tier];
+            const h = heightMap[tier];
             return (
               <div key={id} style={{
                 gridRow: `span ${rows}`,
                 borderRadius: 16,
                 overflow: 'hidden',
-                height: rows === 2 ? H.full : H.half,
+                height: h,
                 display: 'flex', flexDirection: 'column',
               }}>
                 <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -2952,7 +2957,7 @@ function App(){
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(3, 1fr)',
-                  gridAutoRows: `${H.half}px`,
+                  gridAutoRows: `${H.half}px`,  /* base rij-hoogte = S (klein) = 160px */
                   gap: 14,
                   marginBottom: 14,
                 }}>
