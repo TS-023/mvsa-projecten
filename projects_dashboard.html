@@ -1116,16 +1116,16 @@ function RecentCard({ project, position }) {
 
   return (
     <div className={className}>
-      <a className={`img ${position === 1 ? 'alt' : ''}`} href={href}
-         style={imgUrl ? { backgroundImage: `url(${imgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
-        {!imgUrl && <span className="label">GEEN AFBEELDING</span>}
-      </a>
       <div className="meta">
         <span className="ttl">
           <a href={href}>{project.title || project.projectnaam}</a>
         </span>
         <span className="dt">{dateStr}</span>
       </div>
+      <a className={`img ${position === 1 ? 'alt' : ''}`} href={href}
+         style={imgUrl ? { backgroundImage: `url(${imgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
+        {!imgUrl && <span className="label">GEEN AFBEELDING</span>}
+      </a>
     </div>
   );
 }
