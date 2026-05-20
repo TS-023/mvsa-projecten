@@ -833,28 +833,49 @@ document.addEventListener('mousemove', (e) => {
   card.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%');
 });
 
-/* ── Confetti voor #1 ── */
-function launchConfetti() {
+/* ── Party poppers vanaf #1 kaart ── */
+function launchPoppers() {
+  const goldCard = document.querySelector('.podium-card.gold');
+  if (!goldCard) { setTimeout(launchPoppers, 200); return; }
+
   const canvas = document.createElement('canvas');
   canvas.style.cssText = 'position:fixed;inset:0;z-index:9999;pointer-events:none;';
-  canvas.width = window.innerWidth;
+  canvas.width  = window.innerWidth;
   canvas.height = window.innerHeight;
   document.body.appendChild(canvas);
   const ctx = canvas.getContext('2d');
 
-  const COLORS = ['#4e7d9c','#8aacbf','#1a7a4a','#a8c5d6','#5b8fa8','#ffffff','#dde3ea'];
-  const pieces = Array.from({length: 120}, () => ({
-    x: Math.random() * canvas.width,
-    y: -20 - Math.random() * 200,
-    w: 6 + Math.random() * 8,
-    h: 3 + Math.random() * 5,
-    color: COLORS[Math.floor(Math.random() * COLORS.length)],
-    vx: (Math.random() - 0.5) * 3,
-    vy: 2 + Math.random() * 4,
-    rot: Math.random() * Math.PI * 2,
-    vrot: (Math.random() - 0.5) * 0.2,
-    opacity: 1,
-  }));
+  const rect = goldCard.getBoundingClientRect();
+  const cx = rect.left + rect.width  / 2;
+  const cy = rect.top  + rect.height / 2;
+
+  const COLORS = ['#4e7d9c','#8aacbf','#1a7a4a','#a8c5d6','#5b8fa8','#ffffff','#dde3ea','#2d6a8a'];
+
+  /* Maak twee salvo's: links-popper en rechts-popper */
+  function burst(originX, originY, angleMin, angleMax, count) {
+    return Array.from({ length: count }, () => {
+      const angle = angleMin + Math.random() * (angleMax - angleMin);
+      const speed = 8 + Math.random() * 14;
+      return {
+        x: originX, y: originY,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        w: 7 + Math.random() * 7,
+        h: 3 + Math.random() * 5,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        rot: Math.random() * Math.PI * 2,
+        vrot: (Math.random() - 0.5) * 0.25,
+        opacity: 1,
+      };
+    });
+  }
+
+  // Linker popper schiet naar links-boven, rechter naar rechts-boven
+  const DEG = Math.PI / 180;
+  const pieces = [
+    ...burst(cx - 10, cy, -140 * DEG, -40 * DEG, 60),  // links omhoog
+    ...burst(cx + 10, cy, -140 * DEG, -40 * DEG, 60),  // rechts omhoog
+  ];
 
   let frame = 0;
   const tick = () => {
@@ -862,19 +883,20 @@ function launchConfetti() {
     frame++;
     let alive = 0;
     pieces.forEach(p => {
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += 0.08; // zwaartekracht
+      p.x   += p.vx;
+      p.y   += p.vy;
+      p.vy  += 0.45;          // zwaartekracht
+      p.vx  *= 0.98;          // luchtweerstand
       p.rot += p.vrot;
-      if (frame > 90) p.opacity -= 0.012;
-      if (p.y < canvas.height && p.opacity > 0) {
+      if (frame > 40) p.opacity -= 0.018;
+      if (p.opacity > 0) {
         alive++;
         ctx.save();
         ctx.globalAlpha = Math.max(0, p.opacity);
         ctx.translate(p.x, p.y);
         ctx.rotate(p.rot);
         ctx.fillStyle = p.color;
-        ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
         ctx.restore();
       }
     });
@@ -884,8 +906,7 @@ function launchConfetti() {
   requestAnimationFrame(tick);
 }
 
-// Wacht tot de data geladen is en schiet dan confetti af
-setTimeout(launchConfetti, 800);
+setTimeout(launchPoppers, 900);
 </script>
 </body>
 </html>
