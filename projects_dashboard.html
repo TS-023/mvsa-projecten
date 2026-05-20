@@ -1164,15 +1164,22 @@ function MvsaNieuws() {
   const fetchNews = async () => {
     setLoading(true); setError(null); setSpinning(true);
     try {
-      // Roept de Supabase Edge Function aan (draait server-side, geen CORS probleem)
-      const { data, error } = await db.functions.invoke('mvsa-nieuws');
-      if (error) throw error;
-      if (!data.ok) throw new Error(data.error);
-      setArticles(data.items || []);
+      const query = encodeURIComponent('"MVSA architects" OR "MVSA architecten"');
+      const rssUrl = `https://news.google.com/rss/search?q=${query}&hl=nl&gl=NL&ceid=NL:nl`;
+      const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=20`;
+      const res  = await fetch(proxyUrl);
+      const data = await res.json();
+      if (data.status !== 'ok') throw new Error('RSS fout');
+      const mapped = (data.items || []).map(item => ({
+        title:  item.title.replace(/ - [^-]+$/, '').trim(),
+        source: item.author || '',
+        date:   item.pubDate ? new Date(item.pubDate).toLocaleDateString('nl-NL', { day:'numeric', month:'short', year:'numeric' }) : '',
+        url:    item.link,
+      }));
+      setArticles(mapped);
       setLastFetch(new Date());
     } catch(e) {
       setError('Kon nieuws niet laden');
-      console.error('MvsaNieuws:', e);
     }
     setLoading(false);
     setTimeout(() => setSpinning(false), 400);
