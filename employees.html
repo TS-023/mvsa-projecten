@@ -450,7 +450,7 @@ function App(){
   React.useEffect(() => {
     db.from('profiles')
       .select('id, naam, score, projecten, team')
-      .eq('status', 'approved')
+      .not('naam', 'is', null)
       .order('score', { ascending: false })
       .then(({ data: rows }) => {
         if (rows && rows.length > 0) {
