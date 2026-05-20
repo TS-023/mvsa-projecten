@@ -1163,56 +1163,17 @@ function MvsaNieuws() {
 
   const fetchNews = async () => {
     setLoading(true); setError(null); setSpinning(true);
-    const query = encodeURIComponent('"MVSA architects" OR "MVSA architecten"');
-    const rssUrl = `https://news.google.com/rss/search?q=${query}&hl=nl&gl=NL&ceid=NL:nl`;
-
-    // Meerdere proxies als fallback
-    const proxies = [
-      `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`,
-      `https://corsproxy.io/?${encodeURIComponent(rssUrl)}`,
-      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rssUrl)}`,
-    ];
-
-    const parseXml = (xmlString) => {
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(xmlString, 'text/xml');
-      const items = [...xml.querySelectorAll('item')];
-      return items.map(item => {
-        const title   = item.querySelector('title')?.textContent || '';
-        const link    = item.querySelector('link')?.textContent || '#';
-        const pubDate = item.querySelector('pubDate')?.textContent || '';
-        const source  = item.querySelector('source')?.textContent || '';
-        const d = pubDate ? new Date(pubDate) : null;
-        const dateStr = d && !isNaN(d)
-          ? d.toLocaleDateString('nl-NL', { day:'numeric', month:'short', year:'numeric' })
-          : '';
-        return { title: title.replace(/ - [^-]+$/, '').trim(), source: source.trim(), date: dateStr, url: link };
-      }).filter(a => a.title);
-    };
-
-    let lastErr = null;
-    for (const proxyUrl of proxies) {
-      try {
-        const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(6000) });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        // allorigins geeft JSON terug, andere proxies geven raw XML
-        const text = await res.text();
-        const xmlString = text.trim().startsWith('{') ? JSON.parse(text).contents : text;
-        const mapped = parseXml(xmlString);
-        if (mapped.length === 0) throw new Error('Geen items');
-        setArticles(mapped);
-        setLastFetch(new Date());
-        setLoading(false);
-        setTimeout(() => setSpinning(false), 400);
-        return; // gelukt!
-      } catch(e) {
-        lastErr = e;
-        console.warn('Proxy mislukt, volgende proberen…', proxyUrl, e.message);
-      }
+    try {
+      // Roept de Supabase Edge Function aan (draait server-side, geen CORS probleem)
+      const { data, error } = await db.functions.invoke('mvsa-nieuws');
+      if (error) throw error;
+      if (!data.ok) throw new Error(data.error);
+      setArticles(data.items || []);
+      setLastFetch(new Date());
+    } catch(e) {
+      setError('Kon nieuws niet laden');
+      console.error('MvsaNieuws:', e);
     }
-    // Alle proxies mislukt
-    setError('Kon nieuws niet laden — probeer het later opnieuw');
-    console.error('Alle proxies mislukt:', lastErr);
     setLoading(false);
     setTimeout(() => setSpinning(false), 400);
   };
