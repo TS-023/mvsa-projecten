@@ -1165,21 +1165,37 @@ function MvsaNieuws() {
     setLoading(true); setError(null); setSpinning(true);
     try {
       const query = encodeURIComponent('"MVSA architects" OR "MVSA architecten"');
-      const rssUrl = `https://news.google.com/rss/search?q=${query}&hl=nl&gl=NL&ceid=NL:nl`;
-      const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`;
+      const rssUrl = `https://news.google.com/rss/search?q=${query}&hl=nl&gl=NL&ceid=NL:nl&num=30`;
+      // allorigins geeft de raw RSS XML terug zonder CORS blokkering
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
       const res  = await fetch(proxyUrl);
-      const data = await res.json();
-      if (data.status !== 'ok') throw new Error('RSS fout');
-      const mapped = (data.items || []).map(item => ({
-        title:  item.title.replace(/ - [^-]+$/, ''),
-        source: item.author || new URL(item.link).hostname.replace('www.',''),
-        date:   new Date(item.pubDate).toLocaleDateString('nl-NL', { day:'numeric', month:'short' }),
-        url:    item.link,
-      }));
+      const json = await res.json();
+      // Parse de XML string
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(json.contents, 'text/xml');
+      const items = [...xml.querySelectorAll('item')];
+      const mapped = items.map(item => {
+        const title   = item.querySelector('title')?.textContent || '';
+        const link    = item.querySelector('link')?.textContent || '#';
+        const pubDate = item.querySelector('pubDate')?.textContent || '';
+        const source  = item.querySelector('source')?.textContent || '';
+        // Datum netjes opmaken
+        const d = pubDate ? new Date(pubDate) : null;
+        const dateStr = d && !isNaN(d)
+          ? d.toLocaleDateString('nl-NL', { day:'numeric', month:'short', year:'numeric' })
+          : '';
+        return {
+          title:  title.replace(/ - [^-]+$/, '').trim(),
+          source: source.trim(),
+          date:   dateStr,
+          url:    link,
+        };
+      }).filter(a => a.title);
       setArticles(mapped);
       setLastFetch(new Date());
     } catch(e) {
       setError('Kon nieuws niet laden');
+      console.error(e);
     }
     setLoading(false);
     setTimeout(() => setSpinning(false), 400);
