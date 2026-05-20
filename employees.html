@@ -449,18 +449,24 @@ function App(){
   const [empLoading, setEmpLoading] = React.useState(true);
   React.useEffect(() => {
     db.from('profiles')
-      .select('id, naam, score, projecten, team')
+      .select('id, naam, score, projecten, team, rol')
       .not('naam', 'is', null)
       .order('score', { ascending: false })
-      .then(({ data: rows }) => {
+      .then(({ data: rows, error }) => {
+        console.log('Profiles loaded:', rows, error);
         if (rows && rows.length > 0) {
           const mapped = rows.map(e => ({
             id: e.id,
-            name: e.naam, role: '', team: e.team || 'Ontwerp',
-            points: e.score || 0, month: 0,
+            name: e.naam || '—',
+            role: e.rol || '',
+            team: e.team || 'Ontwerp',
+            points: e.score || 0,
+            month: 0,
             year: e.score || 0,
-            fields: e.score || 0, projects: e.projecten || 0,
-            weekDelta: 0, lastActive: '—',
+            fields: e.score || 0,
+            projects: e.projecten || 0,
+            weekDelta: 0,
+            lastActive: '—',
           }));
           setEmployees(mapped);
           loadPhotos(mapped);
@@ -468,10 +474,11 @@ function App(){
           setEmployees(EMPLOYEES);
         }
         setEmpLoading(false);
-      }).catch(() => {
+      }).catch((err) => {
+        console.error('Profiles error:', err);
         setEmployees(EMPLOYEES);
-      setEmpLoading(false);
-    });
+        setEmpLoading(false);
+      });
   }, []);
   const [team, setTeam] = React.useState('Alle');
   const [q, setQ] = React.useState('');
@@ -482,9 +489,9 @@ function App(){
   const filtered = React.useMemo(() => {
     return employees
       .filter(e => team === 'Alle' || e.team === team)
-      .filter(e => e.name.toLowerCase().includes(q.toLowerCase()) || e.role.toLowerCase().includes(q.toLowerCase()))
+      .filter(e => (e.name || '').toLowerCase().includes(q.toLowerCase()) || (e.role || '').toLowerCase().includes(q.toLowerCase()))
       .sort((a, b) => b[periodKey] - a[periodKey]);
-  }, [team, q, periodKey]);
+  }, [employees, team, q, periodKey]);
 
   const total = employees.reduce((s, e) => s + e[periodKey], 0);
   const totalFields = employees.reduce((s, e) => s + e.fields, 0);
