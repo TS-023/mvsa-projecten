@@ -1442,7 +1442,75 @@ function VerkregenChart({ data }) {
 }
 
 
-/* ── VeldenDezeWeek: ingevulde velden deze week vs vorige week ── */
+/* ── OpgeleverdVsBezig: donut + lijstje opgeleverd vs in uitvoering ── */
+function OpgeleverdVsBezig({ allProjects }) {
+  const BEZIG_FASES  = ['AQ','SO','VO','DO','TO','UO','UV'];
+  const FASE_LABEL   = { AQ:'Acquisitie', SO:'Schets Ontwerp', VO:'Voorlopig Ontwerp',
+                         DO:'Definitief Ontwerp', TO:'Technisch Ontwerp',
+                         UO:'Uitvoerings Ontwerp', UV:'Uitvoering', OP:'Opgeleverd' };
+
+  const opgeleverd = allProjects.filter(p => p.fase === 'OP');
+  const bezig      = allProjects.filter(p => BEZIG_FASES.includes(p.fase));
+
+  const animOp    = useCountUp(opgeleverd.length);
+  const animBezig = useCountUp(bezig.length);
+
+  // Per fase hoeveel bezig
+  const perFase = BEZIG_FASES.map(f => ({
+    f, label: FASE_LABEL[f], count: allProjects.filter(p => p.fase === f).length,
+  })).filter(x => x.count > 0);
+
+  const total = opgeleverd.length + bezig.length;
+
+  return (
+    <div className="card" style={{ display:'flex', flexDirection:'column', gap:14 }}>
+      <h3 style={{ margin:0 }}>Projectstatus</h3>
+
+      {/* Twee grote getallen */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+        <div style={{ background:'rgba(91,143,168,.1)', borderRadius:10, padding:'10px 14px' }}>
+          <div style={{ fontSize:11, fontWeight:700, letterSpacing:'.12em', textTransform:'uppercase', color:'var(--muted)', marginBottom:4 }}>In uitvoering</div>
+          <div className="num-animate" style={{ fontSize:36, fontWeight:700, letterSpacing:'-.03em', color:'var(--ink)' }}>{animBezig}</div>
+        </div>
+        <div style={{ background:'rgba(42,110,73,.08)', borderRadius:10, padding:'10px 14px' }}>
+          <div style={{ fontSize:11, fontWeight:700, letterSpacing:'.12em', textTransform:'uppercase', color:'var(--muted)', marginBottom:4 }}>Opgeleverd</div>
+          <div className="num-animate" style={{ fontSize:36, fontWeight:700, letterSpacing:'-.03em', color:'#1a7a4a' }}>{animOp}</div>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      {total > 0 && (
+        <div style={{ background:'var(--surface)', borderRadius:6, height:8, overflow:'hidden' }}>
+          <div style={{
+            height:'100%', borderRadius:6,
+            background:'linear-gradient(90deg,#5b8fa8,#1a7a4a)',
+            width: `${(opgeleverd.length / total * 100).toFixed(1)}%`,
+            transition:'width 1s cubic-bezier(.22,.68,0,1.2)'
+          }}/>
+        </div>
+      )}
+
+      {/* Uitsplitsing per fase */}
+      {perFase.length > 0 && (
+        <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+          {perFase.map(({ f, label, count }) => (
+            <div key={f} style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <span style={{ fontSize:10, fontWeight:700, letterSpacing:'.08em', color:'var(--muted)', width:22, flexShrink:0 }}>{f}</span>
+              <div style={{ flex:1, background:'var(--surface)', borderRadius:4, height:6, overflow:'hidden' }}>
+                <div style={{
+                  height:'100%', borderRadius:4, background:'#5b8fa8',
+                  width:`${(count / (bezig.length || 1) * 100).toFixed(1)}%`,
+                  transition:'width .8s cubic-bezier(.22,.68,0,1.2)'
+                }}/>
+              </div>
+              <span style={{ fontSize:11, fontWeight:600, color:'var(--ink)', width:18, textAlign:'right', flexShrink:0 }}>{count}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 function VeldenDezeWeek({ allProjects }) {
   // Alle velden die meetellen (alles behalve metadata)
   const VELDEN = [
@@ -2669,6 +2737,7 @@ function App(){
     { id: 'projecttype',       label: 'Projecttype',         icon: '📈', size: 'tall' },
     { id: 'functie',           label: 'Functie (donut)',      icon: '🍩', size: 'tall' },
     { id: 'verkregen',         label: 'Verkregen d.m.v.',    icon: '📉', size: 'tall' },
+    { id: 'project-status',    label: 'Projectstatus',       icon: '🏗', size: 'tall' },
     { id: 'ontwerp-opgeleverd',label: 'Ingevulde velden',   icon: '📝', size: 'tall' },
     { id: 'fases',             label: 'Fases',               icon: '🏗', size: 'tall' },
     { id: 'binnen-buiten',     label: 'Binnen/Buitenland',   icon: '🌍', size: 'tall' },
@@ -2938,6 +3007,7 @@ function App(){
             case 'projecttype':       return <ProjecttypeChart data={a.projecttype} />;
             case 'functie':           return <FunctieDonut data={a.functie} />;
             case 'verkregen':         return <VerkregenChart data={a.verkregen} />;
+            case 'project-status':  return <OpgeleverdVsBezig allProjects={allProjects} />;
             case 'ontwerp-opgeleverd':return <VeldenDezeWeek allProjects={allProjects} />;
             case 'fases':             return <FasesChart fases={a.fases} onBarClick={(barData) => {
               const filtered = allProjects.filter(p => {
@@ -2980,6 +3050,7 @@ function App(){
           'projecttype':        'xlarge',
           'functie':            'xlarge',
           'verkregen':          'medium',
+          'project-status':  'medium',
           'ontwerp-opgeleverd': 'small',
           'fases':              'xlarge',
           'binnen-buiten':      'medium',
@@ -3038,7 +3109,7 @@ function App(){
           algemeen: [
             { title: 'Overzicht',  ids: ['aantal-projecten', 'ontwerp-opgeleverd', 'random-project', 'recent-1', 'recent-2', 'leaderboard'], colLayout: [[0,1,2],[3,4],[5]] },
             { title: 'Projecten',  ids: ['fases', 'projecttype', 'functie'] },
-            { title: 'Activiteit', ids: ['ontwerp-opgeleverd', 'verkregen'] },
+            { title: 'Activiteit', ids: ['project-status', 'verkregen'] },
             { title: 'Locatie',    ids: ['binnen-buiten', 'top-provincies', 'top-steden'] },
           ],
           meters: [
