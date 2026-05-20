@@ -1182,24 +1182,40 @@ function MvsaNieuws() {
 
   const fetchNews = async () => {
     setLoading(true); setError(null); setSpinning(true);
-    try {
-      const query = encodeURIComponent('"MVSA architects" OR "MVSA architecten"');
-      const rssUrl = `https://news.google.com/rss/search?q=${query}&hl=nl&gl=NL&ceid=NL:nl`;
-      const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=20`;
-      const res  = await fetch(proxyUrl);
-      const data = await res.json();
-      if (data.status !== 'ok') throw new Error('RSS fout');
-      const mapped = (data.items || []).map(item => ({
-        title:  item.title.replace(/ - [^-]+$/, '').trim(),
-        source: item.author || '',
-        date:   item.pubDate ? new Date(item.pubDate).toLocaleDateString('nl-NL', { day:'numeric', month:'short', year:'numeric' }) : '',
-        url:    item.link,
-      }));
-      setArticles(mapped);
-      setLastFetch(new Date());
-    } catch(e) {
-      setError('Kon nieuws niet laden');
+
+    const query = encodeURIComponent('"MVSA architects" OR "MVSA architecten"');
+    const rssUrl = `https://news.google.com/rss/search?q=${query}&hl=nl&gl=NL&ceid=NL:nl`;
+
+    const proxies = [
+      `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=20`,
+      `https://feed2json.org/convert?url=${encodeURIComponent(rssUrl)}`,
+    ];
+
+    for (const proxyUrl of proxies) {
+      try {
+        const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+        if (!res.ok) continue;
+        const data = await res.json();
+        const items = data.items || data.entries || [];
+        if (!items.length) continue;
+        const mapped = items.map(item => ({
+          title:  (item.title || '').replace(/ - [^-]+$/, '').trim(),
+          source: item.author || item.source?.title || '',
+          date:   (item.pubDate || item.published || item.updated || '')
+                    ? new Date(item.pubDate || item.published || item.updated).toLocaleDateString('nl-NL', { day:'numeric', month:'short', year:'numeric' })
+                    : '',
+          url:    item.link || item.url || '#',
+        })).filter(a => a.title);
+        setArticles(mapped);
+        setLastFetch(new Date());
+        setLoading(false);
+        setTimeout(() => setSpinning(false), 400);
+        return;
+      } catch(e) {
+        console.warn('Proxy mislukt:', proxyUrl, e.message);
+      }
     }
+    setError('Kon nieuws niet laden');
     setLoading(false);
     setTimeout(() => setSpinning(false), 400);
   };
