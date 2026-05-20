@@ -1442,20 +1442,60 @@ function VerkregenChart({ data }) {
 }
 
 
-/* ── OntwerpOpgeleverd: twee grote getallen naast elkaar ── */
-function OntwerpOpgeleverd({ ontwerp, opgeleverd }) {
-  const animOntwerp   = useCountUp(ontwerp);
-  const animOpgeleverd = useCountUp(opgeleverd);
+/* ── VeldenDezeWeek: ingevulde velden deze week vs vorige week ── */
+function VeldenDezeWeek({ allProjects }) {
+  // Alle velden die meetellen (alles behalve metadata)
+  const VELDEN = [
+    'projectnummer','projectnaam','alternatieve_naam',
+    'opgave','project_type','functie','verkregen_dmv','fase','projectmap',
+    'land','provincie','stad','straat','huisnummer','postcode',
+    'opdrachtgever','gedelegeerd_opdrachtgever','contactpersoon','telefoon','email',
+    'totaal_bvo','m_wonen','m_kantoor','m_commercieel','m_shortstay','m_publiek','m_onderwijs',
+    'autoparkeren','fietsparkeren','ratio_wonen',
+    'npg_score','daktuin','zonnepanelen','duurzaamheidslabel',
+    'bouwhoogte','tevredenheid','awards','opleverdatum',
+  ];
+
+  const now = new Date();
+  const weekAgo     = new Date(now); weekAgo.setDate(now.getDate() - 7);
+  const twoWeeksAgo = new Date(now); twoWeeksAgo.setDate(now.getDate() - 14);
+
+  const countFields = (projects) =>
+    projects.reduce((sum, p) =>
+      sum + VELDEN.filter(k => p[k] != null && p[k] !== '').length, 0);
+
+  const thisWeekProjects = allProjects.filter(p => new Date(p.created_at) >= weekAgo);
+  const lastWeekProjects = allProjects.filter(p => {
+    const d = new Date(p.created_at);
+    return d >= twoWeeksAgo && d < weekAgo;
+  });
+
+  const thisCount = countFields(thisWeekProjects);
+  const lastCount = countFields(lastWeekProjects);
+  const delta = thisCount - lastCount;
+  const deltaColor = delta > 0 ? '#1a7a4a' : delta < 0 ? '#b43c3c' : 'var(--muted)';
+  const deltaSign  = delta > 0 ? '+' : '';
+
+  const animThis = useCountUp(thisCount);
+  const animLast = useCountUp(lastCount);
+
   return (
     <div className="card duo-stat">
-      <h3>Ontwerp / Opgeleverd</h3>
+      <h3>Ingevulde velden</h3>
       <div className="row">
-        <span className="lbl">Ontwerp</span>
-        <span className="num num-animate">{animOntwerp}</span>
+        <span className="lbl">Deze week</span>
+        <span className="num num-animate" style={{ fontSize: thisCount > 999 ? 26 : 32 }}>{animThis}</span>
       </div>
       <div className="row">
-        <span className="lbl">Opgeleverd</span>
-        <span className="num num-animate">{animOpgeleverd}</span>
+        <span className="lbl">Vorige week</span>
+        <span style={{ display:'flex', alignItems:'baseline', gap:8 }}>
+          <span className="num num-animate" style={{ fontSize: lastCount > 999 ? 26 : 32 }}>{animLast}</span>
+          {delta !== 0 && lastCount > 0 && (
+            <span style={{ fontSize:11, fontWeight:700, color:deltaColor }}>
+              {deltaSign}{delta}
+            </span>
+          )}
+        </span>
       </div>
     </div>
   );
@@ -1498,9 +1538,9 @@ function AlgemeenSection({ a, onBarClick }) {
         <VerkregenChart data={a.verkregen} />
       </div>
 
-      {/* Rij 2: duo-stat + fases */}
+      {/* Rij 2: velden deze week + fases */}
       <div className="grid grid-alg-2">
-        <OntwerpOpgeleverd ontwerp={a.ontwerp} opgeleverd={a.opgeleverd} />
+        <VeldenDezeWeek allProjects={window._allProjects || []} />
         <FasesChart fases={a.fases} onBarClick={onBarClick} />
       </div>
     </>
@@ -2629,7 +2669,7 @@ function App(){
     { id: 'projecttype',       label: 'Projecttype',         icon: '📈', size: 'tall' },
     { id: 'functie',           label: 'Functie (donut)',      icon: '🍩', size: 'tall' },
     { id: 'verkregen',         label: 'Verkregen d.m.v.',    icon: '📉', size: 'tall' },
-    { id: 'ontwerp-opgeleverd',label: 'Ontwerp/Opgeleverd',  icon: '✅', size: 'tall' },
+    { id: 'ontwerp-opgeleverd',label: 'Ingevulde velden',   icon: '📝', size: 'tall' },
     { id: 'fases',             label: 'Fases',               icon: '🏗', size: 'tall' },
     { id: 'binnen-buiten',     label: 'Binnen/Buitenland',   icon: '🌍', size: 'tall' },
     { id: 'top-provincies',    label: 'Top provincies',      icon: '📍', size: 'tall' },
@@ -2898,7 +2938,7 @@ function App(){
             case 'projecttype':       return <ProjecttypeChart data={a.projecttype} />;
             case 'functie':           return <FunctieDonut data={a.functie} />;
             case 'verkregen':         return <VerkregenChart data={a.verkregen} />;
-            case 'ontwerp-opgeleverd':return <OntwerpOpgeleverd ontwerp={a.ontwerp} opgeleverd={a.opgeleverd} />;
+            case 'ontwerp-opgeleverd':return <VeldenDezeWeek allProjects={allProjects} />;
             case 'fases':             return <FasesChart fases={a.fases} onBarClick={(barData) => {
               const filtered = allProjects.filter(p => {
                 if (!p.fase) return false;
