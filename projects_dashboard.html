@@ -1153,67 +1153,56 @@ function RandomProject({ project, onShuffle }) {
 }
 
 
-/* ── MvsaNieuws: haalt live nieuwsartikelen op via Anthropic API ── */
+/* ── MvsaNieuws: Google News RSS via gratis proxy, geen API key nodig ── */
 function MvsaNieuws() {
   const [articles, setArticles] = React.useState([]);
   const [loading,  setLoading]  = React.useState(true);
   const [error,    setError]    = React.useState(null);
   const [lastFetch, setLastFetch] = React.useState(null);
+  const [spinning, setSpinning] = React.useState(false);
 
   const fetchNews = async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null); setSpinning(true);
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-          system: `Je bent een nieuwsassistent. Zoek naar recente nieuwsartikelen waarin "MVSA architects" of "MVSA architecten" wordt genoemd.
-Geef je antwoord UITSLUITEND als een JSON array, zonder markdown of extra tekst.
-Formaat: [{"title":"...","source":"...","date":"...","url":"..."}]
-Maximaal 8 artikelen, meest recent eerst. Als er geen url beschikbaar is, gebruik dan "#".`,
-          messages: [{ role: 'user', content: 'Zoek de meest recente nieuwsartikelen over MVSA architects. Geef alleen de JSON array terug.' }],
-        }),
-      });
+      const query = encodeURIComponent('"MVSA architects" OR "MVSA architecten"');
+      const rssUrl = `https://news.google.com/rss/search?q=${query}&hl=nl&gl=NL&ceid=NL:nl`;
+      const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=10`;
+      const res  = await fetch(proxyUrl);
       const data = await res.json();
-      // Pak de laatste text block uit de response
-      const textBlock = [...(data.content || [])].reverse().find(b => b.type === 'text');
-      if (!textBlock) throw new Error('Geen tekstrespons');
-      const clean = textBlock.text.replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(clean);
-      setArticles(Array.isArray(parsed) ? parsed : []);
+      if (data.status !== 'ok') throw new Error('RSS fout');
+      const mapped = (data.items || []).map(item => ({
+        title:  item.title.replace(/ - [^-]+$/, ''),
+        source: item.author || new URL(item.link).hostname.replace('www.',''),
+        date:   new Date(item.pubDate).toLocaleDateString('nl-NL', { day:'numeric', month:'short' }),
+        url:    item.link,
+      }));
+      setArticles(mapped);
       setLastFetch(new Date());
     } catch(e) {
       setError('Kon nieuws niet laden');
-      console.error('MvsaNieuws error:', e);
     }
     setLoading(false);
+    setTimeout(() => setSpinning(false), 400);
   };
 
   React.useEffect(() => { fetchNews(); }, []);
 
   return (
     <div className="card" style={{ display:'flex', flexDirection:'column', height:'100%' }}>
-      {/* Header */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
         <h3 style={{ margin:0 }}>MVSA in het nieuws</h3>
         <button onClick={fetchNews} disabled={loading} title="Vernieuwen" style={{
           background:'none', border:'1px solid rgba(17,20,24,.1)', borderRadius:999,
-          width:28, height:28, cursor:loading?'wait':'pointer', fontSize:13,
+          width:28, height:28, cursor: loading ? 'wait' : 'pointer', fontSize:14,
           display:'flex', alignItems:'center', justifyContent:'center',
-          transition:'transform .3s', transform: loading ? 'rotate(360deg)' : 'none',
-          color:'var(--muted)',
+          color:'var(--muted)', animation: spinning ? 'spin .6s linear' : 'none',
         }}>↻</button>
       </div>
 
-      {/* Inhoud */}
-      <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:0 }}>
+      <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column' }}>
         {loading && (
           <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:10, color:'var(--muted)' }}>
-            <div style={{ fontSize:24, animation:'spin 1s linear infinite' }}>⟳</div>
+            <div style={{ fontSize:22, animation:'spin .8s linear infinite' }}>⟳</div>
             <div style={{ fontSize:12 }}>Nieuws ophalen…</div>
           </div>
         )}
@@ -1221,43 +1210,47 @@ Maximaal 8 artikelen, meest recent eerst. Als er geen url beschikbaar is, gebrui
           <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, color:'var(--muted)' }}>
             <div style={{ fontSize:22 }}>📡</div>
             <div style={{ fontSize:12 }}>{error}</div>
-            <button onClick={fetchNews} style={{ fontSize:11, padding:'6px 14px', borderRadius:999, border:'1px solid rgba(17,20,24,.1)', background:'none', cursor:'pointer', color:'var(--ink)' }}>Opnieuw proberen</button>
+            <button onClick={fetchNews} style={{ fontSize:11, padding:'6px 14px', borderRadius:999, border:'1px solid rgba(17,20,24,.1)', background:'none', cursor:'pointer', color:'var(--ink)' }}>
+              Opnieuw proberen
+            </button>
           </div>
         )}
         {!loading && !error && articles.length === 0 && (
-          <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--muted)', fontSize:13 }}>
-            Geen artikelen gevonden
+          <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, color:'var(--muted)' }}>
+            <div style={{ fontSize:22 }}>📰</div>
+            <div style={{ fontSize:12 }}>Geen recente artikelen gevonden</div>
           </div>
         )}
-        {!loading && articles.map((a, i) => (
-          <a key={i} href={a.url !== '#' ? a.url : undefined} target="_blank" rel="noopener noreferrer"
+        {!loading && !error && articles.map((a, i) => (
+          <a key={i} href={a.url} target="_blank" rel="noopener noreferrer"
             style={{
               display:'block', textDecoration:'none', color:'inherit',
-              padding:'11px 0',
+              padding:'10px 4px',
               borderBottom: i < articles.length - 1 ? '1px solid rgba(0,0,0,.05)' : 'none',
-              animation: `rowIn .35s cubic-bezier(.22,.68,0,1.2) ${i * 60}ms both`,
+              borderRadius:6,
+              animation: `rowIn .35s cubic-bezier(.22,.68,0,1.2) ${i * 55}ms both`,
+              transition:'background .15s',
             }}
-            onMouseEnter={e => e.currentTarget.style.background='rgba(78,125,156,.05)'}
+            onMouseEnter={e => e.currentTarget.style.background='rgba(78,125,156,.06)'}
             onMouseLeave={e => e.currentTarget.style.background='transparent'}>
-            <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)', lineHeight:1.35, marginBottom:4 }}>
+            <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)', lineHeight:1.4, marginBottom:3 }}>
               {a.title}
             </div>
-            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
               <span style={{ fontSize:11, color:'var(--accent)', fontWeight:600 }}>{a.source}</span>
               {a.date && <span style={{ fontSize:11, color:'var(--muted)' }}>· {a.date}</span>}
-              {a.url && a.url !== '#' && <span style={{ fontSize:10, color:'var(--muted)', marginLeft:'auto' }}>↗</span>}
+              <span style={{ fontSize:10, color:'var(--muted)', marginLeft:'auto' }}>↗</span>
             </div>
           </a>
         ))}
       </div>
 
-      {/* Footer */}
       {lastFetch && !loading && (
-        <div style={{ fontSize:10, color:'var(--muted)', marginTop:10, paddingTop:8, borderTop:'1px solid rgba(0,0,0,.05)' }}>
+        <div style={{ fontSize:10, color:'var(--muted)', marginTop:8, paddingTop:8, borderTop:'1px solid rgba(0,0,0,.05)' }}>
           Bijgewerkt om {lastFetch.toLocaleTimeString('nl-NL', { hour:'2-digit', minute:'2-digit' })}
         </div>
       )}
-      <style>{`@keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }`}</style>
+      <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
     </div>
   );
 }
