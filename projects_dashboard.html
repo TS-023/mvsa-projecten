@@ -127,28 +127,32 @@
 
   .random-project{
     text-align: center;
-    padding: 14px 18px 0;
+    padding: 0;
     justify-content: center;
   }
-  .random-project h3{ text-align:center; margin-bottom:6px; }
+  .random-project h3{ text-align:center; margin-bottom:6px; padding: 13px 16px 0; }
   .random-project .rp-img{
-    width: 100%; flex: 1; min-height: 0; border-radius: 12px; overflow:hidden; position:relative;
-    background:#8aaec4;
-    margin-bottom: 12px;
+    width: 100%; flex: 1; min-height: 0; overflow:hidden; position:relative;
+    background:#7fa8c0;
   }
   .random-project .rp-img::before{
     content:""; position:absolute; inset:0;
-    background-image: repeating-linear-gradient(180deg, rgba(0,0,0,.18) 0 1px, transparent 1px 8px);
+    background-image: repeating-linear-gradient(180deg, rgba(0,0,0,.13) 0 1px, transparent 1px 8px);
+    pointer-events:none;
   }
   .random-project .rp-img::after{
     content:""; position:absolute; inset:0;
-    background-image: repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 1px, transparent 1px 24px);
+    background-image: repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 1px, transparent 1px 24px);
+    pointer-events:none;
   }
   .random-project .rp-img .label{
     position:absolute; left:14px; top:14px; font-family:'JetBrains Mono', ui-monospace, monospace;
-    font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:#fff; mix-blend-mode: difference;
+    font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,255,255,.45);
   }
-  .random-project .name{ font-size:16px; font-weight:700; letter-spacing:-.01em; line-height:1.2; }
+  .random-project .rp-body{
+    padding: 12px 16px 14px; border-top: 1px solid var(--line);
+  }
+  .random-project .name{ font-size:15px; font-weight:700; letter-spacing:-.01em; line-height:1.2; }
   .random-project .meta{ font-size:12px; color: var(--muted); margin-top:2px; }
   .rp-tags{ display:flex; gap:5px; justify-content:center; margin-top: 8px; flex-wrap:wrap; }
   .tag{ font-size:10px; letter-spacing:.1em; text-transform:uppercase; padding: 4px 8px; border:1px solid rgba(78,125,156,.25); border-radius: 999px; color: var(--accent); background: rgba(78,125,156,.08); }
@@ -221,35 +225,38 @@
 
 
   /* ── Recente kaarten / thumbnails ── */
-  .recent-card{ padding: 0; overflow:hidden; }
+  .recent-card{ padding: 0; overflow:hidden; display:flex; flex-direction:column; }
   .recent-card .img{
-    flex: 1; min-height: 0; background:#8aaec4; position:relative; overflow:hidden;
+    flex: 1; min-height: 0; background:#7fa8c0; position:relative; overflow:hidden;
     display: block;
   }
   a.img{ cursor: pointer; transition: filter .15s ease; }
-  a.img:hover{ filter: brightness(1.05); }
+  a.img:hover{ filter: brightness(1.08); }
   .rp-img{ display: block; }
   a.rp-img{ cursor: pointer; transition: transform .2s ease, box-shadow .2s ease; }
   a.rp-img:hover{ transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(20,30,45,.3); }
-  .recent-card .img.alt{ background:#8aaec4; }
+  .recent-card .img.alt{ background:#7fa8c0; }
   .recent-card .img::before{
     content:""; position:absolute; inset:0;
-    background-image: repeating-linear-gradient(180deg, rgba(0,0,0,.18) 0 1px, transparent 1px 8px);
+    background-image: repeating-linear-gradient(180deg, rgba(0,0,0,.13) 0 1px, transparent 1px 8px);
+    pointer-events:none;
   }
   .recent-card .img::after{
     content:""; position:absolute; inset:0;
-    background-image: repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 1px, transparent 1px 24px);
+    background-image: repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 1px, transparent 1px 24px);
+    pointer-events:none;
   }
   .recent-card .img .label{
     position:absolute; left:14px; top:14px; font-family:'JetBrains Mono', ui-monospace, monospace;
-    font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:#fff; mix-blend-mode: difference;
+    font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,255,255,.45);
   }
   .recent-card .meta{
-    padding: 12px 16px 14px;
-    display:flex; align-items:baseline; justify-content:space-between;
+    padding: 13px 16px 13px; order:-1;
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom: 1px solid var(--line); flex-shrink:0;
   }
-  .recent-card .meta .ttl{ font-weight:600; font-size: 13px; letter-spacing:-.005em; }
-  .recent-card .meta .dt{ font-size: 11px; color: var(--muted); letter-spacing:.06em; text-transform:uppercase; }
+  .recent-card .meta .ttl{ font-weight:700; font-size: 13px; letter-spacing:-.01em; }
+  .recent-card .meta .dt{ font-size: 10px; color: var(--muted); letter-spacing:.08em; text-transform:uppercase; }
 
 
   /* ── Algemeen sectie ── */
@@ -1111,6 +1118,15 @@ function AantalProjecten({ projectsFilled, allProjects }) {
 /* ── RandomProject: uitgelicht project met shuffle knop ── */
 function RandomProject({ project, onShuffle }) {
   const [spinning, setSpinning] = React.useState(false);
+  const [imgUrl, setImgUrl] = React.useState(null);
+
+  React.useEffect(() => {
+    if (!project.projectnummer) return;
+    setImgUrl(null);
+    Images.getForProject(project.projectnummer).then(imgs => {
+      if (imgs && imgs[0]) setImgUrl(imgs[0]);
+    }).catch(() => {});
+  }, [project.projectnummer, project.name]);
 
   const handleShuffle = () => {
     setSpinning(true);
@@ -1119,33 +1135,36 @@ function RandomProject({ project, onShuffle }) {
   };
 
   return (
-    <div className="card random-project left-3" style={{ paddingBottom: 0 }}>
-      <h3 style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', letterSpacing: '.04em', marginBottom: 6 }}>Random project uitgelicht</h3>
-      <div className="name">
-        <a href={projectHref(project.name)}
-           style={{ color: 'inherit', textDecoration: 'none' }}
-           onMouseOver={(e) => e.target.style.color = 'var(--accent)'}
-           onMouseOut={(e) => e.target.style.color = 'inherit'}>
-          {project.name}
-        </a>
-      </div>
-      <div className="meta">{project.city}</div>
-      <div className="rp-tags">
-        {project.tags.map((t, i) => <span key={i} className="tag">{t}</span>)}
+    <div className="card random-project left-3">
+      <h3 style={{ fontSize:11, fontWeight:600, color:'var(--muted)', letterSpacing:'.04em' }}>Random project uitgelicht</h3>
+      <a className="rp-img" href={projectHref(project.name)}
+         style={imgUrl ? { backgroundImage:`url(${imgUrl})`, backgroundSize:'cover', backgroundPosition:'center' } : {}}>
+        {!imgUrl && <span className="label">Geen afbeelding</span>}
+      </a>
+      <div className="rp-body">
+        <div className="name">
+          <a href={projectHref(project.name)} style={{ color:'inherit', textDecoration:'none' }}
+            onMouseOver={e => e.target.style.color='var(--accent)'}
+            onMouseOut={e => e.target.style.color='inherit'}>
+            {project.name}
+          </a>
+        </div>
+        <div className="meta">{project.city}</div>
+        <div className="rp-tags">
+          {project.tags.map((t, i) => <span key={i} className="tag">{t}</span>)}
+        </div>
       </div>
       <button onClick={handleShuffle} style={{
-        width: 'calc(100% + 40px)', marginLeft: '-20px',
-        marginTop: 'auto',
-        background: 'none', border: 'none', borderTop: '1px solid var(--line)',
-        padding: '9px 0', cursor: 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-        color: 'var(--muted)', fontSize: 12, fontFamily: 'inherit',
-        transition: 'background .15s, color .15s',
-        borderRadius: '0 0 var(--radius) var(--radius)',
+        width:'100%', background:'none', border:'none', borderTop:'1px solid var(--line)',
+        padding:'9px 0', cursor:'pointer',
+        display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+        color:'var(--muted)', fontSize:12, fontFamily:'inherit',
+        transition:'background .15s, color .15s',
+        borderRadius:'0 0 var(--radius) var(--radius)',
       }}
-      onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(17,20,24,.04)'; e.currentTarget.style.color = 'var(--ink)'; }}
-      onMouseOut={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted)'; }}>
-        <span style={{ display: 'inline-block', transition: 'transform .5s ease', transform: spinning ? 'rotate(180deg)' : 'rotate(0deg)', fontSize: 13 }}>⇄</span>
+      onMouseOver={e => { e.currentTarget.style.background='rgba(17,20,24,.04)'; e.currentTarget.style.color='var(--ink)'; }}
+      onMouseOut={e => { e.currentTarget.style.background='none'; e.currentTarget.style.color='var(--muted)'; }}>
+        <span style={{ display:'inline-block', transition:'transform .5s ease', transform: spinning ? 'rotate(180deg)' : 'rotate(0deg)', fontSize:13 }}>⇄</span>
         shuffle
       </button>
     </div>
@@ -1289,7 +1308,7 @@ function RecentCard({ project, position }) {
     }).catch(() => {});
   }, [project.projectnummer]);
 
-  const href = `project_page.html?nr=${encodeURIComponent(project.projectnummer || '')}&p=${encodeURIComponent(project.title || '')}`;
+  const href = `project_page.html?nr=${encodeURIComponent(project.projectnummer || '')}&p=${encodeURIComponent(project.title || project.projectnaam || '')}`;
   const dateStr = project.date
     ? 'Meest recent · ' + project.date
     : project.created_at
@@ -1306,7 +1325,7 @@ function RecentCard({ project, position }) {
       </div>
       <a className={`img ${position === 1 ? 'alt' : ''}`} href={href}
          style={imgUrl ? { backgroundImage: `url(${imgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
-        {!imgUrl && <span className="label">GEEN AFBEELDING</span>}
+        {!imgUrl && <span className="label">Geen afbeelding</span>}
       </a>
     </div>
   );
