@@ -8,149 +8,104 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="styles.css" />
 <style>
-  :root{ --bg:#f4f1ec; --card:#fff; --ink:#111418; --muted:#8a8d93; --line:#e8e4dd; --accent:#3d6e8a; --shadow: 0 1px 0 rgba(20,30,45,.04), 0 8px 24px -12px rgba(20,30,45,.18); }
+  :root{
+    --bg: #eef0f3;
+    --card: #ffffff;
+    --ink: #1a2332;
+    --ink-2: #2d3a4a;
+    --muted: #7f8fa0;
+    --line: #dde3ea;
+    --accent: #4e7d9c;
+    --shadow: 0 1px 3px rgba(26,35,50,.06), 0 8px 24px -8px rgba(26,35,50,.12);
+    --radius: 14px;
+  }
   *{ box-sizing: border-box; }
   html,body{ margin:0; padding:0; background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
-  .page{ max-width:1100px; margin:0 auto; padding:32px 32px 80px; }
-  .back{ position:fixed; top:24px; left:24px; z-index:100; display:inline-flex; align-items:center; gap:8px; color:var(--ink); text-decoration:none; font-size:12px; letter-spacing:.1em; text-transform:uppercase; font-weight:600; padding:10px 16px; border-radius:999px; background:rgba(255,255,255,.85); backdrop-filter:blur(10px); border:1px solid rgba(17,20,24,.08); box-shadow:0 4px 16px -4px rgba(20,30,45,.18); transition:background .15s,transform .15s; }
-  .back:hover{ background:#fff; transform:translateY(-1px); }
-  .header{ display:flex; justify-content:space-between; align-items:end; margin-bottom:22px; padding-top:4px; }
-  .header h1{ margin:0; font-size:clamp(36px,5vw,56px); font-weight:800; letter-spacing:-.035em; line-height:1; }
-  .header .sub{ font-size:13px; color:var(--muted); margin-top:8px; }
-  .header a.cta{ background:var(--ink); color:#fff; text-decoration:none; padding:10px 18px; border-radius:999px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; }
-  .header a.cta:hover{ background:var(--accent); }
-  /* ── Grid kaartweergave ── */
-  .proj-grid{
-    display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
-    gap:16px;
-  }
-  .proj-card{
-    background:var(--card); border-radius:14px; overflow:hidden;
-    box-shadow:0 1px 0 rgba(20,30,45,.04), 0 4px 16px -4px rgba(20,30,45,.12);
-    text-decoration:none; color:inherit;
-    transition:transform .15s, box-shadow .15s;
-  }
-  .proj-card:hover{
-    transform:translateY(-3px);
-    box-shadow:0 1px 0 rgba(20,30,45,.04), 0 12px 28px -6px rgba(20,30,45,.2);
-  }
-  .pc-img{
-    width:100%; aspect-ratio:16/10; overflow:hidden;
-    background:linear-gradient(135deg, #1a2030, #2a3548);
-  }
-  .pc-placeholder{
-    width:100%; height:100%; display:flex; align-items:center; justify-content:center;
-    font-size:28px;
-  }
-  .pc-body{ padding:14px 16px 16px; }
-  .pc-name{
-    font-weight:800; font-size:14px; letter-spacing:.02em; text-transform:uppercase;
-    margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-  }
-  .pc-meta{ font-size:12px; color:var(--muted); margin-bottom:10px; }
-  .pc-tags{ display:flex; flex-wrap:wrap; gap:6px; }
-  .pc-tag{
-    font-size:9px; letter-spacing:.12em; text-transform:uppercase; font-weight:700;
-    padding:3px 8px; border-radius:999px;
-    background:rgba(61,110,138,.08); color:var(--accent);
-  }
+  .page{ max-width:1280px; margin:0 auto; padding:32px 32px 80px; }
 
-  .card{ background:var(--card); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; }
-  table{ width:100%; border-collapse:collapse; }
-  thead th{ text-align:left; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); padding:16px 22px; font-weight:600; border-bottom:1px solid var(--line); background:#fafbfc; }
-  thead th.right, tbody td.right{ text-align:right; }
-  tbody td{ padding:14px 22px; font-size:13px; border-bottom:1px solid var(--line); }
-  tbody tr:last-child td{ border-bottom:0; }
-  tbody tr:hover{ background:#f6f8fa; }
-  .num-pill{ display:inline-block; font-variant-numeric:tabular-nums; font-weight:600; background:rgba(17,20,24,.06); padding:3px 10px; border-radius:999px; font-size:12px; }
-  .nm a{ color:inherit; text-decoration:none; font-weight:700; letter-spacing:.03em; text-transform:uppercase; }
-  .nm a:hover{ color:var(--accent); }
-  .actions{ display:flex; gap:6px; justify-content:flex-end; }
-  .btn{ background:transparent; border:1px solid rgba(17,20,24,.12); border-radius:999px; padding:6px 12px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; font-weight:600; color:var(--ink); cursor:pointer; text-decoration:none; font-family:inherit; transition:background .15s; }
-  .btn:hover{ background:rgba(17,20,24,.04); }
-  .btn.del{ color:#b43c3c; border-color:rgba(180,60,60,.3); }
-  .btn.del:hover{ background:rgba(180,60,60,.08); }
-  .empty{ padding:60px 28px; text-align:center; color:var(--muted); font-size:13px; }
+  /* ── Header ── */
+  .header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:28px; }
+  .header h1{ margin:0; font-size:clamp(28px,4vw,40px); font-weight:800; letter-spacing:-.03em; line-height:1; }
+  .header .sub{ font-size:13px; color:var(--muted); margin-top:5px; }
 
-  /* VIEW TOGGLE */
+  /* ── View toggle ── */
   .view-toggle{ display:flex; gap:4px; background:var(--card); border-radius:999px; padding:4px; box-shadow:var(--shadow); border:1px solid rgba(17,20,24,.06); }
-  .vt-btn{ background:transparent; border:none; padding:7px 14px; border-radius:999px; cursor:pointer; font-size:12px; color:var(--muted); transition:all .15s; font-family:inherit; font-weight:600; }
+  .vt-btn{ background:transparent; border:none; padding:7px 14px; border-radius:999px; cursor:pointer; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); transition:all .15s; font-family:inherit; font-weight:600; }
   .vt-btn.active{ background:var(--ink); color:#fff; }
 
-  /* PROJECT CARD GRID */
+  /* ── Kaartgrid ── */
   .proj-grid{
     display:grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap:20px;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap:16px;
   }
+
+  /* ── Project kaart ── */
   .proj-card-wrap{
-    border-radius:18px; overflow:hidden; position:relative;
+    border-radius:16px; overflow:hidden; position:relative;
     aspect-ratio:4/3; cursor:pointer;
-    box-shadow:0 4px 24px -8px rgba(20,30,45,.22);
-    transition:transform .4s cubic-bezier(.22,1,.36,1), box-shadow .4s;
+    box-shadow: var(--shadow);
+    transition: transform .4s cubic-bezier(.22,1,.36,1), box-shadow .4s;
+    text-decoration:none;
   }
   .proj-card-wrap:hover{
-    transform:translateY(-6px) scale(1.01);
-    box-shadow:0 24px 48px -12px rgba(20,30,45,.35);
+    transform: translateY(-5px) scale(1.01);
+    box-shadow: 0 2px 8px rgba(26,35,50,.08), 0 24px 48px -8px rgba(26,35,50,.22);
   }
   .proj-card-bg{
     position:absolute; inset:0;
-    background:linear-gradient(135deg, #1a2030 0%, #2a3548 50%, #111828 100%);
-    transition:transform .6s cubic-bezier(.22,1,.36,1);
+    background: linear-gradient(135deg, #1a2332 0%, #2d3a4a 50%, #111828 100%);
+    transition: transform .6s cubic-bezier(.22,1,.36,1);
   }
   .proj-card-wrap:hover .proj-card-bg{ transform:scale(1.06); }
   .proj-card-img{
     position:absolute; inset:0; width:100%; height:100%;
     object-fit:cover; display:block;
-    transition:transform .6s cubic-bezier(.22,1,.36,1), opacity .3s;
+    transition: transform .6s cubic-bezier(.22,1,.36,1);
   }
   .proj-card-wrap:hover .proj-card-img{ transform:scale(1.06); }
-
-  /* Gradient overlays */
   .proj-card-overlay{
     position:absolute; inset:0;
-    background:linear-gradient(to top, rgba(10,12,18,.92) 0%, rgba(10,12,18,.3) 50%, transparent 100%);
-    transition:opacity .3s;
+    background: linear-gradient(to top, rgba(10,14,22,.92) 0%, rgba(10,14,22,.2) 55%, transparent 100%);
   }
   .proj-card-overlay-hover{
     position:absolute; inset:0;
-    background:rgba(10,12,18,.55);
+    background: rgba(10,14,22,.45);
     opacity:0; transition:opacity .3s;
   }
   .proj-card-wrap:hover .proj-card-overlay-hover{ opacity:1; }
 
-  /* Card content — always visible bottom bar */
+  /* Altijd zichtbare onderbalk */
   .proj-card-bottom{
     position:absolute; bottom:0; left:0; right:0;
-    padding:20px 22px 20px;
-    transform:translateY(0);
-    transition:transform .35s cubic-bezier(.22,1,.36,1);
+    padding:18px 20px;
+    transition: transform .35s cubic-bezier(.22,1,.36,1);
   }
   .proj-card-name{
-    font-size:16px; font-weight:800; letter-spacing:.04em; text-transform:uppercase;
+    font-size:15px; font-weight:800; letter-spacing:.03em; text-transform:uppercase;
     color:#fff; line-height:1.2; margin-bottom:4px;
-    text-shadow:0 2px 8px rgba(0,0,0,.4);
+    text-shadow: 0 2px 8px rgba(0,0,0,.4);
   }
   .proj-card-sub{
-    font-size:11px; color:rgba(255,255,255,.65); letter-spacing:.06em; text-transform:uppercase;
+    font-size:11px; color:rgba(255,255,255,.6); letter-spacing:.05em;
     display:flex; align-items:center; gap:8px;
   }
   .proj-card-fase{
-    font-size:9px; letter-spacing:.14em; font-weight:700; text-transform:uppercase;
+    font-size:9px; letter-spacing:.12em; font-weight:700; text-transform:uppercase;
     padding:3px 8px; border-radius:999px;
     background:rgba(255,255,255,.15); color:#fff;
     border:1px solid rgba(255,255,255,.2);
   }
 
-  /* Hover details — slide up */
+  /* Hover details slide omhoog */
   .proj-card-details{
     position:absolute; bottom:0; left:0; right:0;
-    padding:18px 22px;
-    transform:translateY(100%);
-    transition:transform .35s cubic-bezier(.22,1,.36,1);
+    padding:16px 20px;
+    transform: translateY(100%);
+    transition: transform .35s cubic-bezier(.22,1,.36,1);
     display:flex; flex-direction:column; gap:6px;
   }
-  .proj-card-wrap:hover .proj-card-bottom{ transform:translateY(-80px); }
+  .proj-card-wrap:hover .proj-card-bottom{ transform:translateY(-72px); }
   .proj-card-wrap:hover .proj-card-details{ transform:translateY(0); }
   .proj-card-detail-row{
     display:flex; justify-content:space-between; align-items:center;
@@ -158,73 +113,95 @@
   }
   .proj-card-detail-row .lbl{ color:rgba(255,255,255,.5); letter-spacing:.06em; text-transform:uppercase; }
   .proj-card-detail-row .val{ font-weight:700; color:#fff; }
-  .proj-card-actions{
-    display:flex; gap:8px; margin-top:8px;
-  }
+  .proj-card-actions{ display:flex; gap:8px; margin-top:6px; }
   .proj-card-action{
     flex:1; padding:8px; border-radius:8px; text-align:center; text-decoration:none;
     font-size:10px; letter-spacing:.12em; text-transform:uppercase; font-weight:700;
     transition:background .15s; border:none; cursor:pointer; font-family:inherit;
   }
-  .proj-card-action.primary{ background:rgba(255,255,255,.95); color:#111418; }
+  .proj-card-action.primary{ background:rgba(255,255,255,.95); color:#1a2332; }
   .proj-card-action.primary:hover{ background:#fff; }
   .proj-card-action.secondary{ background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.2); }
   .proj-card-action.secondary:hover{ background:rgba(255,255,255,.25); }
-  .proj-card-action.danger{ background:rgba(180,60,60,.8); color:#fff; }
+  .proj-card-action.danger{ background:rgba(180,60,60,.75); color:#fff; }
   .proj-card-action.danger:hover{ background:rgba(180,60,60,1); }
 
-  /* Nummer badge top-left */
+  /* Nummer badge */
   .proj-card-num{
-    position:absolute; top:14px; left:16px;
+    position:absolute; top:13px; left:14px;
     background:rgba(255,255,255,.12); backdrop-filter:blur(8px);
     border:1px solid rgba(255,255,255,.18); border-radius:999px;
-    font-size:9px; letter-spacing:.14em; text-transform:uppercase; font-weight:700;
-    color:#fff; padding:4px 10px;
+    font-size:9px; letter-spacing:.12em; text-transform:uppercase; font-weight:700;
+    color:#fff; padding:3px 9px;
   }
-  /* Select checkbox top-right */
-  .proj-card-check{
-    position:absolute; top:14px; right:14px; z-index:2;
-    width:22px; height:22px; accent-color:#3d6e8a; cursor:pointer;
-    opacity:0; transition:opacity .2s;
+
+  /* ── Lijst weergave ── */
+  .card{ background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+  table{ width:100%; border-collapse:collapse; }
+  thead th{
+    text-align:left; font-size:10px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--muted); padding:16px 22px; font-weight:600;
+    border-bottom:1px solid var(--line); background:#f4f6f9;
   }
-  .proj-card-wrap:hover .proj-card-check,
-  .proj-card-check:checked{ opacity:1; }
+  thead th.right, tbody td.right{ text-align:right; }
+  tbody td{ padding:13px 22px; font-size:13px; border-bottom:1px solid var(--line); }
+  tbody tr:last-child td{ border-bottom:0; }
+  tbody tr{ transition:background .15s; cursor:pointer; }
+  tbody tr:hover{ background:rgba(78,125,156,.05); }
+  .num-pill{ display:inline-block; font-variant-numeric:tabular-nums; font-weight:600; background:rgba(78,125,156,.1); color:var(--accent); padding:3px 10px; border-radius:999px; font-size:11px; }
+  .fase-pill{ display:inline-block; font-size:9px; letter-spacing:.12em; text-transform:uppercase; font-weight:700; padding:3px 8px; border-radius:999px; background:rgba(78,125,156,.1); color:var(--accent); }
+  .nm a{ color:inherit; text-decoration:none; font-weight:700; letter-spacing:.02em; text-transform:uppercase; font-size:12px; }
+  .nm a:hover{ color:var(--accent); }
+  .actions{ display:flex; gap:6px; justify-content:flex-end; }
+  .btn{ background:transparent; border:1px solid rgba(17,20,24,.1); border-radius:999px; padding:5px 12px; font-size:10px; letter-spacing:.08em; text-transform:uppercase; font-weight:600; color:var(--ink); cursor:pointer; text-decoration:none; font-family:inherit; transition:background .15s; }
+  .btn:hover{ background:rgba(17,20,24,.04); }
+  .btn.del{ color:#b43c3c; border-color:rgba(180,60,60,.25); }
+  .btn.del:hover{ background:rgba(180,60,60,.08); }
+  .empty{ padding:60px 28px; text-align:center; color:var(--muted); font-size:13px; }
   .empty a{ color:var(--accent); font-weight:600; }
   .loading{ padding:40px; text-align:center; color:var(--muted); font-size:13px; }
+
+  /* ── Animaties ── */
+  @keyframes cardIn {
+    from { opacity:0; transform:translateY(18px) scale(.98); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+  }
+  @keyframes rowIn {
+    from { opacity:0; transform:translateX(-8px); }
+    to   { opacity:1; transform:translateX(0); }
+  }
+  .proj-card-wrap { animation: cardIn .45s cubic-bezier(.22,.68,0,1.2) both; }
+  .proj-card-wrap::after {
+    content:''; position:absolute; inset:0; border-radius:16px;
+    background: radial-gradient(circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,.15) 0%, transparent 55%);
+    opacity:0; transition:opacity .3s; pointer-events:none; z-index:2;
+  }
+  .proj-card-wrap:hover::after{ opacity:1; }
+
+  /* ── Bulk bar ── */
   .bulk-bar{
-    display:flex; align-items:center; gap:10px; padding:12px 22px;
-    background:#111418; border-radius:12px; margin-bottom:12px;
+    display:flex; align-items:center; gap:10px; padding:12px 20px;
+    background:var(--ink); border-radius:12px; margin-bottom:14px;
     font-size:12px; color:#fff; font-family:'Inter',sans-serif;
   }
-  .bulk-bar .count{ font-weight:700; letter-spacing:.04em; }
+  .bulk-bar .count{ font-weight:700; }
   .bulk-select{ display:flex; gap:8px; margin-left:auto; align-items:center; }
-  .bulk-select select{
-    font-family:inherit; font-size:11px; padding:6px 10px; border-radius:8px;
-    border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.1);
-    color:#fff; cursor:pointer; outline:none;
-  }
-  .bulk-select select option{ background:#111418; }
-  .bulk-apply{
-    background:#3d6e8a; color:#fff; border:none; padding:7px 14px; border-radius:8px;
-    font-size:11px; letter-spacing:.1em; text-transform:uppercase; font-weight:700;
-    cursor:pointer; font-family:inherit; transition:background .15s;
-  }
-  .bulk-apply:hover{ background:#2d5a72; }
-  .bulk-cancel{ background:transparent; color:rgba(255,255,255,.6); border:none;
-    font-size:11px; cursor:pointer; font-family:inherit; padding:4px 8px; }
+  .bulk-select select{ font-family:inherit; font-size:11px; padding:6px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.1); color:#fff; cursor:pointer; outline:none; }
+  .bulk-select select option{ background:#1a2332; }
+  .bulk-apply{ background:var(--accent); color:#fff; border:none; padding:7px 14px; border-radius:8px; font-size:11px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; cursor:pointer; font-family:inherit; transition:background .15s; }
+  .bulk-apply:hover{ background:#3d6e8a; }
+  .bulk-cancel{ background:transparent; color:rgba(255,255,255,.6); border:none; font-size:11px; cursor:pointer; font-family:inherit; padding:4px 8px; }
   .bulk-cancel:hover{ color:#fff; }
-  .row-check{ width:18px; height:18px; cursor:pointer; accent-color:#3d6e8a; }
+  .row-check{ width:18px; height:18px; cursor:pointer; accent-color:var(--accent); }
   .select-all-th{ width:44px; }
 </style>
 <script src="nav.js" defer></script>
 </head>
 <body>
-<a class="back" href="projects_dashboard.html">← Dashboard</a>
-<a class="back" href="admin.html" style="left:160px;">🛠 Beheer</a>
 <div class="page">
   <header class="header">
     <div>
-      <h1>Mijn projecten</h1>
+      <h1>Projecten</h1>
       <div class="sub">Alle projecten — bewerken of verwijderen.</div>
     </div>
     <div style="display:flex;gap:10px;align-items:center;">
@@ -232,36 +209,38 @@
         <button class="vt-btn" id="vt-grid" onclick="setView('grid')">⊞ Kaarten</button>
         <button class="vt-btn active" id="vt-list" onclick="setView('list')">☰ Lijst</button>
       </div>
-      <a class="cta" href="new_project.html">+ Nieuw project</a>
+      <a href="new_project.html" style="background:var(--ink);color:#fff;text-decoration:none;padding:9px 18px;border-radius:999px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;">+ Nieuw project</a>
     </div>
   </header>
+
   <div id="bulk-bar" class="bulk-bar" style="display:none;">
-  <span class="count" id="bulk-count"></span>
-  <div class="bulk-select">
-    <span style="opacity:.7">Fase wijzigen naar:</span>
-    <select id="bulk-fase">
-      <option value="">Kies fase…</option>
-      <option value="AQ">AQ — Acquisitie</option>
-      <option value="SO">SO — Schets Ontwerp</option>
-      <option value="VO">VO — Voorlopig Ontwerp</option>
-      <option value="DO">DO — Definitief Ontwerp</option>
-      <option value="TO">TO — Technisch Ontwerp</option>
-      <option value="UO">UO — Uitvoerings Ontwerp</option>
-      <option value="UV">UV — Uitvoering</option>
-      <option value="OP">OP — Opgeleverd</option>
-    </select>
-    <button class="bulk-apply" id="bulk-apply">Toepassen</button>
-    <button class="bulk-cancel" id="bulk-cancel">Annuleer</button>
+    <span class="count" id="bulk-count"></span>
+    <div class="bulk-select">
+      <span style="opacity:.7">Fase wijzigen naar:</span>
+      <select id="bulk-fase">
+        <option value="">Kies fase…</option>
+        <option value="AQ">AQ — Acquisitie</option>
+        <option value="SO">SO — Schets Ontwerp</option>
+        <option value="VO">VO — Voorlopig Ontwerp</option>
+        <option value="DO">DO — Definitief Ontwerp</option>
+        <option value="TO">TO — Technisch Ontwerp</option>
+        <option value="UO">UO — Uitvoerings Ontwerp</option>
+        <option value="UV">UV — Uitvoering</option>
+        <option value="OP">OP — Opgeleverd</option>
+      </select>
+      <button class="bulk-apply" id="bulk-apply">Toepassen</button>
+      <button class="bulk-cancel" id="bulk-cancel">Annuleer</button>
+    </div>
   </div>
+
+  <div id="root"><div class="loading">Projecten laden…</div></div>
 </div>
-<div id="root"><div class="loading">Projecten laden…</div></div>
-</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase.js"></script>
 <script>
-/* ── render: herlaadt alle projecten uit Supabase en toont ze ── */
 let isApproved = false;
-let currentView = localStorage.getItem('mvsa.listview') || 'list';
+let currentView = localStorage.getItem('mvsa.listview') || 'grid';
 
 function setView(v) {
   currentView = v;
@@ -280,69 +259,91 @@ async function render() {
   const root = document.getElementById('root');
   let projects = [];
   try { projects = await Projects.getAll(); }
-  catch(e) { root.innerHTML = '<div class="card empty">Database niet bereikbaar. Controleer supabase.js.</div>'; return; }
+  catch(e) { root.innerHTML = '<div class="card empty">Database niet bereikbaar.</div>'; return; }
   if (!projects.length) { root.innerHTML = '<div class="card empty">Nog geen projecten. <a href="new_project.html">Voeg je eerste toe →</a></div>'; return; }
+
   if (currentView === 'list') {
-    root.innerHTML = '<div class="card"><table><thead><tr><th>Projectnaam</th><th>Projectnummer</th><th>Stad</th><th>Fase</th><th class="right">Acties</th></tr></thead><tbody>' +
-      projects.map(p => `<tr>
+    root.innerHTML = '<div class="card"><table><thead><tr>' +
+      '<th>Projectnaam</th><th>Nummer</th><th>Stad</th><th>Fase</th><th>Type</th><th class="right">Acties</th>' +
+      '</tr></thead><tbody>' +
+      projects.map((p, i) => `<tr style="animation:rowIn .3s cubic-bezier(.22,.68,0,1.2) ${i*30}ms both">
         <td class="nm"><a href="project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}">${p.projectnaam||'—'}</a></td>
         <td><span class="num-pill">${p.projectnummer||'—'}</span></td>
-        <td>${p.stad||'—'}</td><td>${p.fase||'—'}</td>
+        <td>${p.stad||'—'}</td>
+        <td>${p.fase ? `<span class="fase-pill">${p.fase}</span>` : '—'}</td>
+        <td style="color:var(--muted);font-size:12px">${p.project_type||'—'}</td>
         <td class="right"><div class="actions">
           <a class="btn" href="project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}">Bekijk</a>
           ${isApproved ? `<a class="btn" href="new_project.html?edit=${encodeURIComponent(p.projectnummer||'')}">Bewerk</a>` : ''}
           ${isApproved ? `<button class="btn del" data-id="${p.id}" data-naam="${p.projectnaam||p.projectnummer}">Verwijder</button>` : ''}
-        </div></td></tr>`).join('') + '</tbody></table></div>';
+        </div></td>
+      </tr>`).join('') + '</tbody></table></div>';
   } else {
     root.innerHTML = '<div class="proj-grid">' +
-      projects.map(p => `<a class="proj-card" href="project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}">
-        <div class="pc-img" id="pc-img-${p.projectnummer||''}">
-          <div class="pc-placeholder">🏗</div>
-        </div>
-        <div class="pc-body">
-          <div class="pc-name">${p.projectnaam||'—'}</div>
-          <div class="pc-meta">${[p.stad, p.land].filter(Boolean).join(' · ')||'—'}</div>
-          <div class="pc-tags">
-            ${p.fase ? `<span class="pc-tag">${p.fase}</span>` : ''}
-            ${p.project_type ? `<span class="pc-tag">${p.project_type}</span>` : ''}
-            ${p.totaal_bvo ? `<span class="pc-tag">${Number(p.totaal_bvo).toLocaleString('nl-NL')} m²</span>` : ''}
+      projects.map((p, i) => `
+        <div class="proj-card-wrap" style="animation-delay:${i*50}ms" onclick="location.href='project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}'">
+          <div class="proj-card-bg" id="pcbg-${p.projectnummer||i}"></div>
+          <div class="proj-card-overlay"></div>
+          <div class="proj-card-overlay-hover"></div>
+          ${p.projectnummer ? `<div class="proj-card-num">${p.projectnummer}</div>` : ''}
+          <div class="proj-card-bottom">
+            <div class="proj-card-name">${p.projectnaam||'—'}</div>
+            <div class="proj-card-sub">
+              ${[p.stad, p.land].filter(Boolean).join(' · ')||''}
+              ${p.fase ? `<span class="proj-card-fase">${p.fase}</span>` : ''}
+            </div>
           </div>
-        </div>
-      </a>`).join('') + '</div>';
-    // Laad thumbnails voor grid cards
-    projects.forEach(async p => {
+          <div class="proj-card-details">
+            ${p.project_type ? `<div class="proj-card-detail-row"><span class="lbl">Type</span><span class="val">${p.project_type}</span></div>` : ''}
+            ${p.totaal_bvo ? `<div class="proj-card-detail-row"><span class="lbl">BVO</span><span class="val">${Number(p.totaal_bvo).toLocaleString('nl-NL')} m²</span></div>` : ''}
+            <div class="proj-card-actions">
+              <a class="proj-card-action primary" href="project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}">Bekijk →</a>
+              ${isApproved ? `<a class="proj-card-action secondary" href="new_project.html?edit=${encodeURIComponent(p.projectnummer||'')}">Bewerk</a>` : ''}
+              ${isApproved ? `<button class="proj-card-action danger" data-id="${p.id}" data-naam="${p.projectnaam||p.projectnummer}" onclick="event.stopPropagation();deleteProject(this)">Verwijder</button>` : ''}
+            </div>
+          </div>
+        </div>`).join('') + '</div>';
+
+    // Laad afbeeldingen
+    projects.forEach(async (p, i) => {
       if (!p.projectnummer) return;
       try {
         const imgs = await Images.getForProject(p.projectnummer);
         if (imgs[0]) {
-          const el = document.getElementById('pc-img-' + p.projectnummer);
-          if (el) el.innerHTML = `<img src="${imgs[0]}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">`;
+          const bg = document.getElementById('pcbg-' + p.projectnummer);
+          if (bg) bg.innerHTML = `<img class="proj-card-img" src="${imgs[0]}" alt="">`;
         }
       } catch(e) {}
     });
   }
+
+  // Delete handlers lijst
   root.querySelectorAll('.btn.del').forEach(b => {
     b.addEventListener('click', async () => {
       if (!confirm(`Project "${b.dataset.naam}" verwijderen?`)) return;
       b.disabled = true; b.textContent = '…';
-      try { await Projects.remove(b.dataset.id); render();
-      } catch(e) { alert('Verwijderen mislukt: ' + e.message); b.disabled = false; b.textContent = 'Verwijder'; }
+      try { await Projects.remove(b.dataset.id); render(); }
+      catch(e) { alert('Verwijderen mislukt: ' + e.message); b.disabled = false; b.textContent = 'Verwijder'; }
     });
   });
 }
-</script>
-<script src="dark-mode.js"></script>
-<script src="transitions.js"></script>
 
+async function deleteProject(btn) {
+  if (!confirm(`Project "${btn.dataset.naam}" verwijderen?`)) return;
+  btn.disabled = true; btn.textContent = '…';
+  try { await Projects.remove(btn.dataset.id); render(); }
+  catch(e) { alert('Verwijderen mislukt: ' + e.message); render(); }
+}
 
-<style>
+// Shimmer op kaarten
+document.addEventListener('mousemove', (e) => {
+  const card = e.target.closest('.proj-card-wrap');
+  if (!card) return;
+  const r = card.getBoundingClientRect();
+  card.style.setProperty('--mx', ((e.clientX-r.left)/r.width*100).toFixed(1)+'%');
+  card.style.setProperty('--my', ((e.clientY-r.top)/r.height*100).toFixed(1)+'%');
+});
 
-[data-theme="dark"] 
-
-</style>
-<div class="auth-bar" id="auth-bar" style="display:none;"></div>
-<script>
-// Startup: check auth en laad projecten
 (async function(){
   try {
     const { data: { user } } = await db.auth.getUser();
@@ -351,16 +352,10 @@ async function render() {
       isApproved = profile?.status === 'approved';
     }
   } catch(e) {}
-  // Toon nieuw project knop voor goedgekeurde gebruikers
-  const btn = document.getElementById('nieuw-btn');
-  if (btn && isApproved) {
-    btn.innerHTML = '<a href="new_project.html" class="btn-primary">+ Nieuw project</a>';
-  }
   render();
 })();
 </script>
-
-<div class="auth-bar" id="auth-bar"></div>
-<script src="auth-bar.js"></script>
+<script src="dark-mode.js"></script>
+<script src="transitions.js"></script>
 </body>
 </html>
