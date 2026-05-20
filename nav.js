@@ -19,7 +19,7 @@
         position: fixed; top: 0; left: 0; right: 0; z-index: 9000;
         display: flex; align-items: center; gap: 6px;
         padding: 10px 16px;
-        background: rgba(244,241,236,0.82);
+        background: rgba(232,236,241,0.88);
         backdrop-filter: blur(16px);
         border-bottom: 1px solid rgba(17,20,24,0.07);
         font-family: 'Inter', system-ui, sans-serif;
