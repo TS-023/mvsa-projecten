@@ -546,6 +546,50 @@
 
   @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
+  /* ── Kaarten staggered entrance ── */
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(18px) scale(.98); }
+    to   { opacity: 1; transform: translateY(0)   scale(1);   }
+  }
+  .card-animate {
+    animation: cardIn .45s cubic-bezier(.22,.68,0,1.2) both;
+  }
+
+  /* ── Shimmer / glow hover op .card ── */
+  .card {
+    position: relative;
+  }
+  .card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+    background: radial-gradient(circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,.18) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity .3s ease;
+    pointer-events: none;
+  }
+  .card:hover::after {
+    opacity: 1;
+  }
+
+  /* ── Cijfer telt omhoog ── */
+  @keyframes numPop {
+    0%   { transform: scale(.85); opacity: 0; }
+    60%  { transform: scale(1.06); }
+    100% { transform: scale(1);   opacity: 1; }
+  }
+  .num-animate {
+    display: inline-block;
+    animation: numPop .55s cubic-bezier(.22,.68,0,1.2) both;
+  }
+
+  /* ── Bar chart bars groeien in ── */
+  @keyframes barGrow {
+    from { transform: scaleY(0); }
+    to   { transform: scaleY(1); }
+  }
+
   /* ── Dashboard tabbladen ── */
   .dash-tabs{
     display:flex; gap:4px; margin-bottom:28px;
@@ -605,6 +649,8 @@ function BarChart({ data, height = 180, gap = 10, showLabels = true, padTop = 14
   const bw = (innerW - gap * (data.length - 1)) / data.length;
   const chartH = h - padBottom - padTop;
   const [hov, setHov] = React.useState(null);
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => { const t = requestAnimationFrame(() => setMounted(true)); return () => cancelAnimationFrame(t); }, []);
 
   return (
     <svg className="chart-svg" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="xMidYMax meet"
@@ -615,26 +661,33 @@ function BarChart({ data, height = 180, gap = 10, showLabels = true, padTop = 14
         const x = 8 + i * (bw + gap);
         const y = padTop + (chartH - bh);
         const baseY = padTop + chartH;
-        const valY = baseY - 6;
         const isHov = hov === i;
         const hoverFill = hoverPalette ? hoverPalette[i % hoverPalette.length] : '#7aaec6';
         const fill = isHov ? hoverFill : '#5b8fa8';
+        // Animate bar growing from bottom using clipPath trick via transform origin
+        const animStyle = {
+          fill,
+          transition: `fill .15s ease, transform .55s cubic-bezier(.22,.68,0,1.2) ${i * 50}ms`,
+          transformOrigin: `${x + bw / 2}px ${baseY}px`,
+          transform: mounted ? 'scaleY(1)' : 'scaleY(0)',
+        };
         return (
           <g key={i} onMouseEnter={() => setHov(i)}
              onClick={() => onBarClick && onBarClick(d)}
              style={{ cursor: onBarClick ? 'pointer' : 'default' }}>
             <rect className="bar-bg" x={x} y={padTop} width={bw} height={chartH} rx="2" />
-            <rect x={x} y={y} width={bw} height={bh} rx="2"
-                  style={{ fill, transition: 'fill .15s ease' }} />
+            <rect x={x} y={y} width={bw} height={bh} rx="2" style={animStyle} />
             {d.v > 0 && bh > 16 && (
               <text x={x + bw / 2} y={y + bh / 2 + 4} textAnchor="middle"
-                    style={{ fontSize: 10, fontWeight: 700, fill: '#fff', fontFamily: "'Inter',sans-serif", pointerEvents: 'none' }}>
+                    style={{ fontSize: 10, fontWeight: 700, fill: '#fff', fontFamily: "'Inter',sans-serif", pointerEvents: 'none',
+                             opacity: mounted ? 1 : 0, transition: `opacity .3s ease ${i * 50 + 400}ms` }}>
                 {d.v}
               </text>
             )}
             {d.v > 0 && bh <= 16 && (
               <text x={x + bw / 2} y={y - 4} textAnchor="middle"
-                    style={{ fontSize: 10, fontWeight: 700, fill: 'var(--ink)', fontFamily: "'Inter',sans-serif", pointerEvents: 'none' }}>
+                    style={{ fontSize: 10, fontWeight: 700, fill: 'var(--ink)', fontFamily: "'Inter',sans-serif", pointerEvents: 'none',
+                             opacity: mounted ? 1 : 0, transition: `opacity .3s ease ${i * 50 + 400}ms` }}>
                 {d.v}
               </text>
             )}
@@ -993,9 +1046,32 @@ function ProjectenOverzichtModal({ onClose }) {
   );
 }
 
+/* ── useCountUp: telt een getal op van 0 naar target ── */
+function useCountUp(target, duration = 900) {
+  const [val, setVal] = React.useState(0);
+  const prev = React.useRef(0);
+  React.useEffect(() => {
+    if (target === 0 || target == null) { setVal(0); return; }
+    const start = prev.current;
+    const end = typeof target === 'number' ? target : parseInt(String(target).replace(/\D/g,'')) || 0;
+    if (start === end) return;
+    const startTime = performance.now();
+    const tick = (now) => {
+      const p = Math.min((now - startTime) / duration, 1);
+      const ease = 1 - Math.pow(1 - p, 3); // cubic ease-out
+      setVal(Math.round(start + (end - start) * ease));
+      if (p < 1) requestAnimationFrame(tick);
+      else { prev.current = end; setVal(end); }
+    };
+    requestAnimationFrame(tick);
+  }, [target]);
+  return val;
+}
+
 /* ── AantalProjecten: grote teller bovenlinks (klikbaar) ── */
 function AantalProjecten({ projectsFilled, allProjects }) {
   const [open, setOpen] = React.useState(false);
+  const animCount = useCountUp(projectsFilled);
 
   // Bereken week-delta live
   const now = new Date();
@@ -1014,7 +1090,7 @@ function AantalProjecten({ projectsFilled, allProjects }) {
     <>
       <div className="card stat left-1" onClick={() => setOpen(true)} title="Klik voor overzicht">
         <h3>Aantal projecten ingevuld</h3>
-        <div className="num">{projectsFilled}</div>
+        <div className="num num-animate">{animCount}</div>
         <div className="delta">
           van <b>{allProjects.length || '—'}</b> totaal
           {thisWeek > 0 && (
@@ -1368,16 +1444,18 @@ function VerkregenChart({ data }) {
 
 /* ── OntwerpOpgeleverd: twee grote getallen naast elkaar ── */
 function OntwerpOpgeleverd({ ontwerp, opgeleverd }) {
+  const animOntwerp   = useCountUp(ontwerp);
+  const animOpgeleverd = useCountUp(opgeleverd);
   return (
     <div className="card duo-stat">
       <h3>Ontwerp / Opgeleverd</h3>
       <div className="row">
         <span className="lbl">Ontwerp</span>
-        <span className="num">{ontwerp}</span>
+        <span className="num num-animate">{animOntwerp}</span>
       </div>
       <div className="row">
         <span className="lbl">Opgeleverd</span>
-        <span className="num">{opgeleverd}</span>
+        <span className="num num-animate">{animOpgeleverd}</span>
       </div>
     </div>
   );
@@ -1445,17 +1523,19 @@ function AlgemeenSection({ a, onBarClick }) {
 
 /* ── BinnenBuitenland: twee grote getallen (NL vs buitenland) ── */
 function BinnenBuitenland({ binnenland, buitenland }) {
+  const animBinnen = useCountUp(binnenland);
+  const animBuiten = useCountUp(buitenland);
   return (
     <div className="card">
       <h3>Binnen- vs. buitenland</h3>
       <div className="loc-split">
         <div className="cell">
           <div className="lbl">Binnenland</div>
-          <div className="num">{binnenland}</div>
+          <div className="num num-animate">{animBinnen}</div>
         </div>
         <div className="cell">
           <div className="lbl">Buitenland</div>
-          <div className="num">{buitenland}</div>
+          <div className="num num-animate">{animBuiten}</div>
         </div>
       </div>
     </div>
@@ -2891,7 +2971,7 @@ function App(){
           // 3-tier systeem: small=1 rij (160px), medium=2 rijen (334px), large=3 rijen (508px)
           const rowsMap = { small: 1, medium: 2, large: 3, xlarge: 4 };
           const heightMap = { small: H.half, medium: H.full, large: H.large, xlarge: H.xlarge };
-          return ids.map(id => {
+          return ids.map((id, idx) => {
             const widget = renderWidget(id);
             if (!widget) return null;
             const tier = WIDGET_HEIGHT[id] || 'medium';
@@ -2904,6 +2984,7 @@ function App(){
                 overflow: 'hidden',
                 height: h,
                 display: 'flex', flexDirection: 'column',
+                animation: `cardIn .45s cubic-bezier(.22,.68,0,1.2) ${idx * 60}ms both`,
               }}>
                 <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                   {widget}
@@ -2963,15 +3044,17 @@ function App(){
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 14, alignItems: 'start' }}>
                     {section.colLayout.map((colIds, ci) => (
                       <div key={ci} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        {colIds.map(idx => {
+                        {colIds.map((idx, localIdx) => {
                           const id = section.ids[idx];
                           const widget = renderWidget(id);
                           if (!widget) return null;
                           const tier = WIDGET_HEIGHT[id] || 'medium';
                           const heightMap = { small: H.half, medium: H.full, large: H.large, xlarge: H.xlarge };
                           const h = heightMap[tier];
+                          const globalIdx = ci * 3 + localIdx;
                           return (
-                            <div key={id} style={{ borderRadius: 16, overflow: 'hidden', height: h, display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+                            <div key={id} style={{ borderRadius: 16, overflow: 'hidden', height: h, display: 'flex', flexDirection: 'column', flexShrink: 0,
+                              animation: `cardIn .45s cubic-bezier(.22,.68,0,1.2) ${globalIdx * 70}ms both` }}>
                               <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>{widget}</div>
                             </div>
                           );
@@ -3110,6 +3193,19 @@ function App(){
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 <script src="transitions.js"></script>
+
+<script>
+/* ── Shimmer: volg muispositie per card voor radial-gradient glow ── */
+document.addEventListener('mousemove', (e) => {
+  const card = e.target.closest('.card');
+  if (!card) return;
+  const rect = card.getBoundingClientRect();
+  const x = ((e.clientX - rect.left) / rect.width  * 100).toFixed(1);
+  const y = ((e.clientY - rect.top)  / rect.height * 100).toFixed(1);
+  card.style.setProperty('--mx', x + '%');
+  card.style.setProperty('--my', y + '%');
+});
+</script>
 
 <script>
 (async function() {
