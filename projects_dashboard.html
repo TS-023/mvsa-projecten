@@ -1172,7 +1172,7 @@ function RandomProject({ project, onShuffle }) {
 }
 
 
-/* ── MvsaNieuws: Google News RSS via gratis proxy, geen API key nodig ── */
+/* ── MvsaNieuws: Google News RSS via gratis CORS-proxy’s, geen API key nodig ── */
 function MvsaNieuws() {
   const [articles, setArticles] = React.useState([]);
   const [loading,  setLoading]  = React.useState(true);
@@ -1180,39 +1180,90 @@ function MvsaNieuws() {
   const [lastFetch, setLastFetch] = React.useState(null);
   const [spinning, setSpinning] = React.useState(false);
 
+  /* Parset RSS/Atom XML naar artikelobjecten */
+  const parseXML = (xmlText) => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlText, 'text/xml');
+    const items = [...doc.querySelectorAll('item, entry')];
+    return items.map(el => {
+      const txt = sel => el.querySelector(sel)?.textContent?.trim() || '';
+      const attr = (sel, a) => el.querySelector(sel)?.getAttribute(a) || '';
+      const rawTitle = txt('title');
+      const title = rawTitle.replace(/ - [^-]+$/, '').trim();
+      const rawDate = txt('pubDate') || txt('published') || txt('updated');
+      const date = rawDate
+        ? new Date(rawDate).toLocaleDateString('nl-NL', { day:'numeric', month:'short', year:'numeric' })
+        : '';
+      const url = txt('link') || attr('link[rel="alternate"]', 'href') || attr('link', 'href') || '#';
+      const source = txt('source') || txt('author name') || txt('author') || '';
+      return { title, date, url, source };
+    }).filter(a => a.title);
+  };
+
   const fetchNews = async () => {
     setLoading(true); setError(null); setSpinning(true);
 
     const query = encodeURIComponent('"MVSA architects" OR "MVSA architecten"');
     const rssUrl = `https://news.google.com/rss/search?q=${query}&hl=nl&gl=NL&ceid=NL:nl`;
+    const enc = encodeURIComponent(rssUrl);
 
-    const proxies = [
-      `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=20`,
-      `https://feed2json.org/convert?url=${encodeURIComponent(rssUrl)}`,
+    /* Strategie 1: allorigins geeft JSON terug met 'contents' (XML-string) */
+    const tryAllOrigins = async () => {
+      const res = await fetch(`https://api.allorigins.win/get?url=${enc}`, { signal: AbortSignal.timeout(9000) });
+      if (!res.ok) throw new Error('allorigins http ' + res.status);
+      const json = await res.json();
+      if (!json.contents) throw new Error('allorigins: geen contents');
+      return parseXML(json.contents);
+    };
+
+    /* Strategie 2: rss2json geeft JSON met items[] */
+    const tryRss2Json = async () => {
+      const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${enc}&count=20`, { signal: AbortSignal.timeout(9000) });
+      if (!res.ok) throw new Error('rss2json http ' + res.status);
+      const data = await res.json();
+      if (data.status !== 'ok' || !data.items?.length) throw new Error('rss2json: geen items');
+      return data.items.map(item => ({
+        title:  (item.title || '').replace(/ - [^-]+$/, '').trim(),
+        source: item.author || item.feed?.title || '',
+        date:   item.pubDate ? new Date(item.pubDate).toLocaleDateString('nl-NL', { day:'numeric', month:'short', year:'numeric' }) : '',
+        url:    item.link || '#',
+      })).filter(a => a.title);
+    };
+
+    /* Strategie 3: corsproxy.io stuurt raw XML terug */
+    const tryCorsproxy = async () => {
+      const res = await fetch(`https://corsproxy.io/?url=${enc}`, { signal: AbortSignal.timeout(9000) });
+      if (!res.ok) throw new Error('corsproxy http ' + res.status);
+      const xml = await res.text();
+      return parseXML(xml);
+    };
+
+    /* Strategie 4: Geen proxy – werkt als server/CDN CORS toestaat */
+    const tryDirect = async () => {
+      const res = await fetch(rssUrl, { signal: AbortSignal.timeout(9000) });
+      if (!res.ok) throw new Error('direct http ' + res.status);
+      const xml = await res.text();
+      return parseXML(xml);
+    };
+
+    const strategies = [
+      { name: 'allorigins',  fn: tryAllOrigins },
+      { name: 'rss2json',    fn: tryRss2Json   },
+      { name: 'corsproxy',   fn: tryCorsproxy  },
+      { name: 'direct',      fn: tryDirect     },
     ];
 
-    for (const proxyUrl of proxies) {
+    for (const { name, fn } of strategies) {
       try {
-        const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
-        if (!res.ok) continue;
-        const data = await res.json();
-        const items = data.items || data.entries || [];
-        if (!items.length) continue;
-        const mapped = items.map(item => ({
-          title:  (item.title || '').replace(/ - [^-]+$/, '').trim(),
-          source: item.author || item.source?.title || '',
-          date:   (item.pubDate || item.published || item.updated || '')
-                    ? new Date(item.pubDate || item.published || item.updated).toLocaleDateString('nl-NL', { day:'numeric', month:'short', year:'numeric' })
-                    : '',
-          url:    item.link || item.url || '#',
-        })).filter(a => a.title);
-        setArticles(mapped);
+        const items = await fn();
+        if (!items.length) { console.warn(name + ': 0 items, volgende proberen'); continue; }
+        setArticles(items);
         setLastFetch(new Date());
         setLoading(false);
         setTimeout(() => setSpinning(false), 400);
         return;
       } catch(e) {
-        console.warn('Proxy mislukt:', proxyUrl, e.message);
+        console.warn('Nieuws-strategie "' + name + '" mislukt:', e.message);
       }
     }
     setError('Kon nieuws niet laden');
