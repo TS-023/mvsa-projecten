@@ -365,13 +365,7 @@ html,body{ background:var(--bg); color:var(--ink); font-family:'Inter',sans-seri
         </div>
       </div>
 
-      <!-- Alle gebruikers overzicht -->
-      <div class="widget">
-        <div class="widget-title"><span class="ico">👤</span> Alle gebruikers</div>
-        <div id="all-users-list">
-          <div class="reg-empty">Laden…</div>
-        </div>
-      </div>
+
     </div>
 
     <!-- ── WERKNEMERS ── -->
@@ -850,14 +844,19 @@ async function initAdmin(){
 
 /* ── Werknemers ── */
 async function loadEmployees(){
-  employees = await Employees.getAll();
+  // Haal alle profielen op — niet alleen approved, zodat beheerder iedereen ziet
+  const { data, error } = await db.from('profiles')
+    .select('id, naam, rol, team, score, projecten, email, status')
+    .not('naam', 'is', null)
+    .order('score', { ascending: false });
+  employees = data || [];
   renderEmpList();
   document.getElementById('emp-count').textContent = employees.length;
   const total = employees.reduce((s,e)=> s+(e.score||0), 0);
   document.getElementById('emp-total-pts').textContent = total;
   document.getElementById('db-emp').textContent = employees.length + ' werknemers';
   document.getElementById('emp-export-count').textContent = employees.length;
-  // Foto's op achtergrond
+  // Foto's laden via user id
   employees.forEach(async e => {
     const url = await EmployeeImages.getForEmployee(e.id).catch(()=>null);
     if(url){ photoCache[e.id]=url; updateAva(e.id,url); }
@@ -879,8 +878,8 @@ function renderEmpList(){
             ${photoCache[e.id]?`<img src="${photoCache[e.id]}" alt="">`:''}
           </div>
           <div>
-            <div style="font-weight:700;font-size:12px;letter-spacing:.03em;text-transform:uppercase;">${e.naam||'—'}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px;">${e.rol||'—'}</div>
+            <div style="font-weight:700;font-size:12px;letter-spacing:.03em;text-transform:uppercase;">${e.naam||'—'}${e.status==='pending'?' <span style=\"font-size:9px;background:rgba(224,160,48,.15);color:#e0a030;padding:2px 6px;border-radius:999px;font-weight:700;letter-spacing:.08em;\">WACHT</span>':''}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">${e.rol||e.email||'—'}</div>
           </div>
         </div>
       </td>
