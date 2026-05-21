@@ -666,9 +666,36 @@ html,body{ background:var(--bg); color:var(--ink); font-family:'Inter',sans-seri
   <h2 style="font-size:18px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px;">Gebruiker verwijderen</h2>
   <p style="font-size:13px;color:var(--muted);margin-bottom:6px;line-height:1.6;">Je staat op het punt <strong id="del-naam-label">deze gebruiker</strong> te verwijderen.</p>
   <p style="font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6;">De gebruiker ontvangt automatisch een e-mail met jouw toelichting.</p>
-  <div style="margin-bottom:24px;">
-    <label style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;">Motivatie / toelichting *</label>
-    <textarea id="del-motivatie" placeholder="Geef een duidelijke reden voor het verwijderen van dit account..." rows="4" style="width:100%;font-family:inherit;font-size:14px;padding:10px 14px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);outline:none;resize:vertical;line-height:1.6;"></textarea>
+  <div style="margin-bottom:16px;">
+    <label style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:10px;">Reden *</label>
+    <div style="display:flex;flex-direction:column;gap:8px;" id="del-redenen">
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;line-height:1.5;">
+        <input type="radio" name="del-reden" value="Wegens het einde van het dienstverband is je account verwijderd." style="margin-top:3px;accent-color:var(--danger);">
+        Einde dienstverband
+      </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;line-height:1.5;">
+        <input type="radio" name="del-reden" value="Je account is verwijderd wegens langdurige inactiviteit op het platform." style="margin-top:3px;accent-color:var(--danger);">
+        Langdurige inactiviteit
+      </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;line-height:1.5;">
+        <input type="radio" name="del-reden" value="Je account is verwijderd wegens het schenden van de gebruiksregels van het platform." style="margin-top:3px;accent-color:var(--danger);">
+        Schending gebruiksregels
+      </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;line-height:1.5;">
+        <input type="radio" name="del-reden" value="Je account is verwijderd op eigen verzoek." style="margin-top:3px;accent-color:var(--danger);">
+        Verwijdering op eigen verzoek
+      </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;line-height:1.5;">
+        <input type="radio" name="del-reden" value="Je account is verwijderd omdat het een testaccount betreft." style="margin-top:3px;accent-color:var(--danger);">
+        Testaccount
+      </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;line-height:1.5;" id="del-anders-label">
+        <input type="radio" name="del-reden" value="anders" style="margin-top:3px;accent-color:var(--danger);" onchange="toggleAndersVeld()">
+        Anders
+      </label>
+    </div>
+    <textarea id="del-motivatie" placeholder="Typ hier je eigen toelichting..." rows="3"
+      style="display:none;width:100%;margin-top:10px;font-family:inherit;font-size:14px;padding:10px 14px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);outline:none;resize:vertical;line-height:1.6;"></textarea>
   </div>
   <div id="del-msg" style="display:none;font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:14px;"></div>
   <div style="display:flex;gap:10px;">
@@ -1207,12 +1234,25 @@ function showInvMsg(text, type){
   el.style.color = type==='error' ? 'var(--danger)' : '#1a7a4a';
 }
 
+function toggleAndersVeld(){
+  const selected = document.querySelector('input[name="del-reden"]:checked');
+  const veld = document.getElementById('del-motivatie');
+  if(selected && selected.value === 'anders'){
+    veld.style.display='block';
+    setTimeout(()=>veld.focus(),50);
+  } else {
+    veld.style.display='none';
+  }
+}
+
 /* ── Verwijder-modal ── */
 let deleteTargetId = null;
 function openDeleteModal(id, naam){
   deleteTargetId = id;
   document.getElementById('del-naam-label').textContent = naam;
   document.getElementById('del-motivatie').value='';
+  document.getElementById('del-motivatie').style.display='none';
+  document.querySelectorAll('input[name="del-reden"]').forEach(r => r.checked = false);
   document.getElementById('del-msg').style.display='none';
   document.getElementById('del-btn').disabled=false;
   document.getElementById('del-btn').textContent='Verwijderen & mail sturen →';
@@ -1226,9 +1266,13 @@ function closeDeleteModal(){
   deleteTargetId = null;
 }
 async function doDelete(){
-  const motivatie = document.getElementById('del-motivatie').value.trim();
   const btn = document.getElementById('del-btn');
-  if(!motivatie){ showDelMsg('Vul een motivatie in — de gebruiker ontvangt dit in zijn e-mail.','error'); return; }
+  const selectedReden = document.querySelector('input[name="del-reden"]:checked');
+  if(!selectedReden){ showDelMsg('Kies een reden voor het verwijderen.','error'); return; }
+  const motivatie = selectedReden.value === 'anders'
+    ? document.getElementById('del-motivatie').value.trim()
+    : selectedReden.value;
+  if(!motivatie){ showDelMsg('Typ een toelichting bij "Anders".','error'); return; }
   if(!deleteTargetId) return;
 
   btn.disabled=true; btn.textContent='Verwijderen…';
