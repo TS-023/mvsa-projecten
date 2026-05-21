@@ -1180,7 +1180,7 @@ function MvsaNieuws() {
   const [lastFetch, setLastFetch] = React.useState(null);
   const [spinning, setSpinning] = React.useState(false);
 
-  /* Parset RSS/Atom XML naar artikelobjecten */
+  /* Parset RSS/Atom XML naar artikelobjecten, gesorteerd nieuwste eerst */
   const parseXML = (xmlText) => {
     const parser = new DOMParser();
     const doc = parser.parseFromString(xmlText, 'text/xml');
@@ -1191,13 +1191,14 @@ function MvsaNieuws() {
       const rawTitle = txt('title');
       const title = rawTitle.replace(/ - [^-]+$/, '').trim();
       const rawDate = txt('pubDate') || txt('published') || txt('updated');
+      const ts = rawDate ? new Date(rawDate).getTime() : 0;
       const date = rawDate
         ? new Date(rawDate).toLocaleDateString('nl-NL', { day:'numeric', month:'short', year:'numeric' })
         : '';
       const url = txt('link') || attr('link[rel="alternate"]', 'href') || attr('link', 'href') || '#';
       const source = txt('source') || txt('author name') || txt('author') || '';
-      return { title, date, url, source };
-    }).filter(a => a.title);
+      return { title, date, ts, url, source };
+    }).filter(a => a.title).sort((a, b) => b.ts - a.ts);
   };
 
   const fetchNews = async () => {
