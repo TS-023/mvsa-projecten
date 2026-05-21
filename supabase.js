@@ -46,35 +46,35 @@ const Projects = {
 };
 
 const Employees = {
+  // Alle werknemers ophalen uit profiles (enige bron van waarheid)
   async getAll() {
-    const { data, error } = await db.from('employees').select('*').order('score', { ascending: false });
-    if (error) { console.error('employees:', error); return []; }
-    return data;
+    const { data, error } = await db.from('profiles')
+      .select('id, naam, rol, team, score, projecten, email')
+      .not('naam', 'is', null)
+      .eq('status', 'approved')
+      .order('score', { ascending: false });
+    if (error) { console.error('profiles:', error); return []; }
+    return data || [];
   },
 
-  // Punten toevoegen aan de ingelogde gebruiker (via profiles + sync naar employees)
+  // Punten toevoegen aan de ingelogde gebruiker
   async addPoints(points = 1) {
     try {
       const { data: { user } } = await db.auth.getUser();
       if (!user) return;
       const { data: profile } = await db.from('profiles')
-        .select('id, score, employee_id').eq('id', user.id).maybeSingle();
+        .select('id, score').eq('id', user.id).maybeSingle();
       if (!profile) return;
-      const newScore = (profile.score || 0) + points;
-      // Bijhouden in profiles
-      await db.from('profiles').update({ score: newScore }).eq('id', user.id);
-      // Syncen naar employees zodat leaderboard klopt
-      if (profile.employee_id) {
-        await db.from('employees').update({ score: newScore }).eq('id', profile.employee_id);
-      }
+      await db.from('profiles').update({ score: (profile.score || 0) + points }).eq('id', user.id);
     } catch(e) { console.warn('addPoints fout:', e); }
   },
 
-  // Leaderboard ophalen gesorteerd op score (uit profiles, meest actueel)
+  // Leaderboard ophalen gesorteerd op score
   async getLeaderboard(limit = 10) {
     const { data } = await db.from('profiles')
       .select('id, naam, score, projecten, team, rol')
       .not('naam', 'is', null)
+      .eq('status', 'approved')
       .order('score', { ascending: false })
       .limit(limit);
     return (data || []).map(e => ({
@@ -87,19 +87,15 @@ const Employees = {
     }));
   },
 
-  // Projecten teller verhogen voor de ingelogde gebruiker (via profiles + sync naar employees)
+  // Projecten teller verhogen voor de ingelogde gebruiker
   async incrementProjects() {
     try {
       const { data: { user } } = await db.auth.getUser();
       if (!user) return;
       const { data: profile } = await db.from('profiles')
-        .select('id, projecten, employee_id').eq('id', user.id).maybeSingle();
+        .select('id, projecten').eq('id', user.id).maybeSingle();
       if (!profile) return;
-      const newCount = (profile.projecten || 0) + 1;
-      await db.from('profiles').update({ projecten: newCount }).eq('id', user.id);
-      if (profile.employee_id) {
-        await db.from('employees').update({ projecten: newCount }).eq('id', profile.employee_id);
-      }
+      await db.from('profiles').update({ projecten: (profile.projecten || 0) + 1 }).eq('id', user.id);
     } catch(e) { console.warn('incrementProjects fout:', e); }
   },
 };
@@ -200,18 +196,6 @@ const Auth = {
       .select('id').eq('id', user.id).maybeSingle();
 
     if (!existing_profile) {
-      // Zoek bestaande werknemer op naam
-      let { data: existing_emp } = await db.from('employees')
-        .select('id').ilike('naam', naam.trim()).maybeSingle();
-
-      // Maak nieuwe werknemer aan als die niet bestaat
-      if (!existing_emp) {
-        const { data: newEmp } = await db.from('employees').insert([{
-          naam: naam.trim(), rol: '', team: team, score: 0, projecten: 0,
-        }]).select('id').single();
-        existing_emp = newEmp;
-      }
-
       // Maak profiel aan
       const { error: profileError } = await db.from('profiles').insert([{
         id: user.id,
@@ -219,7 +203,8 @@ const Auth = {
         email,
         team,
         status: 'pending',
-        employee_id: existing_emp?.id || null,
+        score: 0,
+        projecten: 0,
       }]);
 
       if (profileError) {
@@ -291,13 +276,7 @@ const AdminAuth = {
       status: 'approved',
       approved_at: new Date().toISOString(),
     }).eq('id', profileId);
-    // Update werknemer team als dat nog leeg was
-    if (profile?.employee_id && profile?.team) {
-      await db.from('employees')
-        .update({ team: profile.team })
-        .eq('id', profile.employee_id)
-        .eq('team', ''); // alleen als team nog leeg is
-    }
+
   },
 
   // Afkeuren
@@ -307,43 +286,50 @@ const AdminAuth = {
     }).eq('id', profileId);
   },
 
-  // Verwijderen
+  // Verwijderen (zonder mail — intern gebruik)
   async remove(profileId) {
     await db.from('profiles').delete().eq('id', profileId);
+  },
+
+  // Gebruiker uitnodigen via Edge Function (verstuurt uitnodigingsmail)
+  async inviteUser(email, naam, team) {
+    const { data: { session } } = await db.auth.getSession();
+    const token = session?.access_token;
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/manage-users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'apikey': SUPABASE_ANON,
+      },
+      body: JSON.stringify({ action: 'invite', email, naam, team }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Uitnodigen mislukt');
+    return data;
+  },
+
+  // Gebruiker verwijderen met motivatie-mail via Edge Function
+  async deleteWithReason(userId, motivatie) {
+    const { data: { session } } = await db.auth.getSession();
+    const token = session?.access_token;
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/manage-users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'apikey': SUPABASE_ANON,
+      },
+      body: JSON.stringify({ action: 'delete', userId, motivatie }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Verwijderen mislukt');
+    return data;
   },
 };
 
 
-// ============================================================
-//  HULPFUNCTIE — werknemer automatisch koppelen aan profiel
-//  Wordt gebruikt door auth-bar.js én sidebar.js
-// ============================================================
-async function autoLinkEmployee(profile) {
-  if (profile.employee_id) return profile; // al gekoppeld
-  try {
-    let { data: emp } = await db.from('employees')
-      .select('id').ilike('naam', profile.naam.trim()).maybeSingle();
-
-    if (!emp) {
-      const { data: newEmp } = await db.from('employees').insert([{
-        naam: profile.naam,
-        rol: '',
-        team: profile.team || 'Ontwerp',
-        score: 0,
-        projecten: 0,
-      }]).select('id').single();
-      emp = newEmp;
-    }
-
-    if (emp) {
-      await db.from('profiles').update({ employee_id: emp.id }).eq('id', profile.id);
-      profile.employee_id = emp.id;
-    }
-  } catch(e) {
-    console.warn('autoLinkEmployee mislukt:', e);
-  }
-  return profile;
-}
+// autoLinkEmployee verwijderd — profiles is nu de enige bron van waarheid
 
 // ============================================================
 //  SESSIE TIMEOUT — automatisch uitloggen na 1 uur
