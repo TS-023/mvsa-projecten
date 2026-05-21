@@ -448,26 +448,28 @@ function App(){
   };
   const [empLoading, setEmpLoading] = React.useState(true);
   React.useEffect(() => {
+    const mapRows = (rows) => rows.map(e => ({
+      id:         e.id,
+      name:       e.naam || '—',
+      role:       e.rol || '',
+      team:       e.team || 'Ontwerp',
+      points:     e.score || 0,
+      month:      0,
+      year:       e.score || 0,
+      fields:     e.score || 0,
+      projects:   e.projecten || 0,
+      weekDelta:  0,
+      lastActive: '—',
+    }));
+
+    // Eenmalig laden
     db.from('profiles')
       .select('id, naam, score, projecten, team, rol')
       .not('naam', 'is', null)
       .order('score', { ascending: false })
       .then(({ data: rows, error }) => {
-        console.log('Profiles loaded:', rows, error);
         if (rows && rows.length > 0) {
-          const mapped = rows.map(e => ({
-            id: e.id,
-            name: e.naam || '—',
-            role: e.rol || '',
-            team: e.team || 'Ontwerp',
-            points: e.score || 0,
-            month: 0,
-            year: e.score || 0,
-            fields: e.score || 0,
-            projects: e.projecten || 0,
-            weekDelta: 0,
-            lastActive: '—',
-          }));
+          const mapped = mapRows(rows);
           setEmployees(mapped);
           loadPhotos(mapped);
         } else {
@@ -479,6 +481,23 @@ function App(){
         setEmployees(EMPLOYEES);
         setEmpLoading(false);
       });
+
+    // Realtime: herlaad bij elke wijziging in profiles
+    const channel = db.channel('leaderboard-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        db.from('profiles')
+          .select('id, naam, score, projecten, team, rol')
+          .not('naam', 'is', null)
+          .order('score', { ascending: false })
+          .then(({ data: rows }) => {
+            if (rows && rows.length > 0) {
+              setEmployees(mapRows(rows));
+            }
+          });
+      })
+      .subscribe();
+
+    return () => { db.removeChannel(channel); };
   }, []);
   const [team, setTeam] = React.useState('Alle');
   const [q, setQ] = React.useState('');

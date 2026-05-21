@@ -2849,11 +2849,12 @@ function App(){
       };
 
       // Leaderboard uit employees tabel (heeft echte score kolom)
-      const { data: employeeRows } = await db.from('employees')
+      const { data: profileRows } = await db.from('profiles')
         .select('id, naam, score, projecten')
+        .not('naam', 'is', null)
         .order('score', { ascending: false })
         .limit(10);
-      const liveLeaderboard = (employeeRows || [])
+      const liveLeaderboard = (profileRows || [])
         .map(p => ({ name: p.naam, score: p.score || 0, id: p.id }));
 
       setLiveData({
@@ -2994,6 +2995,25 @@ function App(){
     };
     tryLoad();
   }, [liveData]);
+
+  // Realtime leaderboard: herlaad bij elke score-wijziging in profiles
+  React.useEffect(() => {
+    const channel = db.channel('dashboard-leaderboard')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, () => {
+        db.from('profiles')
+          .select('id, naam, score, projecten')
+          .not('naam', 'is', null)
+          .order('score', { ascending: false })
+          .limit(10)
+          .then(({ data: rows }) => {
+            if (!rows || !rows.length) return;
+            const updated = rows.map(p => ({ name: p.naam, score: p.score || 0, id: p.id }));
+            setLiveData(prev => prev ? { ...prev, leaderboard: updated } : prev);
+          });
+      })
+      .subscribe();
+    return () => { db.removeChannel(channel); };
+  }, []);
 
   // Donkere modus
   const [darkMode, setDarkMode] = React.useState(() => localStorage.getItem('mvsa.dark') === '1');

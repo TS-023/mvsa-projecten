@@ -52,31 +52,54 @@ const Employees = {
     return data;
   },
 
-  // Punten toevoegen aan de ingelogde gebruiker (via profiles)
+  // Punten toevoegen aan de ingelogde gebruiker (via profiles + sync naar employees)
   async addPoints(points = 1) {
     try {
       const { data: { user } } = await db.auth.getUser();
       if (!user) return;
       const { data: profile } = await db.from('profiles')
-        .select('score').eq('id', user.id).maybeSingle();
+        .select('id, score, employee_id').eq('id', user.id).maybeSingle();
       if (!profile) return;
-      await db.from('profiles').update({
-        score: (profile.score || 0) + points,
-      }).eq('id', user.id);
+      const newScore = (profile.score || 0) + points;
+      // Bijhouden in profiles
+      await db.from('profiles').update({ score: newScore }).eq('id', user.id);
+      // Syncen naar employees zodat leaderboard klopt
+      if (profile.employee_id) {
+        await db.from('employees').update({ score: newScore }).eq('id', profile.employee_id);
+      }
     } catch(e) { console.warn('addPoints fout:', e); }
   },
 
-  // Projecten teller verhogen voor de ingelogde gebruiker (via profiles)
+  // Leaderboard ophalen gesorteerd op score (uit profiles, meest actueel)
+  async getLeaderboard(limit = 10) {
+    const { data } = await db.from('profiles')
+      .select('id, naam, score, projecten, team, rol')
+      .not('naam', 'is', null)
+      .order('score', { ascending: false })
+      .limit(limit);
+    return (data || []).map(e => ({
+      id:       e.id,
+      name:     e.naam || '—',
+      score:    e.score || 0,
+      projects: e.projecten || 0,
+      team:     e.team || '',
+      role:     e.rol || '',
+    }));
+  },
+
+  // Projecten teller verhogen voor de ingelogde gebruiker (via profiles + sync naar employees)
   async incrementProjects() {
     try {
       const { data: { user } } = await db.auth.getUser();
       if (!user) return;
       const { data: profile } = await db.from('profiles')
-        .select('projecten').eq('id', user.id).maybeSingle();
+        .select('id, projecten, employee_id').eq('id', user.id).maybeSingle();
       if (!profile) return;
-      await db.from('profiles').update({
-        projecten: (profile.projecten || 0) + 1,
-      }).eq('id', user.id);
+      const newCount = (profile.projecten || 0) + 1;
+      await db.from('profiles').update({ projecten: newCount }).eq('id', user.id);
+      if (profile.employee_id) {
+        await db.from('employees').update({ projecten: newCount }).eq('id', profile.employee_id);
+      }
     } catch(e) { console.warn('incrementProjects fout:', e); }
   },
 };
