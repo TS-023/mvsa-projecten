@@ -28,15 +28,10 @@
         userName = profile.naam;
         userInitials = (profile.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
 
-        // Auto-link werknemer (gedeelde functie uit supabase.js)
-        if (!profile.employee_id && typeof autoLinkEmployee !== 'undefined') {
-          profile = await autoLinkEmployee(profile);
-        }
-
-        // Foto laden
-        if (profile.employee_id && typeof EmployeeImages !== 'undefined') {
+        // Foto laden via user id
+        if (typeof EmployeeImages !== 'undefined') {
           try {
-            const url = await EmployeeImages.getForEmployee(profile.employee_id);
+            const url = await EmployeeImages.getForEmployee(user.id);
             if (url) userPhoto = url;
           } catch(e) {}
         }
