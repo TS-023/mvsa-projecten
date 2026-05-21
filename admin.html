@@ -385,8 +385,8 @@ html,body{ background:var(--bg); color:var(--ink); font-family:'Inter',sans-seri
       </div>
       <div class="widget">
         <div class="action-grid">
-          <button class="action-btn" onclick="openNewEmpPanel()">
-            <span class="ab-icon">➕</span><span class="ab-label">Nieuwe werknemer</span>
+          <button class="action-btn" onclick="openInviteModal()">
+            <span class="ab-icon">✉️</span><span class="ab-label">Gebruiker uitnodigen</span>
           </button>
           <button class="action-btn danger" onclick="confirmResetPoints()">
             <span class="ab-icon">🔄</span><span class="ab-label">Reset maandpunten</span>
@@ -638,6 +638,51 @@ html,body{ background:var(--bg); color:var(--ink); font-family:'Inter',sans-seri
   </div>
 </div>
 
+<!-- ── UITNODIGINGS-MODAL ── -->
+<div id="invite-bd" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;backdrop-filter:blur(3px);" onclick="closeInviteModal()"></div>
+<div id="invite-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:901;background:var(--card);border-radius:18px;padding:36px 32px;width:min(460px,95vw);box-shadow:0 24px 64px -12px rgba(20,30,45,.25);">
+  <button onclick="closeInviteModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);line-height:1;">×</button>
+  <div style="font-size:28px;margin-bottom:12px;">✉️</div>
+  <h2 style="font-size:18px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px;">Gebruiker uitnodigen</h2>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6;">De gebruiker ontvangt een e-mail met een link om een wachtwoord in te stellen.</p>
+  <div style="margin-bottom:14px;">
+    <label style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;">Naam *</label>
+    <input id="inv-naam" type="text" placeholder="Voor- en achternaam" style="width:100%;font-family:inherit;font-size:14px;padding:10px 14px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);outline:none;">
+  </div>
+  <div style="margin-bottom:14px;">
+    <label style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;">E-mailadres *</label>
+    <input id="inv-email" type="email" placeholder="naam@mvsa-architects.com" style="width:100%;font-family:inherit;font-size:14px;padding:10px 14px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);outline:none;">
+  </div>
+  <div style="margin-bottom:24px;">
+    <label style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;">Team</label>
+    <select id="inv-team" style="width:100%;font-family:inherit;font-size:14px;padding:10px 14px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);outline:none;">
+      <option>Ontwerp</option><option>Stedenbouw</option><option>Interieur</option>
+      <option>Technisch</option><option>Onderzoek</option><option>Uitvoering</option>
+    </select>
+  </div>
+  <div id="inv-msg" style="display:none;font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:14px;"></div>
+  <button id="inv-btn" onclick="doInvite()" style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:13px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s;">Uitnodiging versturen →</button>
+</div>
+
+<!-- ── VERWIJDER-MODAL MET MOTIVATIE ── -->
+<div id="delete-bd" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;backdrop-filter:blur(3px);" onclick="closeDeleteModal()"></div>
+<div id="delete-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:901;background:var(--card);border-radius:18px;padding:36px 32px;width:min(460px,95vw);box-shadow:0 24px 64px -12px rgba(20,30,45,.25);">
+  <button onclick="closeDeleteModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);line-height:1;">×</button>
+  <div style="font-size:28px;margin-bottom:12px;">⚠️</div>
+  <h2 style="font-size:18px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px;">Gebruiker verwijderen</h2>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:6px;line-height:1.6;">Je staat op het punt <strong id="del-naam-label">deze gebruiker</strong> te verwijderen.</p>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6;">De gebruiker ontvangt automatisch een e-mail met jouw toelichting.</p>
+  <div style="margin-bottom:24px;">
+    <label style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;">Motivatie / toelichting *</label>
+    <textarea id="del-motivatie" placeholder="Geef een duidelijke reden voor het verwijderen van dit account..." rows="4" style="width:100%;font-family:inherit;font-size:14px;padding:10px 14px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);outline:none;resize:vertical;line-height:1.6;"></textarea>
+  </div>
+  <div id="del-msg" style="display:none;font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:14px;"></div>
+  <div style="display:flex;gap:10px;">
+    <button onclick="closeDeleteModal()" style="flex:1;background:none;border:1.5px solid var(--line);color:var(--ink);border-radius:10px;padding:12px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">Annuleren</button>
+    <button id="del-btn" onclick="doDelete()" style="flex:1;background:var(--danger);color:#fff;border:none;border-radius:10px;padding:12px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .2s;">Verwijderen & mail sturen →</button>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase.js"></script>
 <script>
@@ -783,26 +828,7 @@ async function approveUser(id, naam) {
   if (!confirm(`${naam} goedkeuren?\n\nDe medewerker verschijnt direct op het leaderboard.`)) return;
   await AdminAuth.approve(id);
 
-  // Zorg dat de werknemer ook in de employees tabel staat
-  try {
-    const { data: profile } = await db.from('profiles').select('*').eq('id', id).maybeSingle();
-    if (profile && !profile.employee_id) {
-      // Zoek bestaande werknemer op naam
-      let { data: emp } = await db.from('employees')
-        .select('id').ilike('naam', naam.trim()).maybeSingle();
-      // Maak nieuwe werknemer als die niet bestaat
-      if (!emp) {
-        const { data: newEmp } = await db.from('employees').insert([{
-          naam: naam.trim(), rol: '', score: 0, projecten: 0,
-        }]).select('id').single();
-        emp = newEmp;
-      }
-      // Koppel profiel aan werknemer
-      if (emp) {
-        await db.from('profiles').update({ employee_id: emp.id }).eq('id', id);
-      }
-    }
-  } catch(e) { console.warn('Auto-link werknemer mislukt:', e); }
+
 
   showToast(`✓ ${naam} goedgekeurd — staat nu op het leaderboard`);
   loadRegistrations();
@@ -907,15 +933,8 @@ function filterEmpTable(q){
   });
 }
 
-async function quickDelete(id, naam){
-  if(!confirm(`Werknemer "${naam}" definitief verwijderen?`)) return;
-  await db.from('employees').delete().eq('id',id);
-  employees = employees.filter(e=>e.id!==id);
-  renderEmpList();
-  const total = employees.reduce((s,e)=>s+(e.score||0),0);
-  document.getElementById('emp-count').textContent = employees.length;
-  document.getElementById('emp-total-pts').textContent = total;
-  showToast('Werknemer verwijderd');
+function quickDelete(id, naam){
+  openDeleteModal(id, naam);
 }
 
 function updateAva(id, url){
@@ -928,7 +947,7 @@ async function adjPts(id, delta){
   if(!e) return;
   e.score = Math.max(0,(e.score||0)+delta);
   document.getElementById(`pts-${id}`).textContent = e.score;
-  await db.from('employees').update({score:e.score}).eq('id',id);
+  await db.from('profiles').update({ score: e.score }).eq('id', id);
   const total = employees.reduce((s,x)=>s+(x.score||0),0);
   document.getElementById('emp-total-pts').textContent = total;
   showToast('Punten opgeslagen');
@@ -936,7 +955,7 @@ async function adjPts(id, delta){
 
 async function confirmResetPoints(){
   if(!confirm('Maandpunten van alle werknemers resetten naar 0?')) return;
-  await Promise.all(employees.map(e => db.from('employees').update({score_month:0}).eq('id',e.id)));
+  await Promise.all(employees.map(e => db.from('profiles').update({ score: 0 }).eq('id', e.id)));
   showToast('Maandpunten gereset');
 }
 
@@ -1117,27 +1136,119 @@ async function savePanel(){
   };
   try{
     let savedId=panelId;
-    if(panelId){ await db.from('employees').update(payload).eq('id',panelId); }
-    else{ const {data,error}=await db.from('employees').insert([payload]).select().single(); if(error)throw error; savedId=data.id; }
+    if(panelId){
+      await db.from('profiles').update(payload).eq('id',panelId);
+    } else {
+      // Nieuwe werknemers kunnen alleen via registratie — hier niet meer aanmaken
+      alert('Nieuwe werknemers kunnen zich registreren via de loginpagina.');
+      btn.textContent='Toevoegen →'; btn.disabled=false;
+      return;
+    }
     if(panelPhotoFile&&savedId){
       const url=await EmployeeImages.upload(savedId,panelPhotoFile);
       photoCache[savedId]=url;
     }
     await loadEmployees();
     closePanel();
-    showToast(panelId?'Werknemer bijgewerkt':'Werknemer toegevoegd');
+    showToast('Werknemer bijgewerkt');
   }catch(e){ alert('Fout: '+e.message); }
   btn.textContent='Opslaan →'; btn.disabled=false;
 }
 
-async function deleteFromPanel(){
+function deleteFromPanel(){
   if(!panelId) return;
   const naam=document.getElementById('p-naam').value;
-  if(!confirm(`Werknemer "${naam}" definitief verwijderen?`)) return;
-  await db.from('employees').delete().eq('id',panelId);
-  await loadEmployees();
   closePanel();
-  showToast('Werknemer verwijderd');
+  openDeleteModal(panelId, naam);
+}
+
+/* ── Uitnodigings-modal ── */
+function openInviteModal(){
+  document.getElementById('inv-naam').value='';
+  document.getElementById('inv-email').value='';
+  document.getElementById('inv-team').value='Ontwerp';
+  document.getElementById('inv-msg').style.display='none';
+  document.getElementById('inv-btn').disabled=false;
+  document.getElementById('inv-btn').textContent='Uitnodiging versturen →';
+  document.getElementById('invite-bd').style.display='block';
+  document.getElementById('invite-modal').style.display='block';
+  setTimeout(()=>document.getElementById('inv-naam').focus(),100);
+}
+function closeInviteModal(){
+  document.getElementById('invite-bd').style.display='none';
+  document.getElementById('invite-modal').style.display='none';
+}
+async function doInvite(){
+  const naam = document.getElementById('inv-naam').value.trim();
+  const email = document.getElementById('inv-email').value.trim();
+  const team = document.getElementById('inv-team').value;
+  const msgEl = document.getElementById('inv-msg');
+  const btn = document.getElementById('inv-btn');
+
+  if(!naam){ showInvMsg('Vul een naam in.','error'); return; }
+  if(!email || !email.includes('@')){ showInvMsg('Vul een geldig e-mailadres in.','error'); return; }
+
+  btn.disabled=true; btn.textContent='Versturen…';
+  try {
+    const result = await AdminAuth.inviteUser(email, naam, team);
+    showInvMsg('✓ ' + result.message, 'success');
+    btn.textContent='Verstuurd!';
+    setTimeout(closeInviteModal, 2000);
+    loadEmployees();
+  } catch(e) {
+    showInvMsg(e.message, 'error');
+    btn.disabled=false; btn.textContent='Uitnodiging versturen →';
+  }
+}
+function showInvMsg(text, type){
+  const el = document.getElementById('inv-msg');
+  el.textContent = text;
+  el.style.display = 'block';
+  el.style.background = type==='error' ? 'rgba(180,60,60,.08)' : 'rgba(26,122,74,.08)';
+  el.style.color = type==='error' ? 'var(--danger)' : '#1a7a4a';
+}
+
+/* ── Verwijder-modal ── */
+let deleteTargetId = null;
+function openDeleteModal(id, naam){
+  deleteTargetId = id;
+  document.getElementById('del-naam-label').textContent = naam;
+  document.getElementById('del-motivatie').value='';
+  document.getElementById('del-msg').style.display='none';
+  document.getElementById('del-btn').disabled=false;
+  document.getElementById('del-btn').textContent='Verwijderen & mail sturen →';
+  document.getElementById('delete-bd').style.display='block';
+  document.getElementById('delete-modal').style.display='block';
+  setTimeout(()=>document.getElementById('del-motivatie').focus(),100);
+}
+function closeDeleteModal(){
+  document.getElementById('delete-bd').style.display='none';
+  document.getElementById('delete-modal').style.display='none';
+  deleteTargetId = null;
+}
+async function doDelete(){
+  const motivatie = document.getElementById('del-motivatie').value.trim();
+  const btn = document.getElementById('del-btn');
+  if(!motivatie){ showDelMsg('Vul een motivatie in — de gebruiker ontvangt dit in zijn e-mail.','error'); return; }
+  if(!deleteTargetId) return;
+
+  btn.disabled=true; btn.textContent='Verwijderen…';
+  try {
+    const result = await AdminAuth.deleteWithReason(deleteTargetId, motivatie);
+    showDelMsg('✓ ' + result.message, 'success');
+    btn.textContent='Verwijderd!';
+    setTimeout(()=>{ closeDeleteModal(); loadEmployees(); loadRegistrations(); }, 1800);
+  } catch(e) {
+    showDelMsg(e.message, 'error');
+    btn.disabled=false; btn.textContent='Verwijderen & mail sturen →';
+  }
+}
+function showDelMsg(text, type){
+  const el = document.getElementById('del-msg');
+  el.textContent = text;
+  el.style.display = 'block';
+  el.style.background = type==='error' ? 'rgba(180,60,60,.08)' : 'rgba(26,122,74,.08)';
+  el.style.color = type==='error' ? 'var(--danger)' : '#1a7a4a';
 }
 
 /* ── Toast ── */
