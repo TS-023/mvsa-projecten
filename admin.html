@@ -12,8 +12,8 @@
    CSS VARIABELEN & RESET
    ═══════════════════════════════════════════════ */
 :root{
-  --bg:#f4f1ec; --card:#fff; --ink:#111418; --muted:#8a8d93;
-  --line:#e8e4dd; --accent:#3d6e8a; --danger:#b43c3c;
+  --bg:#eef0f3; --card:#ffffff; --ink:#1a2332; --muted:#7f8fa0;
+  --line:#dde3ea; --accent:#4e7d9c; --danger:#b43c3c; --ink-2:#2d3a4a;
   --shadow:0 1px 0 rgba(20,30,45,.04),0 8px 24px -12px rgba(20,30,45,.18);
 }
 [data-theme="dark"]{
@@ -400,7 +400,7 @@ html,body{ background:var(--bg); color:var(--ink); font-family:'Inter',sans-seri
     </div>
 
     <!-- Volledige werknemerslijst -->
-    <div class="widget" style="padding:0;overflow:hidden;grid-column:1/-1;">
+    <div class="widget" style="padding:0;overflow-x:auto;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px 14px;border-bottom:1px solid var(--line);">
         <div class="widget-title" style="margin:0;"><span class="ico">👥</span> Alle werknemers</div>
         <a href="employees.html" style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--accent);text-decoration:none;">Leaderboard →</a>
