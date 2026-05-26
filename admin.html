@@ -700,6 +700,13 @@ document.documentElement.style.visibility = 'hidden';
 
 async function checkAdminAccess() {
   try {
+    // Wacht even tot supabase.js geladen is
+    let attempts = 0;
+    while (typeof db === 'undefined' && attempts < 20) {
+      await new Promise(r => setTimeout(r, 100));
+      attempts++;
+    }
+
     if (typeof db === 'undefined') {
       document.documentElement.style.visibility = '';
       showLoginError('Verbindingsfout. Herlaad de pagina.');
@@ -713,10 +720,12 @@ async function checkAdminAccess() {
       return;
     }
 
-    const { data: profile } = await db.from('profiles')
+    const { data: profile, error } = await db.from('profiles')
       .select('naam, status, is_admin')
       .eq('id', user.id)
       .maybeSingle();
+
+    console.log('Admin check:', { profile, error, userId: user.id });
 
     if (!profile || profile.status !== 'approved' || !profile.is_admin) {
       showAccessDenied(profile);
