@@ -895,8 +895,8 @@ function renderEmpList(){
     var pendingBadge = e.status === 'pending' ? '<span style="font-size:9px;background:rgba(224,160,48,.15);color:#e0a030;padding:2px 6px;border-radius:999px;font-weight:700;margin-left:4px;">WACHT</span>' : '';
     var delBtn = e.is_admin
       ? '<button disabled title="Beheerders kunnen niet worden verwijderd" style="opacity:.3;cursor:not-allowed;background:rgba(180,60,60,.08);border:1px solid rgba(180,60,60,.2);color:var(--danger);padding:5px 10px;border-radius:999px;font-size:12px;font-family:inherit;">🗑</button>'
-      : '<button data-del-id="' + e.id + '" data-del-naam="' + (e.naam||'').replace(/"/g,'&quot;') + '" data-del-email="' + (e.email||'').replace(/"/g,'&quot;') + '" onclick="quickDelete(this.dataset.delId,this.dataset.delNaam,this.dataset.delEmail)" style="background:rgba(180,60,60,.08);border:1px solid rgba(180,60,60,.2);color:var(--danger);padding:5px 10px;border-radius:999px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .15s;" onmouseover="this.style.background='rgba(180,60,60,.15)'" onmouseout="this.style.background='rgba(180,60,60,.08)'">🗑</button>';
-    return '<div id="row-' + e.id + '" style="display:flex;align-items:center;padding:12px 24px;border-bottom:1px solid var(--line);gap:12px;transition:background .1s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">'+
+      : '<button data-del-id="' + e.id + '" data-del-naam="' + (e.naam||'').replace(/"/g,'&quot;') + '" data-del-email="' + (e.email||'').replace(/"/g,'&quot;') + '" onclick="quickDelete(this.dataset.delId,this.dataset.delNaam,this.dataset.delEmail)" style="background:rgba(180,60,60,.08);border:1px solid rgba(180,60,60,.2);color:var(--danger);padding:5px 10px;border-radius:999px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .15s;" onmouseover="this.style.background=&apos;rgba(180,60,60,.15)&apos;" onmouseout="this.style.background=&apos;rgba(180,60,60,.08)&apos;">🗑</button>';
+    return '<div id="row-' + e.id + '" style="display:flex;align-items:center;padding:12px 24px;border-bottom:1px solid var(--line);gap:12px;transition:background .1s;" onmouseover="this.style.background=&apos;var(--bg)&apos;" onmouseout="this.style.background=&apos;&apos;">'+
       '<div class="w-ava" id="ava-' + e.id + '" style="flex:none;">' + photo + '</div>'+
       '<div style="flex:1;min-width:0;">'+
         '<div style="font-weight:700;font-size:13px;">' + (e.naam||'—') + adminBadge + pendingBadge + '</div>'+
@@ -904,12 +904,12 @@ function renderEmpList(){
       '</div>'+
       '<span style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:3px 8px;border-radius:999px;background:rgba(78,125,156,.1);color:var(--accent);white-space:nowrap;">' + (e.team||'—') + '</span>'+
       '<div style="display:flex;align-items:center;gap:4px;">'+
-        '<button class="pts-adj" onclick="adjPts('' + e.id + '',-10)">−</button>'+
+        '<button class="pts-adj" data-eid="' + e.id + '" onclick="adjPts(this.dataset.eid,-10)">−</button>'+
         '<span id="pts-' + e.id + '" style="font-weight:700;font-size:13px;min-width:28px;text-align:center;">' + (e.score||0) + '</span>'+
-        '<button class="pts-adj" onclick="adjPts('' + e.id + '',+10)">+</button>'+
+        '<button class="pts-adj" data-eid="' + e.id + '" onclick="adjPts(this.dataset.eid,+10)">+</button>'+
       '</div>'+
       '<div style="display:flex;gap:6px;align-items:center;">'+
-        '<button onclick="openEditPanel('' + e.id + '')" style="background:var(--card);border:1px solid var(--line);color:var(--ink);padding:5px 12px;border-radius:999px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--line)';this.style.color='var(--ink)'">✏️ Bewerk</button>'+
+        '<button data-eid2="' + e.id + '" onclick="openEditPanel(this.dataset.eid2)" style="background:var(--card);border:1px solid var(--line);color:var(--ink);padding:5px 12px;border-radius:999px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s;" onmouseover="this.style.borderColor=&apos;var(--accent)&apos;;this.style.color=&apos;var(--accent)&apos;" onmouseout="this.style.borderColor=&apos;var(--line)&apos;;this.style.color=&apos;var(--ink)&apos;">✏️ Bewerk</button>'+
         delBtn +
       '</div>'+
     '</div>';
