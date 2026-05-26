@@ -400,25 +400,14 @@ html,body{ background:var(--bg); color:var(--ink); font-family:'Inter',sans-seri
     </div>
 
     <!-- Volledige werknemerslijst -->
-    <div style="background:var(--card);border-radius:16px;box-shadow:var(--shadow);overflow-x:auto;margin-bottom:16px;">
+    <div class="widget" style="padding:0;margin-bottom:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px 14px;border-bottom:1px solid var(--line);">
         <div class="widget-title" style="margin:0;"><span class="ico">👥</span> Alle werknemers</div>
         <a href="employees.html" style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--accent);text-decoration:none;">Leaderboard →</a>
       </div>
-      <table style="width:100%;border-collapse:collapse;table-layout:fixed;" id="emp-table">
-        <thead>
-          <tr style="background:#fafbfc;">
-            <th style="text-align:left;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:12px 24px;font-weight:600;border-bottom:1px solid var(--line);">Werknemer</th>
-            <th style="text-align:left;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:12px 16px;font-weight:600;border-bottom:1px solid var(--line);">Team</th>
-            <th style="text-align:center;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:12px 16px;font-weight:600;border-bottom:1px solid var(--line);">Punten</th>
-            <th style="text-align:center;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:12px 16px;font-weight:600;border-bottom:1px solid var(--line);">Projecten</th>
-            <th style="text-align:right;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:12px 24px;font-weight:600;border-bottom:1px solid var(--line);">Acties</th>
-          </tr>
-        </thead>
-        <tbody id="emp-tbody">
-          <tr><td colspan="5" style="padding:40px;text-align:center;color:var(--muted);font-size:13px;">Laden…</td></tr>
-        </tbody>
-      </table>
+      <div class="w-list" id="emp-tbody">
+        <div style="padding:40px;text-align:center;color:var(--muted);font-size:13px;">Laden…</div>
+      </div>
     </div>
     <div style="height:20px;"></div>
 
@@ -899,65 +888,52 @@ async function loadEmployees(){
 }
 
 function renderEmpList(){
-  const tbody = document.getElementById('emp-tbody');
+  const el = document.getElementById('emp-tbody');
   if(!employees.length){
-    tbody.innerHTML='<tr><td colspan="5" style="padding:40px;text-align:center;color:var(--muted);font-size:13px;">Geen werknemers gevonden.</td></tr>';
+    el.innerHTML='<div style="padding:40px;text-align:center;color:var(--muted);font-size:13px;">Geen werknemers gevonden.</div>';
     return;
   }
-  tbody.innerHTML = employees.map((e,i)=>`
-    <tr id="row-${e.id}" style="border-bottom:1px solid var(--line);transition:background .1s;"
+  el.innerHTML = employees.map(e=>{
+    const isAdmin = e.is_admin || false;
+    const naam = (e.naam||'').replace(/'/g,"\'");
+    const email = (e.email||'').replace(/'/g,"\'");
+    const deleteBtn = isAdmin
+      ? '<button disabled title="Beheerders kunnen niet worden verwijderd" style="opacity:.3;cursor:not-allowed;background:rgba(180,60,60,.08);border:1px solid rgba(180,60,60,.2);color:var(--danger);padding:5px 10px;border-radius:999px;font-size:12px;font-family:inherit;">🗑</button>'
+      : '<button onclick="quickDelete(\'' + e.id + '\',\''+naam+'\',\''+email+'\''+')" style="background:rgba(180,60,60,.08);border:1px solid rgba(180,60,60,.2);color:var(--danger);padding:5px 10px;border-radius:999px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .15s;" onmouseover="this.style.background=\'rgba(180,60,60,.15)\'" onmouseout="this.style.background=\'rgba(180,60,60,.08)\'">🗑</button>';
+    return `<div id="row-${e.id}" style="display:flex;align-items:center;padding:12px 24px;border-bottom:1px solid var(--line);gap:12px;transition:background .1s;"
       onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">
-      <td style="padding:12px 24px;">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div class="w-ava" id="ava-${e.id}" style="flex:none;">
-            ${photoCache[e.id]?`<img src="${photoCache[e.id]}" alt="">`:''}
-          </div>
-          <div>
-            <div style="font-weight:700;font-size:12px;letter-spacing:.03em;text-transform:uppercase;">${e.naam||'—'}${e.status==='pending'?' <span style=\"font-size:9px;background:rgba(224,160,48,.15);color:#e0a030;padding:2px 6px;border-radius:999px;font-weight:700;letter-spacing:.08em;\">WACHT</span>':''}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px;">${e.rol||e.email||'—'}</div>
-          </div>
+      <div class="w-ava" id="ava-${e.id}" style="flex:none;">${photoCache[e.id]?`<img src="${photoCache[e.id]}" alt="">`:''}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:13px;">
+          ${e.naam||'—'}
+          ${isAdmin?'<span style="font-size:9px;background:rgba(78,125,156,.15);color:var(--accent);padding:2px 6px;border-radius:999px;font-weight:700;margin-left:4px;">ADMIN</span>':''}
+          ${e.status==='pending'?'<span style="font-size:9px;background:rgba(224,160,48,.15);color:#e0a030;padding:2px 6px;border-radius:999px;font-weight:700;margin-left:4px;">WACHT</span>':''}
         </div>
-      </td>
-      <td style="padding:12px 16px;">
-        <span style="font-size:9px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;
-          padding:3px 8px;border-radius:999px;background:rgba(61,110,138,.1);color:var(--accent);">
-          ${e.team||'—'}
-        </span>
-      </td>
-      <td style="padding:12px 16px;text-align:center;">
-        <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
-          <button class="pts-adj" onclick="adjPts('${e.id}',-10)">−</button>
-          <span id="pts-${e.id}" style="font-weight:700;font-size:14px;min-width:32px;text-align:center;">${e.score||0}</span>
-          <button class="pts-adj" onclick="adjPts('${e.id}',+10)">+</button>
-        </div>
-      </td>
-      <td style="padding:12px 16px;text-align:center;font-weight:600;font-size:13px;">${e.projecten||0}</td>
-      <td style="padding:12px 24px;text-align:right;">
-        <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;">
-          <button onclick="openEditPanel('${e.id}')"
-            style="background:var(--card);border:1px solid var(--line);color:var(--ink);
-            padding:6px 14px;border-radius:999px;font-size:10px;letter-spacing:.1em;
-            text-transform:uppercase;cursor:pointer;font-family:inherit;font-weight:600;
-            transition:all .15s;"
-            onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
-            onmouseout="this.style.borderColor='var(--line)';this.style.color='var(--ink)'">
-            ✏️ Bewerk
-          </button>
-                 <button ${e.is_admin ? 'disabled title="Beheerders kunnen niet worden verwijderd" style="background:rgba(180,60,60,.08);border:1px solid rgba(180,60,60,.2);color:var(--danger);padding:6px 14px;border-radius:999px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-family:inherit;font-weight:600;opacity:.3;cursor:not-allowed;"' : 'onclick="quickDelete(\''+e.id+'\',\''+((e.naam||'').replace(/'/g, "\\'"))+'\',\''+((e.email||'').replace(/'/g, "\\'"))+'\')'+'" style="background:rgba(180,60,60,.08);border:1px solid rgba(180,60,60,.2);color:var(--danger);padding:6px 14px;border-radius:999px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s;" onmouseover="this.style.background=\'rgba(180,60,60,.15)\'" onmouseout="this.style.background=\'rgba(180,60,60,.08)\''}>
-            🗑
-          </button>
-        </div>
-      </td>
-    </tr>
-  `).join('');
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">${e.rol||e.email||'—'}</div>
+      </div>
+      <span style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:3px 8px;border-radius:999px;background:rgba(78,125,156,.1);color:var(--accent);white-space:nowrap;">${e.team||'—'}</span>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <button class="pts-adj" onclick="adjPts('${e.id}',-10)">−</button>
+        <span id="pts-${e.id}" style="font-weight:700;font-size:13px;min-width:28px;text-align:center;">${e.score||0}</span>
+        <button class="pts-adj" onclick="adjPts('${e.id}',+10)">+</button>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button onclick="openEditPanel('${e.id}')"
+          style="background:var(--card);border:1px solid var(--line);color:var(--ink);padding:5px 12px;border-radius:999px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s;"
+          onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+          onmouseout="this.style.borderColor='var(--line)';this.style.color='var(--ink)'">✏️ Bewerk</button>
+        ${deleteBtn}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function filterEmpTable(q){
-  const rows = document.querySelectorAll('#emp-tbody tr[id]');
+  const rows = document.querySelectorAll('#emp-tbody div[id]');
   const ql = q.toLowerCase();
   rows.forEach(row=>{
     const text = row.textContent.toLowerCase();
-    row.style.display = !ql || text.includes(ql) ? '' : 'none';
+    row.style.display = !ql || text.includes(ql) ? 'flex' : 'none';
   });
 }
 
