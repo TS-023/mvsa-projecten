@@ -1434,7 +1434,7 @@ function DataSection({ d, leaderPhoto, allProjects, onShuffle }) {
 
 
 /* ── ProjecttypeChart: verdeling projecttypes als staafdiagram ── */
-function ProjecttypeChart({ data }) {
+function ProjecttypeChart({ data, onBarClick }) {
   const TYPE_NAMES = {
     'Won':  'Woningbouw',
     'Util': 'Utiliteitsbouw',
@@ -1447,7 +1447,12 @@ function ProjecttypeChart({ data }) {
     <div className="card chart-card">
       <div className="chart-title">Projecttype</div>
       <div className="chart-svg-wrap">
-        <BarChart data={data} height={300} />
+        <BarChart
+          data={data}
+          height={300}
+          hoverPalette={['#3a6b87', '#4e7d9c', '#5b8fa8', '#7aaec6', '#a0c8dc', '#2d5a75', '#6b9ab0', '#1a3d52']}
+          onBarClick={onBarClick}
+        />
       </div>
       <ul className="phase-legend" style={{ marginTop: 10 }}>
         {data.slice(0, 8).map((d, i) => (
@@ -2885,9 +2890,21 @@ function App(){
         v: faseCounts[f] || 0,
       }));
 
+      const TYPE_MAP = {'Woningbouw':'Won','Utiliteitsbouw':'Util','Mixed Use':'Mix','Zorg':'Zorg','Onderwijsbouw':'Onw'};
+      const TYPE_ORDER = ['Won','Util','Mix','Zorg','Onw','Ovr'];
+      const typeCounts = {};
+      projects.forEach(p => {
+        if (!p.project_type) return;
+        const t = p.project_type.trim();
+        const code = TYPE_MAP[t] || (TYPE_ORDER.includes(t) ? t : 'Ovr');
+        typeCounts[code] = (typeCounts[code]||0)+1;
+      });
+      const liveProjecttype = TYPE_ORDER.map(c => ({ label: c, v: typeCounts[c]||0 }));
+
       setLiveAlgemeen({
         ...MOCK.algemeen,
         fases: liveFases,
+        projecttype: liveProjecttype,
         projecten: n,
         meesteFase: mode('fase'),
         meesteFunctie: mode('functie'),
@@ -3298,7 +3315,15 @@ function App(){
             case 'leaderboard':       return <Leaderboard leaderboard={d.leaderboard} leaderPhoto={liveLeaderPhoto} />;
             case 'recent-1':          return recent[0] ? <RecentCard project={recent[0]} position={0} /> : null;
             case 'recent-2':          return recent[1] ? <RecentCard project={recent[1]} position={1} /> : null;
-            case 'projecttype':       return <ProjecttypeChart data={a.projecttype} />;
+            case 'projecttype':       return <ProjecttypeChart data={a.projecttype} onBarClick={(barData) => {
+              const TYPE_NAMES = {'Won':'Woningbouw','Util':'Utiliteitsbouw','Mix':'Mixed Use','Zorg':'Zorg','Onw':'Onderwijsbouw','Ovr':'Overig'};
+              const filtered = allProjects.filter(p => {
+                if (!p.project_type) return false;
+                const t = p.project_type.trim();
+                return t === barData.label || t.toLowerCase() === (TYPE_NAMES[barData.label]||'').toLowerCase();
+              });
+              setFaseModal({ label: barData.label, fullName: TYPE_NAMES[barData.label] || barData.label, projects: filtered });
+            }} />;
             case 'functie':           return <FunctieDonut data={a.functie} />;
             case 'verkregen':         return <VerkregenChart data={a.verkregen} />;
             case 'recent-gewijzigd': return <RecentGewijzigd allProjects={allProjects} />;
