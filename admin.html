@@ -1030,7 +1030,7 @@ async function exportContactsCSV(){
   if(!contacts || !contacts.length){ alert('Geen contactpersonen gevonden.'); return; }
   const cols = ['naam','bedrijf','email','telefoon','functie','notities'];
   const header = cols.join(';');
-  const rows = contacts.map(c => cols.map(k => { const v=c[k]==null?'':String(c[k]); const esc = v.replace(/"/g,'""'); return (v.includes(';')||v.includes('"')) ? ('"'+esc+'"') : v; }).join(';'));
+  const rows = contacts.map(c => cols.map(k => { const v = c[k] == null ? '' : String(c[k]); const needs = v.indexOf(';') >= 0 || v.indexOf('"') >= 0; return needs ? ('"' + v.split('"').join('""') + '"') : v; }).join(';'));
   const csv = [header,...rows].join('
 ');
   const blob = new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
