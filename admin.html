@@ -1032,7 +1032,7 @@ async function exportContactsCSV(){
   const header = cols.join(';');
   const rows = contacts.map(c => cols.map(k => { const v = c[k] == null ? '' : String(c[k]); const needs = v.indexOf(';') >= 0 || v.indexOf('"') >= 0; return needs ? ('"' + v.split('"').join('""') + '"') : v; }).join(';'));
   const csv = [header,...rows].join('\n');
-  const blob = new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  const blob = new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href=url; a.download='mvsa-contactpersonen.csv'; a.click();
