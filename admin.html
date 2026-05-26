@@ -618,6 +618,14 @@ html,body{ background:var(--bg); color:var(--ink); font-family:'Inter',sans-seri
     <div class="prow"><div class="picon">🏢</div><div class="pfield">
       <div class="lbl">Kantoor</div><input class="pinput" id="p-kantoor" type="text" placeholder="Amsterdam">
     </div></div>
+    <div class="psec">Rechten</div>
+    <div class="prow"><div class="picon">🔑</div><div class="pfield">
+      <div class="lbl">Beheerdersrechten</div>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-top:6px;">
+        <input type="checkbox" id="p-is-admin" style="width:16px;height:16px;accent-color:var(--accent);">
+        <span style="font-size:13px;color:var(--ink);">Aanwijzen als beheerder</span>
+      </label>
+    </div></div>
     <div class="psec">Statistieken</div>
     <div class="prow"><div class="picon">🏆</div><div class="pfield">
       <div class="lbl">Punten (score)</div><input class="pinput" id="p-score" type="number" min="0" placeholder="0">
@@ -665,7 +673,7 @@ html,body{ background:var(--bg); color:var(--ink); font-family:'Inter',sans-seri
   <div style="font-size:28px;margin-bottom:12px;">⚠️</div>
   <h2 style="font-size:18px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px;">Gebruiker verwijderen</h2>
   <p style="font-size:13px;color:var(--muted);margin-bottom:6px;line-height:1.6;">Je staat op het punt <strong id="del-naam-label">deze gebruiker</strong> te verwijderen.</p>
-  <p style="font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6;">De gebruiker ontvangt automatisch een e-mail met jouw toelichting.</p>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6;">De e-mail wordt verstuurd naar: <strong id="del-email-label" style="color:var(--accent);">—</strong></p>
   <div style="margin-bottom:16px;">
     <label style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:10px;">Reden *</label>
     <div style="display:flex;flex-direction:column;gap:8px;" id="del-redenen">
@@ -935,13 +943,7 @@ function renderEmpList(){
             onmouseout="this.style.borderColor='var(--line)';this.style.color='var(--ink)'">
             ✏️ Bewerk
           </button>
-          <button onclick="quickDelete('${e.id}','${(e.naam||'').replace(/'/g,"\'")}')"
-            style="background:rgba(180,60,60,.08);border:1px solid rgba(180,60,60,.2);
-            color:var(--danger);padding:6px 14px;border-radius:999px;font-size:10px;
-            letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:inherit;font-weight:600;
-            transition:all .15s;"
-            onmouseover="this.style.background='rgba(180,60,60,.15)'"
-            onmouseout="this.style.background='rgba(180,60,60,.08)'">
+                 <button ${e.is_admin ? 'disabled title="Beheerders kunnen niet worden verwijderd" style="background:rgba(180,60,60,.08);border:1px solid rgba(180,60,60,.2);color:var(--danger);padding:6px 14px;border-radius:999px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-family:inherit;font-weight:600;opacity:.3;cursor:not-allowed;"' : 'onclick="quickDelete(\''+e.id+'\',\''+((e.naam||'').replace(/'/g, "\\'"))+'\',\''+((e.email||'').replace(/'/g, "\\'"))+'\')'+'" style="background:rgba(180,60,60,.08);border:1px solid rgba(180,60,60,.2);color:var(--danger);padding:6px 14px;border-radius:999px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s;" onmouseover="this.style.background=\'rgba(180,60,60,.15)\'" onmouseout="this.style.background=\'rgba(180,60,60,.08)\''}>
             🗑
           </button>
         </div>
@@ -959,8 +961,8 @@ function filterEmpTable(q){
   });
 }
 
-function quickDelete(id, naam){
-  openDeleteModal(id, naam);
+function quickDelete(id, naam, email){
+  openDeleteModal(id, naam, email);
 }
 
 function updateAva(id, url){
@@ -1105,6 +1107,7 @@ function openNewEmpPanel(){
   ['p-naam','p-rol','p-email','p-tel','p-kantoor'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('p-score').value='0';
   document.getElementById('p-projecten').value='0';
+  document.getElementById('p-is-admin').checked=false;
   document.getElementById('p-team').value='Ontwerp';
   document.getElementById('p-photo-img').style.display='none';
   document.getElementById('p-save-btn').textContent='Toevoegen →';
@@ -1124,6 +1127,7 @@ function openEditPanel(id){
   document.getElementById('p-kantoor').value=e.kantoor||'';
   document.getElementById('p-score').value=e.score||0;
   document.getElementById('p-projecten').value=e.projecten||0;
+  document.getElementById('p-is-admin').checked=e.is_admin||false;
   const img=document.getElementById('p-photo-img');
   if(photoCache[id]){img.src=photoCache[id];img.style.display='block';}else{img.style.display='none';}
   document.getElementById('p-save-btn').textContent='Opslaan →';
@@ -1159,6 +1163,7 @@ async function savePanel(){
     team:document.getElementById('p-team').value,
     score:parseInt(document.getElementById('p-score').value)||0,
     projecten:parseInt(document.getElementById('p-projecten').value)||0,
+    is_admin:document.getElementById('p-is-admin').checked,
   };
   try{
     let savedId=panelId;
@@ -1184,8 +1189,9 @@ async function savePanel(){
 function deleteFromPanel(){
   if(!panelId) return;
   const naam=document.getElementById('p-naam').value;
+  const email=document.getElementById('p-email').value;
   closePanel();
-  openDeleteModal(panelId, naam);
+  openDeleteModal(panelId, naam, email);
 }
 
 /* ── Uitnodigings-modal ── */
@@ -1247,9 +1253,10 @@ function toggleAndersVeld(){
 
 /* ── Verwijder-modal ── */
 let deleteTargetId = null;
-function openDeleteModal(id, naam){
+function openDeleteModal(id, naam, email){
   deleteTargetId = id;
   document.getElementById('del-naam-label').textContent = naam;
+  document.getElementById('del-email-label').textContent = email || '—';
   document.getElementById('del-motivatie').value='';
   document.getElementById('del-motivatie').style.display='none';
   document.querySelectorAll('input[name="del-reden"]').forEach(r => r.checked = false);
@@ -1274,6 +1281,9 @@ async function doDelete(){
     : selectedReden.value;
   if(!motivatie){ showDelMsg('Typ een toelichting bij "Anders".','error'); return; }
   if(!deleteTargetId) return;
+  // Controleer of gebruiker een beheerder is
+  const target = employees.find(e => e.id === deleteTargetId);
+  if(target?.is_admin){ showDelMsg('Beheerders kunnen niet worden verwijderd.','error'); return; }
 
   btn.disabled=true; btn.textContent='Verwijderen…';
   try {
