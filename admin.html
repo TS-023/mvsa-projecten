@@ -372,7 +372,7 @@ html,body{ background:var(--bg); color:var(--ink); font-family:'Inter',sans-seri
     <div class="section-label">👥 Werknemers</div>
 
     <!-- Statistieken + acties balk -->
-    <div class="grid-3" style="margin-bottom:16px;">
+    <div class="grid-2" style="margin-bottom:16px;">
       <div class="widget" style="display:flex;align-items:center;gap:20px;">
         <div><div class="stat-num" id="emp-count">—</div><div class="stat-sub">Werknemers</div></div>
         <div><div class="stat-num" id="emp-total-pts">—</div><div class="stat-sub">Totaal punten</div></div>
@@ -382,28 +382,23 @@ html,body{ background:var(--bg); color:var(--ink); font-family:'Inter',sans-seri
           <button class="action-btn" onclick="openInviteModal()">
             <span class="ab-icon">✉️</span><span class="ab-label">Gebruiker uitnodigen</span>
           </button>
-          <button class="action-btn danger" onclick="confirmResetPoints()">
-            <span class="ab-icon">🔄</span><span class="ab-label">Reset maandpunten</span>
-          </button>
+
         </div>
-      </div>
-      <div class="widget">
-        <div class="widget-title"><span class="ico">🔍</span> Zoek werknemer</div>
-        <input id="emp-search" type="search" placeholder="Naam of functie…"
-          oninput="filterEmpTable(this.value)"
-          style="width:100%;font-family:inherit;font-size:13px;padding:9px 14px;
-          border:1px solid var(--line);border-radius:999px;background:var(--bg);
-          color:var(--ink);outline:none;transition:border-color .15s;"
-          onfocus="this.style.borderColor='var(--accent)'"
-          onblur="this.style.borderColor='var(--line)'">
       </div>
     </div>
 
     <!-- Volledige werknemerslijst -->
     <div class="widget" style="padding:0;margin-bottom:16px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px 14px;border-bottom:1px solid var(--line);">
-        <div class="widget-title" style="margin:0;"><span class="ico">👥</span> Alle werknemers</div>
-        <a href="employees.html" style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--accent);text-decoration:none;">Leaderboard →</a>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px 14px;border-bottom:1px solid var(--line);gap:16px;">
+        <div class="widget-title" style="margin:0;white-space:nowrap;"><span class="ico">👥</span> Alle werknemers</div>
+        <input id="emp-search" type="search" placeholder="Zoek op naam of functie…"
+          oninput="filterEmpTable(this.value)"
+          style="flex:1;max-width:280px;font-family:inherit;font-size:12px;padding:7px 14px;
+          border:1px solid var(--line);border-radius:999px;background:var(--bg);
+          color:var(--ink);outline:none;transition:border-color .15s;"
+          onfocus="this.style.borderColor='var(--accent)'"
+          onblur="this.style.borderColor='var(--line)'">
+        <a href="employees.html" style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--accent);text-decoration:none;white-space:nowrap;">Leaderboard →</a>
       </div>
       <div class="w-list" id="emp-tbody">
         <div style="padding:40px;text-align:center;color:var(--muted);font-size:13px;">Laden…</div>
@@ -453,60 +448,52 @@ html,body{ background:var(--bg); color:var(--ink); font-family:'Inter',sans-seri
 
     <!-- ── EXPORTS ── -->
     <div class="section-label" style="margin-top:8px;">⬇ Exporteren</div>
-    <div class="grid-2" style="margin-bottom:16px;">
+    <div class="widget" style="margin-bottom:16px;">
+      <div class="widget-title"><span class="ico">⬇</span> Kies wat je wilt exporteren</div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
 
-      <!-- Export projecten -->
-      <div class="widget">
-        <div class="widget-title"><span class="ico">📁</span> Projecten exporteren</div>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6;">
-          Download alle projecten als Excel bestand. Bevat alle velden zoals naam, stad, fase, BVO, opdrachtgever en meer.
-        </p>
-        <div style="display:flex;gap:10px;">
-          <button onclick="exportProjectsExcel()" style="flex:1;background:var(--ink);color:#fff;border:none;
-            padding:12px;border-radius:999px;font-family:inherit;font-size:11px;letter-spacing:.14em;
-            text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .15s;"
-            onmouseover="this.style.background='var(--accent)'"
-            onmouseout="this.style.background='var(--ink)'">
-            📊 Download Excel
-          </button>
-          <button onclick="exportProjectsCSV()" style="background:transparent;border:1px solid var(--line);
-            color:var(--muted);padding:12px 18px;border-radius:999px;font-family:inherit;font-size:11px;
-            letter-spacing:.14em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:all .15s;"
-            onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
-            onmouseout="this.style.borderColor='var(--line)';this.style.color='var(--muted)'">
-            CSV
-          </button>
+        <!-- Projecten -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--bg);border-radius:12px;gap:16px;">
+          <div>
+            <div style="font-weight:700;font-size:13px;margin-bottom:2px;">📁 Alle projecten</div>
+            <div style="font-size:12px;color:var(--muted);">Naam, stad, fase, BVO, opdrachtgever en meer · <span id="proj-export-count">—</span> projecten</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-shrink:0;">
+            <button onclick="exportProjectsExcel()" style="background:var(--ink);color:#fff;border:none;padding:8px 16px;border-radius:999px;font-family:inherit;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .15s;"
+              onmouseover="this.style.background='var(--accent)'" onmouseout="this.style.background='var(--ink)'">📊 Excel</button>
+            <button onclick="exportProjectsCSV()" style="background:transparent;border:1px solid var(--line);color:var(--muted);padding:8px 14px;border-radius:999px;font-family:inherit;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:all .15s;"
+              onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--line)';this.style.color='var(--muted)'">CSV</button>
+          </div>
         </div>
-        <div style="margin-top:12px;font-size:11px;color:var(--muted);" id="proj-export-info">
-          <span id="proj-export-count">—</span> projecten beschikbaar
-        </div>
-      </div>
 
-      <!-- Export werknemers -->
-      <div class="widget">
-        <div class="widget-title"><span class="ico">👥</span> Werknemers exporteren</div>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6;">
-          Download alle werknemers als Excel bestand. Bevat naam, functie, team, punten en projectenaantal.
-        </p>
-        <div style="display:flex;gap:10px;">
-          <button onclick="exportEmployeesExcel()" style="flex:1;background:var(--ink);color:#fff;border:none;
-            padding:12px;border-radius:999px;font-family:inherit;font-size:11px;letter-spacing:.14em;
-            text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .15s;"
-            onmouseover="this.style.background='var(--accent)'"
-            onmouseout="this.style.background='var(--ink)'">
-            📊 Download Excel
-          </button>
-          <button onclick="exportEmployeesCSV()" style="background:transparent;border:1px solid var(--line);
-            color:var(--muted);padding:12px 18px;border-radius:999px;font-family:inherit;font-size:11px;
-            letter-spacing:.14em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:all .15s;"
-            onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
-            onmouseout="this.style.borderColor='var(--line)';this.style.color='var(--muted)'">
-            CSV
-          </button>
+        <!-- Werknemers -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--bg);border-radius:12px;gap:16px;">
+          <div>
+            <div style="font-weight:700;font-size:13px;margin-bottom:2px;">👥 Alle werknemers</div>
+            <div style="font-size:12px;color:var(--muted);">Naam, functie, team, punten en projectenaantal · <span id="emp-export-count">—</span> werknemers</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-shrink:0;">
+            <button onclick="exportEmployeesExcel()" style="background:var(--ink);color:#fff;border:none;padding:8px 16px;border-radius:999px;font-family:inherit;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .15s;"
+              onmouseover="this.style.background='var(--accent)'" onmouseout="this.style.background='var(--ink)'">📊 Excel</button>
+            <button onclick="exportEmployeesCSV()" style="background:transparent;border:1px solid var(--line);color:var(--muted);padding:8px 14px;border-radius:999px;font-family:inherit;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:all .15s;"
+              onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--line)';this.style.color='var(--muted)'">CSV</button>
+          </div>
         </div>
-        <div style="margin-top:12px;font-size:11px;color:var(--muted);">
-          <span id="emp-export-count">—</span> werknemers beschikbaar
+
+        <!-- Contactpersonen -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--bg);border-radius:12px;gap:16px;">
+          <div>
+            <div style="font-weight:700;font-size:13px;margin-bottom:2px;">📒 Alle contactpersonen</div>
+            <div style="font-size:12px;color:var(--muted);">Naam, bedrijf, e-mail en telefoonnummer</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-shrink:0;">
+            <button onclick="exportContactsExcel()" style="background:var(--ink);color:#fff;border:none;padding:8px 16px;border-radius:999px;font-family:inherit;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .15s;"
+              onmouseover="this.style.background='var(--accent)'" onmouseout="this.style.background='var(--ink)'">📊 Excel</button>
+            <button onclick="exportContactsCSV()" style="background:transparent;border:1px solid var(--line);color:var(--muted);padding:8px 14px;border-radius:999px;font-family:inherit;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:all .15s;"
+              onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--line)';this.style.color='var(--muted)'">CSV</button>
+          </div>
         </div>
+
       </div>
     </div>
 
@@ -1017,6 +1004,40 @@ function renderIncomplete(){
       <div class="inc-pct">${pct}%</div>
     </a>`;
   }).join('');
+}
+
+async function exportContactsExcel(){
+  const { data: contacts } = await db.from('contacts').select('*').order('naam');
+  if(!contacts || !contacts.length){ alert('Geen contactpersonen gevonden.'); return; }
+  const cols = ['naam','bedrijf','email','telefoon','functie','notities'];
+  const header = ['Naam','Bedrijf','E-mail','Telefoon','Functie','Notities'];
+  const rows = contacts.map(c => cols.map(k => c[k]||''));
+  const ws = [header, ...rows];
+  if(typeof XLSX !== 'undefined'){
+    const wb = XLSX.utils.book_new();
+    const sheet = XLSX.utils.aoa_to_sheet(ws);
+    XLSX.utils.book_append_sheet(wb, sheet, 'Contactpersonen');
+    XLSX.writeFile(wb, 'mvsa-contactpersonen.xlsx');
+  } else {
+    exportContactsCSV();
+  }
+  showToast('Contactpersonen geëxporteerd');
+}
+
+async function exportContactsCSV(){
+  const { data: contacts } = await db.from('contacts').select('*').order('naam');
+  if(!contacts || !contacts.length){ alert('Geen contactpersonen gevonden.'); return; }
+  const cols = ['naam','bedrijf','email','telefoon','functie','notities'];
+  const header = cols.join(';');
+  const rows = contacts.map(c => cols.map(k => { const v=c[k]==null?'':String(c[k]); return v.includes(';')||v.includes('"')?`"${v.replace(/"/g,'""')}"`  :v; }).join(';'));
+  const csv = [header,...rows].join('
+');
+  const blob = new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download='mvsa-contactpersonen.csv'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV geëxporteerd');
 }
 
 async function exportProjects(){
