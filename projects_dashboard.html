@@ -1824,7 +1824,7 @@ function AlgemeenSection({ a, onBarClick }) {
         <ProjecttypeChart data={a.projecttype} />
         <FunctieDonut data={a.functie} onSegmentClick={(label) => {
               const filtered = allProjects.filter(p => p.functie && p.functie.trim().toLowerCase() === label.toLowerCase());
-              setFaseModal({ label: label, fullName: label, projects: filtered });
+              setFunctieModal({ label: label, projects: filtered });
             }} />
         <VerkregenChart data={a.verkregen} />
       </div>
@@ -2698,6 +2698,7 @@ function App(){
   const [allProjects, setAllProjects] = React.useState([]);
   /* ── State: fase-modal (null = gesloten, object = welke fase) ── */
   const [faseModal, setFaseModal] = React.useState(null); // { label, fullName, projects }
+  const [functieModal, setFunctieModal] = React.useState(null); // { label, projects }
   /* ── State: geselecteerde periode voor filtering ── */
   const [period, setPeriod] = React.useState('all');
   /* ── State: zoekbalk ── */
@@ -3273,7 +3274,7 @@ function App(){
             }} />;
             case 'functie':           return <FunctieDonut data={a.functie} onSegmentClick={(label) => {
               const filtered = allProjects.filter(p => p.functie && p.functie.trim().toLowerCase() === label.toLowerCase());
-              setFaseModal({ label: label, fullName: label, projects: filtered });
+              setFunctieModal({ label: label, projects: filtered });
             }} />;
             case 'verkregen':         return <VerkregenChart data={a.verkregen} />;
             case 'recent-gewijzigd': return <RecentGewijzigd allProjects={allProjects} />;
@@ -3464,6 +3465,93 @@ function App(){
 
 
       {/* FASE MODAL — via portal buiten root div zodat fixed positioning altijd werkt */}
+      {functieModal && ReactDOM.createPortal(
+        <>
+          <div className="fase-backdrop" onClick={() => setFunctieModal(null)} />
+          <div className="fase-modal">
+            <div className="fase-modal-header">
+              <div>
+                <div className="fase-modal-label">Functie</div>
+                <h2>{functieModal.label}</h2>
+                <div className="count">
+                  {functieModal.projects.length} project{functieModal.projects.length !== 1 ? 'en' : ''}
+                  {functieModal.projects.length > 0 && functieModal.projects[0].totaal_bvo
+                    ? ` · ${Math.round(functieModal.projects.reduce((s,p)=>s+(parseFloat(p.totaal_bvo)||0),0)).toLocaleString('nl-NL')} m² totaal BVO`
+                    : ''}
+                </div>
+              </div>
+              <button className="fase-modal-close" onClick={() => setFunctieModal(null)}>×</button>
+            </div>
+
+            {/* Functie filter tabs */}
+            <div className="fase-tabs">
+              {['Architect','Stedenbouw','Interieur','Onderzoek'].map(fn => {
+                const count = allProjects.filter(p => p.functie && p.functie.trim().toLowerCase() === fn.toLowerCase()).length;
+                const isActive = functieModal.label === fn;
+                return (
+                  <button key={fn}
+                    className={`fase-tab ${isActive ? 'active' : ''}`}
+                    onClick={() => {
+                      const filtered = allProjects.filter(p => p.functie && p.functie.trim().toLowerCase() === fn.toLowerCase());
+                      setFunctieModal({ label: fn, projects: filtered });
+                    }}>
+                    <span className="fase-tab-code">{fn}</span>
+                    <span className="fase-tab-count">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="fase-modal-body">
+              {functieModal.projects.length === 0 ? (
+                <div className="fase-empty">
+                  <div className="fase-empty-icon">📭</div>
+                  Geen projecten gevonden voor {functieModal.label}.
+                </div>
+              ) : (
+                functieModal.projects
+                  .sort((a,b) => (b.totaal_bvo||0) - (a.totaal_bvo||0))
+                  .map((p, i) => {
+                    const thumb = p.projectnummer ? thumbCache[p.projectnummer] : null;
+                    if (p.projectnummer && thumbCache[p.projectnummer] === undefined) {
+                      setThumbCache(c => ({ ...c, [p.projectnummer]: null }));
+                      Images.getForProject(p.projectnummer).then(imgs =>
+                        setThumbCache(c => ({ ...c, [p.projectnummer]: imgs[0]||null }))
+                      ).catch(()=>{});
+                    }
+                    return (
+                      <a key={p.id} className="fase-project-row"
+                        href={`project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}`}>
+                        <span className="fpr-rank">{i+1}</span>
+                        {thumb
+                          ? <img className="fpr-thumb" src={thumb} alt="" />
+                          : <div className="fpr-thumb-ph">🏗</div>}
+                        <div className="fpr-info">
+                          <div className="fpr-name">{p.projectnaam || '—'}</div>
+                          <div className="fpr-meta">
+                            {[p.stad, p.provincie, p.land].filter(Boolean).join(' · ') || '—'}
+                            {p.opdrachtgever ? ` — ${p.opdrachtgever}` : ''}
+                          </div>
+                        </div>
+                        <div className="fpr-right">
+                          {p.totaal_bvo
+                            ? <span className="fpr-bvo">{Number(p.totaal_bvo).toLocaleString('nl-NL')} m²</span>
+                            : null}
+                          {p.projectnummer
+                            ? <span className="fpr-num">{p.projectnummer}</span>
+                            : null}
+                        </div>
+                        <span className="fpr-arrow">→</span>
+                      </a>
+                    );
+                  })
+              )}
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
+
       {faseModal && ReactDOM.createPortal(
         <>
           <div className="fase-backdrop" onClick={() => setFaseModal(null)} />
