@@ -273,7 +273,10 @@
       <div id="detail-partners" style="margin-top:10px;display:none;"></div>
     </div>
   </aside>
-  <div class="map-wrap"><div id="map"></div></div>
+  <div class="map-wrap">
+    <div id="map-loading" style="display:none;position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:1000;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border:1px solid rgba(17,20,24,.1);border-radius:999px;padding:10px 20px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;color:#1a2332;box-shadow:0 4px 16px rgba(0,0,0,.1);pointer-events:none;">📍 Projecten laden…</div>
+    <div id="map"></div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -414,6 +417,9 @@
    User projects come from localStorage (saved via New Project.html).
 ---------------------------------------------------------------------------- */
 
+const YEAR_MIN = 1990;
+const YEAR_MAX = new Date().getFullYear();
+
 /* Load user-entered projects from Supabase */
 /* ── loadUserProjects: haalt projecten op uit Supabase
    - resolveert adressen via Nominatim geocoder
@@ -442,19 +448,20 @@ async function loadUserProjects(){
   }
 }
 
-/* Geocode using Nominatim (OSM) — free, no key, but rate-limited */
+/* ── Geocode via Nominatim (fallback voor projecten zonder opgeslagen lat/lng) ── */
 async function geocode(query){
   if (!query) return null;
   const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
   try {
-    const res = await fetch(url, { headers: { 'Accept-Language': 'nl' } });
+    const res = await fetch(url, { headers: { 'Accept-Language': 'nl', 'User-Agent': 'MVSA-Projecten/1.0' } });
+    if (!res.ok) return null;
     const data = await res.json();
     if (data && data[0]) return { lat: +data[0].lat, lng: +data[0].lon };
   } catch (e) { console.warn('geocode failed', e); }
   return null;
 }
 
-/* Cache geocode results in localStorage to avoid hammering Nominatim */
+/* Cache geocode resultaten in localStorage (vermijdt herhaaldelijk hammeren van Nominatim) */
 function cacheGet(key){
   try { return JSON.parse(localStorage.getItem('mvsa.geocache') || '{}')[key] || null; }
   catch { return null; }
@@ -467,24 +474,58 @@ function cacheSet(key, val){
   } catch {}
 }
 
-/* Resolve coords for user projects */
+/* ── resolveUserCoords: gebruikt opgeslagen lat/lng als eerste keuze,
+   valt terug op Nominatim geocoding (met cache) alleen als nodig ── */
 async function resolveUserCoords(userProjects){
   const out = [];
+  const needsGeocode = [];
+
+  // Eerste pass: gebruik opgeslagen lat/lng direct
   for (const p of userProjects){
-    // Direct lat/lng beschikbaar → geen geocoding nodig
-    if (p.raw?.lat && p.raw?.lng) {
-      out.push({ ...p, lat: +p.raw.lat, lng: +p.raw.lng });
-      continue;
+    const lat = p.raw?.lat != null ? +p.raw.lat : null;
+    const lng = p.raw?.lng != null ? +p.raw.lng : null;
+    if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+      out.push({ ...p, lat, lng });
+    } else if (p.address) {
+      needsGeocode.push(p);
     }
-    if (!p.address){ continue; }
-    let coords = cacheGet(p.address);
-    if (!coords){
-      coords = await geocode(p.address);
-      if (coords) cacheSet(p.address, coords);
-      await new Promise(r => setTimeout(r, 1100));
-    }
-    if (coords) out.push({ ...p, lat: coords.lat, lng: coords.lng });
+    // Geen adres én geen coords → project overgeslagen (kan niet op kaart)
   }
+
+  // Update loading indicator
+  const loadEl = document.getElementById('map-loading');
+  if (needsGeocode.length && loadEl) {
+    loadEl.textContent = `📍 Adressen opzoeken voor ${needsGeocode.length} project${needsGeocode.length !== 1 ? 'en' : ''}…`;
+    loadEl.style.display = 'block';
+  }
+
+  // Tweede pass: geocode alleen wat nog geen coords heeft
+  for (let i = 0; i < needsGeocode.length; i++) {
+    const p = needsGeocode[i];
+    if (loadEl) loadEl.textContent = `📍 Adres opzoeken ${i + 1}/${needsGeocode.length}: ${p.name}…`;
+
+    let coords = cacheGet(p.address);
+    if (!coords) {
+      coords = await geocode(p.address);
+      // Fallback: alleen stad
+      if (!coords && p.city) {
+        coords = await geocode(p.city + ', Nederland');
+      }
+      if (coords) cacheSet(p.address, coords);
+      await new Promise(r => setTimeout(r, 1100)); // Nominatim max 1 req/sec
+    }
+
+    if (coords) {
+      out.push({ ...p, lat: coords.lat, lng: coords.lng });
+      // Sla lat/lng op in Supabase zodat volgende keer direct beschikbaar
+      if (p.raw?.id) {
+        db.from('projects').update({ lat: coords.lat, lng: coords.lng }).eq('id', p.raw.id)
+          .then(() => {}).catch(() => {});
+      }
+    }
+  }
+
+  if (loadEl) loadEl.style.display = 'none';
   return out;
 }
 
@@ -895,9 +936,14 @@ async function zoomToStad(stad) {
 }
 
 (async () => {
+  // Toon loading indicator
+  const loadEl = document.getElementById('map-loading');
+  if (loadEl) { loadEl.textContent = '📍 Projecten laden…'; loadEl.style.display = 'block'; }
+
   // Laad projecten uit Supabase
   const user = await loadUserProjects();
   if (user.length === 0){
+    if (loadEl) loadEl.style.display = 'none';
     renderList();
     buildTypeFilters();
     buildStadFilter();

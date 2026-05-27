@@ -327,3 +327,16 @@ insert into public.contacts (naam, bedrijf, rol, email, tags) values
   ('Rick Bosman',     'Ballast Nedam',        'Uitvoerder',      'r.bosman@bn.nl',     ARRAY['aannemer']),
   ('Anne Dekker',     'Provincie Noord-Holland','Vergunning',    'a.dekker@pnh.nl',    ARRAY['overheid'])
 on conflict do nothing;
+
+
+-- ============================================================
+--  Migratie: lat/lng kolommen voor directe kaartweergave
+--  Voer dit uit in Supabase SQL Editor
+-- ============================================================
+ALTER TABLE public.projects
+  ADD COLUMN IF NOT EXISTS lat double precision,
+  ADD COLUMN IF NOT EXISTS lng double precision;
+
+-- Index voor snelle spatial queries
+CREATE INDEX IF NOT EXISTS projects_lat_lng_idx ON public.projects (lat, lng)
+  WHERE lat IS NOT NULL AND lng IS NOT NULL;

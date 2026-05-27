@@ -315,6 +315,7 @@ function toSnake(obj) {
     autoparkeren:'autoparkeren', fietsparkeren:'fietsparkeren', ratioWonen:'ratio_wonen',
     npgScore:'npg_score', daktuin:'daktuin', zonnepanelen:'zonnepanelen', label:'duurzaamheidslabel',
     bouwhoogte:'bouwhoogte', tevredenheid:'tevredenheid', awards:'awards', opleverdatum:'opleverdatum',
+    lat:'lat', lng:'lng',
   };
   const out = {};
   for (const [k, v] of Object.entries(obj)) {
@@ -385,6 +386,33 @@ function Field({ field, value, onChange, prevFilled }){
    - sla op naar Supabase via Projects.upsert()
    - ondersteunt bewerken via ?edit=projectnummer in de URL
    - afbeeldingen uploaden via Images.upload() naar Supabase Storage ── */
+/* ── geocodeAddress: zet adres om naar lat/lng via Nominatim ── */
+async function geocodeAddress(stad, straat, huisnummer, postcode, land) {
+  const parts = [straat, huisnummer, postcode, stad, land || 'Nederland'].filter(Boolean);
+  if (!parts.length) return null;
+  const query = parts.join(' ');
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`,
+      { headers: { 'Accept-Language': 'nl', 'User-Agent': 'MVSA-Projecten/1.0' } }
+    );
+    const data = await res.json();
+    if (data && data[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  } catch(e) { console.warn('Geocode mislukt:', e); }
+  // Fallback: alleen stad proberen
+  if (stad) {
+    try {
+      const res2 = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(stad + ', Nederland')}`,
+        { headers: { 'Accept-Language': 'nl', 'User-Agent': 'MVSA-Projecten/1.0' } }
+      );
+      const data2 = await res2.json();
+      if (data2 && data2[0]) return { lat: parseFloat(data2[0].lat), lng: parseFloat(data2[0].lon) };
+    } catch(e) {}
+  }
+  return null;
+}
+
 function App(){
   const editKey = new URLSearchParams(window.location.search).get('edit');
   const isEdit = !!editKey;
@@ -419,7 +447,17 @@ function App(){
       return;
     }
     try {
-      const savedProject = await Projects.upsert(toSnake(data));
+      // Geocode het adres als lat/lng nog niet aanwezig of adres gewijzigd
+      const saveData = { ...data };
+      const hasCoords = saveData.lat && saveData.lng;
+      const hasAddress = saveData.stad || saveData.straat || saveData.postcode;
+      if (!hasCoords && hasAddress) {
+        try {
+          const coords = await geocodeAddress(saveData.stad, saveData.straat, saveData.huisnummer, saveData.postcode, saveData.land);
+          if (coords) { saveData.lat = coords.lat; saveData.lng = coords.lng; }
+        } catch(e) { console.warn('Geocoding overgeslagen:', e); }
+      }
+      const savedProject = await Projects.upsert(toSnake(saveData));
       if (linkedContacts.length && savedProject?.id) {
         try {
           await db.from('project_contacts').upsert(
