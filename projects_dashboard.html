@@ -1465,47 +1465,31 @@ function ProjecttypeChart({ data, onBarClick }) {
 
 
 /* ── FunctieDonut: rol van MVSA per project als taartdiagram, klikbaar ── */
-function FunctieDonut({ data }) {
+function FunctieDonut({ data, onSegmentClick }) {
   const shades = ['#3a6b87', '#5b8fa8', '#7aaec6', '#a0c8dc', '#ccdfe9'];
   const total = data.reduce((s, d) => s + d.v, 0);
-  const [selected, setSelected] = React.useState(null);
   const [hoveredLabel, setHoveredLabel] = React.useState(null);
-  const active = hoveredLabel || selected;
-  const handleSegmentClick = (label) => { setSelected(prev => prev === label ? null : label); };
-  const filteredProjects = React.useMemo(() => {
-    if (!active) return [];
-    const all = window._allProjects || [];
-    return all.filter(p => p.functie && p.functie.trim().toLowerCase() === active.toLowerCase());
-  }, [active]);
-  const activeIdx = active ? data.findIndex(d => d.label === active) : -1;
-  const selectedColor = activeIdx >= 0 ? shades[activeIdx % shades.length] : '#3a6b87';
 
   return (
-    <div className="card chart-card" style={{ transition: 'all .25s ease' }} onClick={() => setSelected(null)}>
+    <div className="card chart-card">
       <div className="chart-title">Functie</div>
-      <div className="chart-svg-wrap" style={{ alignItems: 'center', justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
-
-      <ClickableDonut data={data} shades={shades} selected={active} onSegmentClick={handleSegmentClick} onSegmentHover={setHoveredLabel} />
+      <div className="chart-svg-wrap" style={{ alignItems: 'center', justifyContent: 'center' }}>
+        <ClickableDonut data={data} shades={shades} selected={null} onSegmentClick={onSegmentClick} onSegmentHover={setHoveredLabel} />
       </div>
-
       {/* Legenda */}
-      <div onClick={e => e.stopPropagation()} style={{
+      <div style={{
         borderTop: '1px solid var(--line)', paddingTop: 10, marginTop: 10,
         display: 'flex', flexWrap: 'wrap', gap: '5px 20px', flexShrink: 0,
-        minHeight: 130,
       }}>
         {data.map((d, i) => (
           <div key={i}
-            onClick={() => handleSegmentClick(d.label)}
+            onClick={() => onSegmentClick(d.label)}
             onMouseEnter={() => setHoveredLabel(d.label)}
             onMouseLeave={() => setHoveredLabel(null)}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               fontSize: 11, cursor: 'pointer',
-              color: active === d.label ? 'var(--ink)' : 'var(--ink-2)',
-              fontWeight: active === d.label ? 700 : 400,
               padding: '2px 6px', borderRadius: 6,
-              background: active === d.label ? 'rgba(17,20,24,.06)' : 'transparent',
               transition: 'all .15s',
             }}>
             <span style={{ width: 8, height: 8, borderRadius: 2, background: shades[i % shades.length], flexShrink: 0, display: 'inline-block' }}></span>
@@ -1514,46 +1498,6 @@ function FunctieDonut({ data }) {
           </div>
         ))}
       </div>
-
-      {/* Uitklapbare projectlijst — alleen bij klik, niet bij hover */}
-      {selected && (
-        <div style={{
-          marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 10,
-          animation: 'fadeIn .15s ease',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: selectedColor, display: 'inline-block' }}></span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{active}</span>
-              <span style={{ fontSize: 11, color: 'var(--muted)' }}>{filteredProjects.length} projecten</span>
-            </div>
-            {selected && <button onClick={() => setSelected(null)} style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: 16, color: 'var(--muted)', lineHeight: 1, padding: '0 2px',
-            }}>×</button>}
-          </div>
-          {filteredProjects.length === 0 ? (
-            <div style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>Geen projecten gevonden</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 160, overflowY: 'auto' }}>
-              {filteredProjects.map((p, i) => (
-                <div key={i} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '5px 8px', borderRadius: 8,
-                  background: 'rgba(17,20,24,.03)', fontSize: 12,
-                }}>
-                  <span style={{ fontWeight: 600, color: 'var(--ink)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {p.projectnaam || '—'}
-                  </span>
-                  <span style={{ color: 'var(--muted)', fontSize: 11, marginLeft: 8, flexShrink: 0 }}>
-                    {p.stad || p.land || ''}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -1878,7 +1822,10 @@ function AlgemeenSection({ a, onBarClick }) {
       {/* Rij 1: drie grafieken */}
       <div className="grid grid-alg-1" style={{ marginBottom: 14 }}>
         <ProjecttypeChart data={a.projecttype} />
-        <FunctieDonut data={a.functie} />
+        <FunctieDonut data={a.functie} onSegmentClick={(label) => {
+              const filtered = allProjects.filter(p => p.functie && p.functie.trim().toLowerCase() === label.toLowerCase());
+              setFaseModal({ label: label, fullName: label, projects: filtered });
+            }} />
         <VerkregenChart data={a.verkregen} />
       </div>
 
@@ -3324,7 +3271,10 @@ function App(){
               });
               setFaseModal({ label: barData.label, fullName: TYPE_NAMES[barData.label] || barData.label, projects: filtered });
             }} />;
-            case 'functie':           return <FunctieDonut data={a.functie} />;
+            case 'functie':           return <FunctieDonut data={a.functie} onSegmentClick={(label) => {
+              const filtered = allProjects.filter(p => p.functie && p.functie.trim().toLowerCase() === label.toLowerCase());
+              setFaseModal({ label: label, fullName: label, projects: filtered });
+            }} />;
             case 'verkregen':         return <VerkregenChart data={a.verkregen} />;
             case 'recent-gewijzigd': return <RecentGewijzigd allProjects={allProjects} />;
             case 'project-status':  return <OpgeleverdVsBezig allProjects={allProjects} />;
