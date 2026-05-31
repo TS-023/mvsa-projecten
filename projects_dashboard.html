@@ -1115,6 +1115,67 @@ function AantalProjecten({ projectsFilled, allProjects }) {
 
 
 
+/* ── IncompleteProjectsCard: jouw projecten met lege velden ── */
+function IncompleteProjectsCard({ projects }) {
+  const [userId, setUserId] = React.useState(null);
+  React.useEffect(() => {
+    db.auth.getUser().then(({ data: { user } }) => { if (user) setUserId(user.id); }).catch(()=>{});
+  }, []);
+
+  // Velden die we tellen als "relevant om in te vullen"
+  const TRACKED = ['fase','stad','totaal_bvo','project_type','functie','verkregen_dmv','opleverdatum','bouwhoogte','npg_score','duurzaamheidslabel'];
+  const incomplete = React.useMemo(() => {
+    if (!projects.length) return [];
+    return projects
+      .map(p => {
+        const missing = TRACKED.filter(f => !p[f]);
+        return { ...p, missingCount: missing.length, missingFields: missing };
+      })
+      .filter(p => p.missingCount > 0)
+      .filter(p => !userId || p.created_by === userId)
+      .sort((a, b) => b.missingCount - a.missingCount)
+      .slice(0, 5);
+  }, [projects, userId]);
+
+  const fieldLabel = { fase:'Fase', stad:'Stad', totaal_bvo:'BVO', project_type:'Type',
+    functie:'Functie', verkregen_dmv:'Verkregen d.m.v.', opleverdatum:'Opleverdatum',
+    bouwhoogte:'Bouwhoogte', npg_score:'NPG score', duurzaamheidslabel:'Label' };
+
+  if (!incomplete.length) return (
+    <div className="card" style={{display:'flex',flexDirection:'column',gap:10,padding:'20px 22px'}}>
+      <div style={{fontSize:'11px',fontWeight:700,letterSpacing:'.18em',textTransform:'uppercase',color:'var(--muted)'}}>Jouw projecten</div>
+      <div style={{fontSize:'13px',color:'var(--muted)',textAlign:'center',padding:'16px 0'}}>✅ Alles volledig ingevuld!</div>
+    </div>
+  );
+
+  return (
+    <div className="card" style={{display:'flex',flexDirection:'column',gap:0,padding:0,overflow:'hidden'}}>
+      <div style={{padding:'16px 20px 12px',borderBottom:'1px solid var(--line)'}}>
+        <div style={{fontSize:'11px',fontWeight:700,letterSpacing:'.18em',textTransform:'uppercase',color:'var(--muted)'}}>Aanvullen</div>
+        <div style={{fontSize:'12px',color:'var(--muted)',marginTop:2}}>{incomplete.length} project{incomplete.length!==1?'en':''} met lege velden</div>
+      </div>
+      {incomplete.map(p => (
+        <a key={p.id} href={`new_project.html?edit=${encodeURIComponent(p.projectnummer||'')}`}
+          style={{display:'flex',alignItems:'center',gap:12,padding:'12px 20px',borderBottom:'1px solid var(--line)',textDecoration:'none',color:'inherit',transition:'background .12s'}}
+          onMouseEnter={e=>e.currentTarget.style.background='var(--accent-light,#f0f6fa)'}
+          onMouseLeave={e=>e.currentTarget.style.background=''}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontWeight:700,fontSize:'13px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.projectnaam||p.projectnummer||'—'}</div>
+            <div style={{fontSize:'11px',color:'var(--muted)',marginTop:2}}>
+              {p.missingFields.slice(0,3).map(f=>fieldLabel[f]||f).join(' · ')}
+              {p.missingCount > 3 ? ` +${p.missingCount-3} meer` : ''}
+            </div>
+          </div>
+          <div style={{flexShrink:0,background:'#fef3e2',color:'#c8900a',borderRadius:'999px',padding:'3px 10px',fontSize:'11px',fontWeight:700}}>
+            {p.missingCount} leeg
+          </div>
+        </a>
+      ))}
+    </div>
+  );
+}
+
+
 /* ── RandomProject: uitgelicht project met shuffle knop ── */
 function RandomProject({ project, onShuffle }) {
   const [spinning, setSpinning] = React.useState(false);
@@ -3028,7 +3089,7 @@ function App(){
         'projecttype','functie','fases',
         'binnen-buiten','top-steden',
         'totaal-bvo','grootste-gebouw',
-        'duurzaamheid-score','tevredenheid','awards'],
+        'duurzaamheid-score','tevredenheid','awards','incomplete-projects'],
     },
     {
       id: 'portfolio',
@@ -3307,6 +3368,7 @@ function App(){
             case 'awards':            return <TotaalAwardsStat waarde={b.totaalAwards} />;
             case 'labels':            return <LabelsList items={b.labels} />;
             case 'meeste-awards':     return <MeesteAwards items={b.awards} />;
+            case 'incomplete-projects': return <IncompleteProjectsCard projects={allProjects} />;
             default: return null;
           }
         };
@@ -3345,6 +3407,7 @@ function App(){
           'awards':             'small',
           'labels':             'medium',
           'meeste-awards':      'medium',
+          'incomplete-projects': 'large',
         };
         const H = { half: 160, full: 247, large: 508, xlarge: 508 };
 

@@ -98,6 +98,74 @@ const Employees = {
       await db.from('profiles').update({ projecten: (profile.projecten || 0) + 1 }).eq('id', user.id);
     } catch(e) { console.warn('incrementProjects fout:', e); }
   },
+
+  // ── Streak bijhouden ──────────────────────────────────────────
+  // Slaat last_save_date en streak_days op in localStorage (per gebruiker)
+  // Geeft { streak, isNew, broken } terug
+  updateStreak() {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const key = 'mvsa.streak';
+      const raw = JSON.parse(localStorage.getItem(key) || '{}');
+      const last = raw.lastDate || null;
+      let streak = raw.streak || 0;
+      let isNew = false;
+      let broken = false;
+
+      if (!last) {
+        // Eerste keer
+        streak = 1; isNew = true;
+      } else if (last === today) {
+        // Al vandaag opgeslagen — streak niet verhogen
+      } else {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yStr = yesterday.toISOString().slice(0, 10);
+        if (last === yStr) {
+          streak += 1; isNew = true;
+        } else {
+          broken = streak > 1;
+          streak = 1;
+        }
+      }
+      localStorage.setItem(key, JSON.stringify({ lastDate: today, streak }));
+      return { streak, isNew, broken };
+    } catch(e) { return { streak: 1, isNew: false, broken: false }; }
+  },
+
+  getStreak() {
+    try {
+      const raw = JSON.parse(localStorage.getItem('mvsa.streak') || '{}');
+      return raw.streak || 0;
+    } catch(e) { return 0; }
+  },
+
+  // ── Badges berekenen op basis van profiel ─────────────────────
+  // Geeft array van verdiende badge-objecten terug
+  getBadges(profile) {
+    const badges = [];
+    const score    = profile?.score    || 0;
+    const projects = profile?.projecten || 0;
+    const streak   = this.getStreak();
+
+    // Projecten-badges
+    if (projects >= 1)   badges.push({ id: 'eerste',    icon: '🏗',  label: 'Eerste project',     desc: 'Je eerste project toegevoegd!' });
+    if (projects >= 5)   badges.push({ id: 'vijf',      icon: '🏅',  label: '5 projecten',         desc: '5 projecten toegevoegd' });
+    if (projects >= 10)  badges.push({ id: 'tien',      icon: '🥈',  label: '10 projecten',        desc: '10 projecten toegevoegd' });
+    if (projects >= 25)  badges.push({ id: 'vijfentwintig', icon: '🥇', label: '25 projecten',     desc: '25 projecten toegevoegd' });
+
+    // Score-badges
+    if (score >= 50)     badges.push({ id: 'punten50',  icon: '⚡',  label: '50 punten',           desc: '50 punten verdiend' });
+    if (score >= 200)    badges.push({ id: 'punten200', icon: '💎',  label: '200 punten',          desc: '200 punten verdiend' });
+    if (score >= 500)    badges.push({ id: 'punten500', icon: '👑',  label: '500 punten',          desc: '500 punten verdiend' });
+
+    // Streak-badges
+    if (streak >= 3)     badges.push({ id: 'streak3',   icon: '🔥',  label: '3-daagse streak',     desc: '3 dagen op rij een project opgeslagen' });
+    if (streak >= 7)     badges.push({ id: 'streak7',   icon: '🌟',  label: 'Weekstreak',          desc: '7 dagen op rij actief!' });
+    if (streak >= 30)    badges.push({ id: 'streak30',  icon: '🚀',  label: 'Maandstreak',         desc: '30 dagen op rij actief!' });
+
+    return badges;
+  },
 };
 
 // ============================================================

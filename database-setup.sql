@@ -340,3 +340,21 @@ ALTER TABLE public.projects
 -- Index voor snelle spatial queries
 CREATE INDEX IF NOT EXISTS projects_lat_lng_idx ON public.projects (lat, lng)
   WHERE lat IS NOT NULL AND lng IS NOT NULL;
+
+-- ============================================================
+--  Migratie: streak, badges en created_by voor invuller-tracking
+--  Voer dit uit in Supabase SQL Editor
+-- ============================================================
+
+-- Invuller bijhouden op projecten
+ALTER TABLE public.projects
+  ADD COLUMN IF NOT EXISTS created_by uuid references auth.users(id) on delete set null;
+
+-- Streak en badges op profiles (worden client-side bijgehouden via localStorage,
+-- maar score/projecten staan al in profiles — geen extra kolommen nodig)
+-- De streak leeft in localStorage: mvsa.streak = { lastDate, streak }
+-- De badges leven in localStorage: mvsa.badges = ['eerste', 'punten50', ...]
+
+-- Index voor snel opzoeken van projecten per invuller
+CREATE INDEX IF NOT EXISTS projects_created_by_idx ON public.projects (created_by)
+  WHERE created_by IS NOT NULL;

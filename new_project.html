@@ -144,6 +144,38 @@
   @keyframes slideIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
   @keyframes slideOut { to { opacity:0; transform: translateX(20px); } }
 
+  /* Confetti particle */
+  .confetti-particle {
+    position: fixed; top: -10px; z-index: 9999; pointer-events: none;
+    border-radius: 3px; animation: confettiFall linear forwards;
+  }
+  @keyframes confettiFall {
+    to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* Streak toast */
+  .toast.streak { background: linear-gradient(135deg, #e07b00, #f5a623); }
+  .toast.badge-new { background: linear-gradient(135deg, #6b3fa0, #9b59b6); }
+
+  /* Autocomplete suggestion dropdown */
+  .field { position: relative; }
+  .suggestions-dropdown {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 300;
+    background: #fff; border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: 0 8px 24px -4px rgba(0,0,0,.14); margin-top: 4px;
+    overflow: hidden;
+  }
+  .suggestions-dropdown button {
+    display: block; width: 100%; text-align: left;
+    padding: 9px 14px; font-family: inherit; font-size: 13px; font-weight: 500;
+    background: none; border: none; cursor: pointer; color: var(--ink);
+    border-bottom: 1px solid var(--line); transition: background .1s;
+  }
+  .suggestions-dropdown button:last-child { border-bottom: none; }
+  .suggestions-dropdown button:hover { background: var(--accent-light, #f0f6fa); }
+  .postcode-loading { font-size: 11px; color: var(--muted); padding: 4px 0; }
+
+
   /* Save bar at bottom */
   .save-actions{
     display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px;
@@ -341,6 +373,55 @@ function fromSnake(obj) {
 }
 
 /* ---------------------------------------------------------------------------
+   Confetti
+--------------------------------------------------------------------------- */
+function launchConfetti() {
+  const colors = ['#4e7d9c','#2d8a5e','#c8900a','#9b59b6','#e07b00','#3d6e8a','#f5a623'];
+  const shapes = ['■','▲','●','◆'];
+  for (let i = 0; i < 90; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'confetti-particle';
+      el.textContent = shapes[Math.floor(Math.random() * shapes.length)];
+      el.style.cssText = [
+        `left: ${Math.random() * 100}vw`,
+        `font-size: ${8 + Math.random() * 10}px`,
+        `color: ${colors[Math.floor(Math.random() * colors.length)]}`,
+        `animation-duration: ${1.2 + Math.random() * 1.5}s`,
+        `animation-delay: ${Math.random() * 0.6}s`,
+        `opacity: ${0.7 + Math.random() * 0.3}`,
+      ].join(';');
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 3000);
+    }, i * 18);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Postcode auto-aanvullen (openpostcode.nl — gratis, geen API key)
+--------------------------------------------------------------------------- */
+async function lookupPostcode(postcode, huisnummer) {
+  const pc = (postcode || '').replace(/\s/g, '').toUpperCase();
+  if (!/^[1-9]\d{3}[A-Z]{2}$/.test(pc)) return null;
+  try {
+    const url = huisnummer
+      ? `https://openpostcode.nl/api/v2/address?postcode=${pc}&huisnummer=${encodeURIComponent(huisnummer)}`
+      : `https://openpostcode.nl/api/v2/address?postcode=${pc}`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    // Single result
+    if (data.straat && data.plaats) return { straat: data.straat, stad: data.plaats, provincie: data.provincie || '' };
+    // Multiple suggestions → pick first
+    if (data.suggestions && data.suggestions.length) {
+      const s = data.suggestions[0];
+      return { straat: s.straat, stad: s.plaats, provincie: s.provincie || '' };
+    }
+  } catch(e) {}
+  return null;
+}
+
+/* ---------------------------------------------------------------------------
    Toast helpers
 --------------------------------------------------------------------------- */
 function toast(text, kind = 'point', pts){
@@ -357,16 +438,21 @@ function toast(text, kind = 'point', pts){
 /* ---------------------------------------------------------------------------
    App
 --------------------------------------------------------------------------- */
-function Field({ field, value, onChange, prevFilled }){
+function Field({ field, value, onChange, prevFilled, suggestions, onPostcodeLookup, postcodeLoading }){
   const filled = value != null && value !== '';
   const cls = filled ? 'filled' : '';
+  const [showSugg, setShowSugg] = React.useState(false);
   const handle = (v) => {
     onChange(field.id, v);
-    // Award point only on filled→empty→filled transition? Just on becoming filled.
     if (!prevFilled && v !== '' && v != null){
       toast(`Veld ingevuld · ${field.label}`, 'point', 1);
     }
+    // Postcode trigger
+    if (field.id === 'postcode' && onPostcodeLookup) {
+      onPostcodeLookup(v, null);
+    }
   };
+
   if (field.type === 'select'){
     return (
       <select className={cls} value={value || ''} onChange={(e) => handle(e.target.value)}>
@@ -374,10 +460,27 @@ function Field({ field, value, onChange, prevFilled }){
       </select>
     );
   }
+
+  // Tekstveld met suggesties
+  const hasSugg = suggestions && suggestions.length > 0 && !filled;
   return (
-    <input type={field.type} className={cls} value={value || ''}
-           placeholder={field.placeholder || ''}
-           onChange={(e) => handle(e.target.value)} />
+    <div style={{position:'relative'}}>
+      <input type={field.type} className={cls} value={value || ''}
+             placeholder={field.placeholder || ''}
+             onChange={(e) => handle(e.target.value)}
+             onFocus={() => hasSugg && setShowSugg(true)}
+             onBlur={() => setTimeout(() => setShowSugg(false), 150)} />
+      {field.id === 'postcode' && postcodeLoading && (
+        <span className="postcode-loading"> ⏳ adres ophalen…</span>
+      )}
+      {hasSugg && showSugg && (
+        <div className="suggestions-dropdown">
+          {suggestions.map(s => (
+            <button key={s} onMouseDown={() => { handle(s); setShowSugg(false); }}>{s}</button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -457,7 +560,7 @@ function App(){
           if (coords) { saveData.lat = coords.lat; saveData.lng = coords.lng; }
         } catch(e) { console.warn('Geocoding overgeslagen:', e); }
       }
-      const savedProject = await Projects.upsert(toSnake(saveData));
+      const savedProject = await Projects.upsert({ ...toSnake(saveData), created_by: (await db.auth.getUser()).data?.user?.id || null });
       if (linkedContacts.length && savedProject?.id) {
         try {
           await db.from('project_contacts').upsert(
@@ -476,14 +579,43 @@ function App(){
         await Employees.incrementProjects();
       }
 
+      // ── Streak bijhouden ──
+      const streakResult = Employees.updateStreak();
+      if (streakResult.broken) {
+        toast(`Streak verbroken 😢 — nieuwe streak gestart!`, 'streak');
+      } else if (streakResult.isNew && streakResult.streak > 1) {
+        toast(`🔥 ${streakResult.streak} dagen op rij! Streak gaande`, 'streak');
+      }
+
+      // ── Badges controleren ──
+      try {
+        const { data: { user } } = await db.auth.getUser();
+        if (user) {
+          const { data: profile } = await db.from('profiles')
+            .select('score, projecten').eq('id', user.id).maybeSingle();
+          const prevBadges = JSON.parse(localStorage.getItem('mvsa.badges') || '[]');
+          const newBadges  = Employees.getBadges(profile);
+          const unlocked   = newBadges.filter(b => !prevBadges.includes(b.id));
+          if (unlocked.length) {
+            localStorage.setItem('mvsa.badges', JSON.stringify(newBadges.map(b => b.id)));
+            unlocked.forEach((b, i) => {
+              setTimeout(() => toast(`${b.icon} Badge verdiend: ${b.label}!`, 'badge-new'), i * 600);
+            });
+          }
+        }
+      } catch(e) {}
+
       // Log activiteit
       try {
         const log = JSON.parse(localStorage.getItem('mvsa.log') || '[]');
         log.unshift({ action: 'save', project: data.projectnaam || data.projectnummer || 'Naamloos', time: new Date().toISOString() });
         localStorage.setItem('mvsa.log', JSON.stringify(log.slice(0,50)));
       } catch(e) {}
+
+      // ── Confetti + toast ──
+      launchConfetti();
       toast(`Project opgeslagen · ${filledFields} velden = ${filledFields} punten`, 'save', filledFields);
-      setTimeout(() => { window.location.href = `project_page.html?nr=${encodeURIComponent(data.projectnummer || '')}&p=${encodeURIComponent(data.projectnaam || '')}`; }, 1200);
+      setTimeout(() => { window.location.href = `project_page.html?nr=${encodeURIComponent(data.projectnummer || '')}&p=${encodeURIComponent(data.projectnaam || '')}`; }, 1800);
     } catch(e) {
       toast('Opslaan mislukt: ' + e.message, 'save');
       console.error('Supabase fout:', e);
@@ -493,6 +625,41 @@ function App(){
   const onReset = () => {
     if (confirm('Formulier leegmaken?')) { setData({}); filledMap.current = {}; }
   };
+
+  // ── Postcode auto-aanvullen ──
+  const [postcodeLoading, setPostcodeLoading] = React.useState(false);
+  const postcodeTimer = React.useRef(null);
+  const doPostcodeLookup = React.useCallback(async (postcode, huisnummer) => {
+    clearTimeout(postcodeTimer.current);
+    postcodeTimer.current = setTimeout(async () => {
+      setPostcodeLoading(true);
+      const result = await lookupPostcode(postcode, huisnummer);
+      setPostcodeLoading(false);
+      if (result) {
+        setData(d => ({
+          ...d,
+          ...(result.straat && !d.straat ? { straat: result.straat } : {}),
+          ...(result.stad   && !d.stad   ? { stad:   result.stad   } : {}),
+          ...(result.provincie && !d.provincie ? { provincie: result.provincie } : {}),
+        }));
+        if (result.straat || result.stad) toast('📍 Adres aangevuld via postcode', 'point');
+      }
+    }, 600);
+  }, []);
+
+  // ── Veld-suggesties: haal unieke waarden op uit bestaande projecten ──
+  const [suggestions, setSuggestions] = React.useState({});
+  React.useEffect(() => {
+    Projects.getAll().then(projects => {
+      const SUGGEST_FIELDS = ['project_type','functie','verkregen_dmv','fase','land','provincie','duurzaamheidslabel','npg_score'];
+      const map = {};
+      SUGGEST_FIELDS.forEach(f => {
+        const vals = [...new Set(projects.map(p => p[f]).filter(Boolean))].slice(0, 8);
+        if (vals.length) map[f] = vals;
+      });
+      setSuggestions(map);
+    }).catch(() => {});
+  }, []);
 
   // Afbeeldingen
   const [images, setImages] = React.useState([]);
@@ -639,6 +806,12 @@ function App(){
                   value={data[f.id]}
                   prevFilled={filledMap.current[f.id]}
                   onChange={setField}
+                  suggestions={suggestions[{
+                    projectType:'project_type', functie:'functie', verkregenDmv:'verkregen_dmv',
+                    fase:'fase', land:'land', provincie:'provincie', label:'duurzaamheidslabel', npgScore:'npg_score'
+                  }[f.id]]}
+                  onPostcodeLookup={(pc, nr) => doPostcodeLookup(pc, data.huisnummer || nr)}
+                  postcodeLoading={postcodeLoading && f.id === 'postcode'}
                 />
               </div>
             ))}

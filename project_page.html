@@ -982,6 +982,7 @@ function App(){
   const [projectImages, setProjectImages] = React.useState([]);
   const [project, setProject] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
+  const [invullerNaam, setInvullerNaam] = React.useState(null);
 
   React.useEffect(() => {
     // Laad eerst op projectnummer (uniek), daarna op naam als fallback
@@ -1003,6 +1004,12 @@ function App(){
         const imgKey = found.projectnummer || found.id;
         if (imgKey) {
           Images.getForProject(imgKey).then(setProjectImages).catch(() => {});
+        }
+        // Haal naam van invuller op via created_by
+        if (found.created_by) {
+          db.from('profiles').select('naam').eq('id', found.created_by).maybeSingle()
+            .then(({ data: p }) => { if (p?.naam) setInvullerNaam(p.naam); })
+            .catch(() => {});
         }
       } else {
         console.warn('Project niet gevonden. NR:', PROJECT_NR, 'NAAM:', PROJECT_NAME, 'URL:', window.location.href);
@@ -1053,6 +1060,7 @@ function App(){
       ...(project.bouwhoogte   ? { Bouwhoogte:  fmt(project.bouwhoogte, 'm') } : {}),
       ...(project.tevredenheid ? { Tevredenheid: project.tevredenheid + ' / 50' } : {}),
       ...(project.awards       ? { Awards:       project.awards } : {}),
+      ...(invullerNaam         ? { 'Toegevoegd door': invullerNaam } : {}),
     },
     totaalBvo: project.totaal_bvo ? fmt(project.totaal_bvo, 'm²') : '—',
     provincie: project.provincie || '',
