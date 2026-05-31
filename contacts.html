@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="styles.css" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase.js"></script>
+<script src="auth-check.js"></script>
 <script src="nav.js" defer></script>
 <style>
   :root{
@@ -270,6 +271,43 @@
     letter-spacing:.1em; text-transform:uppercase;
   }
 
+  /* Stemmen */
+  .vote-row{ display:flex; gap:10px; margin-top:8px; }
+  .vote-btn{
+    flex:1; display:flex; align-items:center; gap:8px;
+    padding:10px 14px; border-radius:10px; border:1px solid var(--line);
+    background:var(--bg); cursor:pointer; font-family:inherit; font-size:13px;
+    transition:all .15s; text-align:left;
+  }
+  .vote-btn:hover{ border-color:var(--accent); background:var(--accent-light); }
+  .vote-btn.up.active{ background:rgba(45,138,94,.1); border-color:rgba(45,138,94,.4); color:#1a6e3a; }
+  .vote-btn.down.active{ background:rgba(196,64,64,.08); border-color:rgba(196,64,64,.3); color:#9b2a2a; }
+  .vote-btn strong{ font-size:15px; font-weight:800; }
+  .vote-names{ font-size:11px; color:var(--muted); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  /* Project rijen in modal */
+  .proj-row{
+    display:flex; align-items:center; gap:10px; padding:9px 12px;
+    border-radius:8px; border:1px solid var(--line); text-decoration:none; color:var(--ink);
+    background:var(--bg); transition:background .12s;
+  }
+  .proj-row:hover{ background:var(--accent-light); border-color:rgba(78,125,156,.3); }
+  .proj-row-num{ font-size:10px; font-weight:700; color:var(--muted); min-width:40px; }
+  .proj-row-naam{ flex:1; font-size:13px; font-weight:600; }
+
+  /* Edit velden */
+  .edit-field{ display:flex; flex-direction:column; gap:4px; }
+  .edit-label{ font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .edit-input{
+    border:1px solid var(--line); border-radius:8px; padding:8px 12px;
+    font-size:13px; background:var(--bg); color:var(--ink); outline:none;
+    font-family:inherit; transition:border-color .15s;
+  }
+  .edit-input:focus{ border-color:var(--accent); background:var(--card); box-shadow:0 0 0 3px rgba(78,125,156,.1); }
+
+  /* Modal row icon */
+  .mrow-icon{ width:22px; flex-shrink:0; text-align:center; }
+
   /* Empty */
   .empty{ text-align:center; padding:60px 20px; color:var(--muted); }
   .empty h3{ font-size:16px; font-weight:700; margin-bottom:6px; color:var(--ink); }
@@ -336,7 +374,7 @@
         <a href="projects_dashboard.html">Dashboard</a>
         · Adressenboek
       </div>
-      <button class="new-btn" id="open-new-btn">+ Nieuw contact</button>
+      <button class="new-btn" id="open-new-btn" style="display:none">+ Nieuw contact</button>
     </div>
 
     <div class="toolbar">
@@ -712,7 +750,96 @@ function renderListView(filtered) {
 }
 
 // ── Detail modal ───────────────────────────────────────
+// ── Detail modal state ─────────────────────────────────
+let currentDetailId = null;
+let editMode = false;
+let votes = {};
+let currentUserId = null;
+let currentUserNaam = null;
+
+db.auth.getUser().then(({ data: { user } }) => {
+  if (!user) return;
+  currentUserId = user.id;
+  // Toon "Nieuw contact" knop voor ingelogde gebruikers
+  const newBtn = document.getElementById('open-new-btn');
+  if (newBtn) newBtn.style.display = '';
+  db.from('profiles').select('naam, status').eq('id', user.id).maybeSingle()
+    .then(({ data }) => {
+      if (data?.naam) currentUserNaam = data.naam;
+      // Alleen goedgekeurde gebruikers mogen toevoegen/bewerken
+      if (data?.status !== 'approved') {
+        if (newBtn) newBtn.style.display = 'none';
+      }
+    });
+});
+
 function openDetail(id) {
+  currentDetailId = id;
+  editMode = false;
+  renderDetail();
+  document.getElementById('detail-overlay').classList.add('open');
+  if (!votes[id]) loadVotes(id);
+}
+
+async function loadVotes(id) {
+  try {
+    const { data } = await db.from('contact_votes')
+      .select('user_id, stem, profiles(naam)')
+      .eq('contact_id', id);
+    if (!data) return;
+    votes[id] = {
+      up:   data.filter(v => v.stem === 'up')  .map(v => ({ userId: v.user_id, naam: v.profiles?.naam || '?' })),
+      down: data.filter(v => v.stem === 'down').map(v => ({ userId: v.user_id, naam: v.profiles?.naam || '?' })),
+    };
+    if (currentDetailId === id) renderDetail();
+  } catch(e) {}
+}
+
+async function castVote(stem) {
+  if (!currentUserId || !currentDetailId) return;
+  const id = currentDetailId;
+  const v = votes[id] || { up: [], down: [] };
+  const alreadyUp   = v.up.some(x => x.userId === currentUserId);
+  const alreadyDown = v.down.some(x => x.userId === currentUserId);
+  try {
+    if ((stem === 'up' && alreadyUp) || (stem === 'down' && alreadyDown)) {
+      await db.from('contact_votes').delete().eq('contact_id', id).eq('user_id', currentUserId);
+      votes[id] = { up: v.up.filter(x => x.userId !== currentUserId), down: v.down.filter(x => x.userId !== currentUserId) };
+    } else {
+      await db.from('contact_votes').upsert({ contact_id: id, user_id: currentUserId, stem }, { onConflict: 'contact_id,user_id' });
+      votes[id] = {
+        up:   stem === 'up'   ? [...v.up.filter(x=>x.userId!==currentUserId),   {userId:currentUserId,naam:currentUserNaam||'?'}] : v.up.filter(x=>x.userId!==currentUserId),
+        down: stem === 'down' ? [...v.down.filter(x=>x.userId!==currentUserId), {userId:currentUserId,naam:currentUserNaam||'?'}] : v.down.filter(x=>x.userId!==currentUserId),
+      };
+    }
+    renderDetail();
+  } catch(e) { console.warn('Stem mislukt:', e); }
+}
+
+async function saveDetailEdit() {
+  const id = currentDetailId;
+  const c = contacts.find(x => x.id === id);
+  if (!c) return;
+  const updates = {
+    naam:     document.getElementById('edit-naam').value.trim() || c.naam,
+    functie:  document.getElementById('edit-functie').value.trim() || null,
+    telefoon: document.getElementById('edit-telefoon').value.trim() || null,
+    notities: document.getElementById('edit-notities').value.trim() || null,
+  };
+  try {
+    const { data, error } = await db.from('contacts').update(updates).eq('id', id).select().single();
+    if (error) throw error;
+    Object.assign(c, data);
+    functies = [...new Set(contacts.map(c => c.functie).filter(Boolean))].sort();
+    editMode = false;
+    renderDetail();
+    renderSidebar();
+    renderAll();
+  } catch(e) { alert('Opslaan mislukt: ' + e.message); }
+}
+
+function renderDetail() {
+  const id = currentDetailId;
   const c = contacts.find(x => x.id === id);
   if (!c) return;
   const projs = projects[c.id] || [];
@@ -720,6 +847,32 @@ function openDetail(id) {
   const avatarBg = avatarColor(c.naam);
   const avatarHTML = c.foto_url ? `<img src="${c.foto_url}" alt="" />` : initials;
   const col = getSectorForContact(c);
+  const v = votes[id] || { up: [], down: [] };
+  const myUp   = v.up.some(x => x.userId === currentUserId);
+  const myDown = v.down.some(x => x.userId === currentUserId);
+
+  if (editMode) {
+    document.getElementById('detail-modal').innerHTML = `
+      <div class="modal-head">
+        <div class="modal-avatar" style="background:${avatarBg}">${avatarHTML}</div>
+        <div class="modal-title">
+          <div class="modal-naam">${c.naam}</div>
+          <div class="modal-sub" style="color:var(--accent);font-weight:600">Bewerken</div>
+        </div>
+        <button class="modal-close" onclick="editMode=false;renderDetail()">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="edit-field"><label class="edit-label">Naam</label><input id="edit-naam" class="edit-input" value="${c.naam||''}" placeholder="Voor- en achternaam" /></div>
+        <div class="edit-field"><label class="edit-label">Functie</label><input id="edit-functie" class="edit-input" value="${c.functie||''}" placeholder="Bijv. Projectmanager, BIM-coördinator…" /></div>
+        <div class="edit-field"><label class="edit-label">Telefoon</label><input id="edit-telefoon" class="edit-input" value="${c.telefoon||''}" placeholder="+31 6 …" /></div>
+        <div class="edit-field"><label class="edit-label">Notities</label><textarea id="edit-notities" class="edit-input" rows="3" placeholder="Optionele notitie…">${c.notities||''}</textarea></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px;">
+        <button onclick="editMode=false;renderDetail()" class="btn-secondary">Annuleren</button>
+        <button onclick="saveDetailEdit()" class="btn-primary">Opslaan →</button>
+      </div>`;
+    return;
+  }
 
   document.getElementById('detail-modal').innerHTML = `
     <div class="modal-head">
@@ -728,45 +881,65 @@ function openDetail(id) {
         <div class="modal-naam">${c.naam}</div>
         <div class="modal-sub">${[c.functie, c.rol, c.bedrijf].filter(Boolean).join(' · ')}</div>
       </div>
-      <button class="modal-close" onclick="closeDetail()">✕</button>
+      <div style="display:flex;gap:6px;align-items:center">
+        ${currentUserId ? `<button class="modal-close" onclick="editMode=true;renderDetail()" title="Bewerken" style="font-size:15px">✏️</button>` : ''}
+        <button class="modal-close" onclick="closeDetail()">✕</button>
+      </div>
     </div>
-
     <div class="modal-section">
       <div class="modal-label">Contact</div>
-      ${c.email ? `<div class="modal-row">✉ &nbsp;<a href="mailto:${c.email}">${c.email}</a></div>` : ''}
-      ${c.telefoon ? `<div class="modal-row">📞 &nbsp;<a href="tel:${c.telefoon}">${c.telefoon}</a></div>` : ''}
-      ${c.website ? `<div class="modal-row">🌐 &nbsp;<a href="${c.website}" target="_blank" rel="noopener">${c.website}</a></div>` : ''}
-      ${c.linkedin ? `<div class="modal-row">🔗 &nbsp;<a href="${c.linkedin}" target="_blank" rel="noopener">LinkedIn profiel</a></div>` : ''}
+      ${c.naam     ? `<div class="modal-row"><span class="mrow-icon">👤</span>${c.naam}</div>` : ''}
+      ${c.functie  ? `<div class="modal-row"><span class="mrow-icon">💼</span>${c.functie}</div>` : ''}
+      ${c.telefoon ? `<div class="modal-row"><span class="mrow-icon">📞</span><a href="tel:${c.telefoon}">${c.telefoon}</a></div>` : ''}
+      ${c.email    ? `<div class="modal-row"><span class="mrow-icon">✉</span><a href="mailto:${c.email}">${c.email}</a></div>` : ''}
+      ${c.website  ? `<div class="modal-row"><span class="mrow-icon">🌐</span><a href="${c.website}" target="_blank">${c.website}</a></div>` : ''}
+      ${c.linkedin ? `<div class="modal-row"><span class="mrow-icon">🔗</span><a href="${c.linkedin}" target="_blank">LinkedIn</a></div>` : ''}
     </div>
-
+    <div class="modal-section">
+      <div class="modal-label">Beoordeling</div>
+      <div class="vote-row">
+        <button class="vote-btn up ${myUp?'active':''}" onclick="castVote('up')">
+          👍 <strong>${v.up.length}</strong>
+          ${v.up.length ? `<span class="vote-names">${v.up.map(x=>x.naam).join(', ')}</span>` : ''}
+        </button>
+        <button class="vote-btn down ${myDown?'active':''}" onclick="castVote('down')">
+          👎 <strong>${v.down.length}</strong>
+          ${v.down.length ? `<span class="vote-names">${v.down.map(x=>x.naam).join(', ')}</span>` : ''}
+        </button>
+      </div>
+    </div>
+    ${projs.length ? `
+    <div class="modal-section">
+      <div class="modal-label">Projecten (${projs.length})</div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px;">
+        ${projs.map(p=>`
+          <a class="proj-row" href="project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}">
+            <div class="proj-row-num">${p.projectnummer||'—'}</div>
+            <div class="proj-row-naam">${p.projectnaam||'—'}</div>
+            <span style="color:var(--muted);font-size:12px">→</span>
+          </a>`).join('')}
+      </div>
+    </div>` : ''}
     ${(c.tags||[]).length ? `
     <div class="modal-section">
       <div class="modal-label">Tags</div>
       <div class="vcard-tags" style="margin-top:6px;">${c.tags.map(t=>{
-        const tc = SECTOR_MAP[normalizeSector(t)] || { bg: DEFAULT_SECTOR.bg, text: DEFAULT_SECTOR.text, dot: DEFAULT_SECTOR.dot };
+        const tc = SECTOR_MAP[normalizeSector(t)] || { bg: DEFAULT_SECTOR.bg, text: DEFAULT_SECTOR.text };
         return `<span class="vtag" style="background:${tc.bg};color:${tc.text}">${t}</span>`;
       }).join('')}</div>
     </div>` : ''}
-
-    ${projs.length ? `
-    <div class="modal-section">
-      <div class="modal-label">Projecten (${projs.length})</div>
-      <div style="margin-top:6px;">${projs.map(p=>`<a class="proj-chip" href="project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}">${p.projectnaam}</a>`).join('')}</div>
-    </div>` : ''}
-
     ${c.notities ? `
     <div class="modal-section">
       <div class="modal-label">Notities</div>
-      <p style="font-size:13px;color:var(--muted);margin:8px 0 0;">${c.notities}</p>
+      <p style="font-size:13px;color:var(--muted);margin:8px 0 0;line-height:1.6">${c.notities}</p>
     </div>` : ''}
-
     ${c.email ? `<a href="mailto:${c.email}" style="display:block;text-align:center;background:var(--ink);color:#fff;text-decoration:none;padding:10px;border-radius:999px;font-size:12px;font-weight:700;margin-top:8px;">✉ Stuur e-mail</a>` : ''}`;
-
-  document.getElementById('detail-overlay').classList.add('open');
 }
 
 function closeDetail() {
   document.getElementById('detail-overlay').classList.remove('open');
+  currentDetailId = null;
+  editMode = false;
 }
 
 // ── Nieuw contact ──────────────────────────────────────
