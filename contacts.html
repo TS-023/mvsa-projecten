@@ -13,99 +13,222 @@
 <script src="nav.js" defer></script>
 <style>
   :root{
-    --bg: #f4f1ec; --card: #ffffff; --ink: #111418; --ink-2: #2a2f36;
-    --muted: #8a8d93; --line: #e8e4dd;
-    --shadow: 0 1px 0 rgba(20,30,45,.04), 0 8px 24px -12px rgba(20,30,45,.18);
-    --radius: 16px; --accent: #3d6e8a;
+    --bg:#eef0f3; --card:#ffffff; --ink:#1a2332; --ink-2:#2d3a4a;
+    --muted:#7f8fa0; --line:#dde3ea;
+    --accent:#4e7d9c; --accent-light:rgba(78,125,156,.08);
+    --good:#2d8a5e; --danger:#c44040;
+    --shadow:0 1px 3px rgba(26,35,50,.06),0 8px 24px -8px rgba(26,35,50,.12);
+    --radius:14px;
   }
-  *{ box-sizing: border-box; }
-  html, body{ margin:0; padding:0; background: var(--bg); color: var(--ink); font-family: 'Inter', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
-  .page{ max-width: 1200px; margin: 0 auto; padding: 32px 32px 80px; }
+  [data-theme="dark"]{
+    --bg:#111315; --card:#1e2024; --ink:#e8ecf0; --ink-2:#c8cdd4;
+    --muted:#6b7078; --line:#2a2d32; --accent:#5a9ab8;
+    --shadow:0 1px 3px rgba(0,0,0,.2),0 6px 16px -4px rgba(0,0,0,.3);
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:var(--bg); color:var(--ink); font-family:'Inter',Helvetica,Arial,sans-serif; -webkit-font-smoothing:antialiased; }
 
-  /* Header */
-  .ab-header{ display:flex; align-items:center; gap:16px; margin-bottom:28px; flex-wrap:wrap; }
-  .ab-header h1{ font-size:24px; font-weight:800; letter-spacing:-.02em; margin:0; flex:1; }
-  .ab-count{ font-size:12px; color:var(--muted); letter-spacing:.08em; text-transform:uppercase; }
-  .new-btn{ background:var(--ink); color:#fff; border:none; border-radius:999px; padding:10px 20px; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; cursor:pointer; transition:opacity .12s; }
+  /* ── Layout ── */
+  .layout{ display:grid; grid-template-columns:260px 1fr; min-height:100vh; }
+
+  /* ── Sidebar ── */
+  .sidebar{
+    background:var(--card); border-right:1px solid var(--line);
+    display:flex; flex-direction:column; position:sticky; top:0; height:100vh; overflow:hidden;
+  }
+  .sidebar-head{
+    padding:20px 18px 14px; border-bottom:1px solid var(--line); flex-shrink:0;
+  }
+  .sidebar-head h1{ margin:0; font-size:15px; font-weight:800; letter-spacing:-.01em; }
+  .sidebar-head .sub{ font-size:11px; color:var(--muted); margin-top:2px; }
+
+  /* Sector-sectie in sidebar */
+  .sidebar-section{ padding:10px 12px 4px; flex-shrink:0; }
+  .sidebar-label{
+    font-size:10px; font-weight:700; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--muted); padding:0 6px 6px;
+  }
+  .sector-btn{
+    display:flex; align-items:center; gap:10px; width:100%;
+    padding:7px 8px; border-radius:8px; border:none; background:none;
+    cursor:pointer; font-family:inherit; text-align:left;
+    transition:background .12s; color:var(--ink);
+  }
+  .sector-btn:hover{ background:var(--accent-light); }
+  .sector-btn.active{ background:var(--accent-light); }
+  .sector-dot{ width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .sector-name{ font-size:12px; font-weight:600; flex:1; }
+  .sector-count{ font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+
+  /* Bedrijvenlijst in sidebar */
+  .sidebar-bedrijven{ flex:1; overflow-y:auto; padding:4px 12px 20px; }
+  .bedrijf-btn{
+    display:flex; align-items:center; gap:10px; width:100%;
+    padding:8px 8px; border-radius:8px; border:none; background:none;
+    cursor:pointer; font-family:inherit; text-align:left;
+    transition:background .12s; color:var(--ink);
+  }
+  .bedrijf-btn:hover{ background:var(--accent-light); }
+  .bedrijf-btn.active{ background:var(--accent-light); font-weight:700; }
+  .bedrijf-logo{
+    width:28px; height:28px; border-radius:6px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:10px; font-weight:800; color:#fff;
+  }
+  .bedrijf-info{ flex:1; min-width:0; }
+  .bedrijf-naam{ font-size:12px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bedrijf-sector{ font-size:10px; color:var(--muted); margin-top:1px; }
+  .bedrijf-n{ font-size:11px; color:var(--muted); flex-shrink:0; }
+
+  /* ── Hoofdpaneel ── */
+  .main{ padding:24px 28px 80px; min-width:0; }
+
+  /* Topbar */
+  .topbar{ display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+  .crumbs{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); flex:1; }
+  .crumbs a{ color:var(--muted); text-decoration:none; }
+  .crumbs a:hover{ color:var(--ink); }
+  .new-btn{
+    background:var(--ink); color:#fff; border:none; border-radius:999px;
+    padding:9px 18px; font-size:11px; font-weight:700; letter-spacing:.12em;
+    text-transform:uppercase; cursor:pointer; transition:opacity .12s;
+  }
   .new-btn:hover{ opacity:.8; }
 
-  /* Search + filters */
-  .ab-toolbar{ display:flex; gap:10px; align-items:center; margin-bottom:20px; flex-wrap:wrap; }
-  .ab-search{ flex:1; min-width:220px; border:1px solid var(--line); border-radius:999px; padding:9px 18px; font-size:13px; background:#fff; color:var(--ink); outline:none; transition:border-color .15s; }
-  .ab-search:focus{ border-color:var(--ink); }
-  .filter-pills{ display:flex; gap:6px; flex-wrap:wrap; }
-  .fpill{ padding:6px 14px; border-radius:999px; font-size:11px; font-weight:600; letter-spacing:.06em; border:1px solid var(--line); cursor:pointer; background:#fff; color:var(--muted); transition:all .12s; }
-  .fpill:hover{ border-color:var(--ink); color:var(--ink); }
-  .fpill.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  /* Zoekbalk + filter */
+  .toolbar{ display:flex; gap:10px; align-items:center; margin-bottom:18px; flex-wrap:wrap; }
+  .ab-search{
+    flex:1; min-width:200px; border:1px solid var(--line); border-radius:999px;
+    padding:9px 18px; font-size:13px; background:var(--card); color:var(--ink);
+    outline:none; transition:border-color .15s;
+  }
+  .ab-search:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(78,125,156,.1); }
+  .view-toggle{
+    display:flex; gap:3px; border:1px solid var(--line); border-radius:999px;
+    padding:3px; background:var(--card);
+  }
+  .vtoggle-btn{
+    padding:5px 12px; border-radius:999px; border:none; cursor:pointer;
+    font-size:12px; font-weight:600; background:none; color:var(--muted); transition:all .12s;
+  }
+  .vtoggle-btn.active{ background:var(--ink); color:#fff; }
+
+  /* Actieve filter badge */
+  .active-filter-bar{ display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+  .filter-badge{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:4px 12px; border-radius:999px; font-size:11px; font-weight:700;
+    background:var(--accent-light); border:1px solid rgba(78,125,156,.2); color:var(--accent);
+  }
+  .filter-badge button{ background:none; border:none; cursor:pointer; color:var(--accent); font-size:13px; line-height:1; padding:0; }
 
   /* Grid */
-  .cards-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px; }
+  .cards-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
 
   /* Visitekaartje */
   .vcard{
-    background:#fff; border-radius:var(--radius); padding:20px;
-    border:1px solid var(--line); cursor:pointer;
-    transition:box-shadow .15s, transform .15s, border-color .15s;
+    background:var(--card); border-radius:var(--radius); padding:18px;
+    border:1px solid rgba(255,255,255,.6); box-shadow:var(--shadow);
+    cursor:pointer; transition:box-shadow .15s,transform .15s;
     display:flex; flex-direction:column; gap:12px;
   }
-  .vcard:hover{ box-shadow:var(--shadow); transform:translateY(-2px); border-color:rgba(17,20,24,.15); }
-  .vcard-top{ display:flex; align-items:center; gap:14px; }
+  .vcard:hover{ box-shadow:0 4px 20px rgba(26,35,50,.14); transform:translateY(-2px); }
+  .vcard-top{ display:flex; align-items:center; gap:12px; }
   .vcard-avatar{
-    width:48px; height:48px; border-radius:50%;
-    background:linear-gradient(135deg, #3d6e8a, #2a4f6a);
+    width:44px; height:44px; border-radius:50%; flex-shrink:0;
     display:flex; align-items:center; justify-content:center;
-    font-size:16px; font-weight:800; color:#fff; flex-shrink:0; letter-spacing:-.02em;
+    font-size:14px; font-weight:800; color:#fff;
   }
   .vcard-avatar img{ width:100%; height:100%; border-radius:50%; object-fit:cover; }
-  .vcard-naam{ font-weight:700; font-size:15px; letter-spacing:-.01em; }
-  .vcard-bedrijf{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .vcard-naam{ font-weight:700; font-size:14px; letter-spacing:-.01em; }
+  .vcard-bedrijf{ font-size:11px; color:var(--muted); margin-top:2px; }
   .vcard-rol{
     display:inline-block; padding:3px 10px; border-radius:999px;
     font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
-    background:var(--bg); border:1px solid var(--line); color:var(--muted);
+    background:var(--accent-light); border:1px solid rgba(78,125,156,.2); color:var(--accent);
   }
-  .vcard-contact{ display:flex; flex-direction:column; gap:4px; }
+  .vcard-contact{ display:flex; flex-direction:column; gap:3px; }
   .vcard-contact a{
-    font-size:12px; color:var(--muted); text-decoration:none;
-    display:flex; align-items:center; gap:6px; transition:color .12s;
+    font-size:11px; color:var(--muted); text-decoration:none;
+    display:flex; align-items:center; gap:5px; transition:color .12s;
   }
   .vcard-contact a:hover{ color:var(--ink); }
   .vcard-tags{ display:flex; flex-wrap:wrap; gap:4px; }
   .vtag{
     padding:2px 8px; border-radius:999px; font-size:10px; font-weight:600;
-    background:#edf2f7; color:#4a5568; letter-spacing:.04em;
+    background:var(--bg); color:var(--muted); border:1px solid var(--line);
   }
-  .vcard-projects{ font-size:11px; color:var(--muted); border-top:1px solid var(--line); padding-top:10px; margin-top:2px; }
+  .vcard-projects{
+    font-size:11px; color:var(--muted); border-top:1px solid var(--line);
+    padding-top:10px; margin-top:2px;
+  }
   .vcard-projects strong{ color:var(--ink); }
+
+  /* Lijstweergave */
+  .contacts-list{
+    display:flex; flex-direction:column; gap:0;
+    border:1px solid rgba(255,255,255,.6); border-radius:var(--radius);
+    overflow:hidden; background:var(--card); box-shadow:var(--shadow);
+  }
+  .list-row{
+    display:flex; align-items:center; gap:14px; padding:11px 18px;
+    border-bottom:1px solid var(--line); cursor:pointer; transition:background .1s;
+  }
+  .list-row:last-child{ border-bottom:none; }
+  .list-row:hover{ background:var(--accent-light); }
+  .list-avatar{
+    width:32px; height:32px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:10px; font-weight:800; color:#fff;
+  }
+  .list-naam{ font-weight:700; font-size:13px; min-width:150px; flex-shrink:0; }
+  .list-bedrijf{ font-size:12px; color:var(--muted); min-width:140px; flex-shrink:0; }
+  .list-rol{ min-width:110px; flex-shrink:0; }
+  .list-rol span{
+    padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700;
+    letter-spacing:.06em; text-transform:uppercase;
+    background:var(--accent-light); border:1px solid rgba(78,125,156,.2); color:var(--accent);
+  }
+  .list-email{ font-size:12px; color:var(--muted); flex:1; }
+  .list-tags{ display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; }
 
   /* Detail modal */
   .modal-overlay{
-    position:fixed; inset:0; z-index:800; background:rgba(0,0,0,.4);
+    position:fixed; inset:0; z-index:800; background:rgba(26,35,50,.4);
     backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center;
     opacity:0; pointer-events:none; transition:opacity .2s;
   }
   .modal-overlay.open{ opacity:1; pointer-events:all; }
   .modal{
-    background:#fff; border-radius:20px; width:480px; max-width:92vw; max-height:85vh;
-    overflow-y:auto; padding:32px; box-shadow:0 20px 60px rgba(0,0,0,.2);
-    transform:scale(.96); transition:transform .2s;
+    background:var(--card); border-radius:18px; width:480px; max-width:92vw; max-height:85vh;
+    overflow-y:auto; padding:28px; box-shadow:0 20px 60px rgba(0,0,0,.2);
+    transform:scale(.97) translateY(8px); transition:transform .2s;
+    border:1px solid rgba(255,255,255,.6);
   }
-  .modal-overlay.open .modal{ transform:scale(1); }
-  .modal-head{ display:flex; align-items:flex-start; gap:16px; margin-bottom:24px; }
+  .modal-overlay.open .modal{ transform:scale(1) translateY(0); }
+  .modal-head{ display:flex; align-items:flex-start; gap:16px; margin-bottom:22px; }
   .modal-avatar{
-    width:64px; height:64px; border-radius:50%; flex-shrink:0;
-    background:linear-gradient(135deg, #3d6e8a, #2a4f6a);
+    width:56px; height:56px; border-radius:50%; flex-shrink:0;
     display:flex; align-items:center; justify-content:center;
-    font-size:22px; font-weight:800; color:#fff;
+    font-size:18px; font-weight:800; color:#fff;
   }
   .modal-avatar img{ width:100%; height:100%; border-radius:50%; object-fit:cover; }
   .modal-title{ flex:1; }
-  .modal-naam{ font-size:20px; font-weight:800; letter-spacing:-.02em; }
-  .modal-sub{ font-size:13px; color:var(--muted); margin-top:4px; }
-  .modal-close{ background:none; border:1px solid var(--line); border-radius:999px; padding:6px 14px; cursor:pointer; font-size:12px; font-weight:600; color:var(--muted); }
-  .modal-section{ margin-bottom:20px; }
-  .modal-label{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
-  .modal-row{ display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; }
+  .modal-naam{ font-size:18px; font-weight:800; letter-spacing:-.02em; }
+  .modal-sub{ font-size:12px; color:var(--muted); margin-top:4px; }
+  .modal-close{
+    background:none; border:1px solid var(--line); border-radius:999px;
+    padding:5px 12px; cursor:pointer; font-size:11px; font-weight:600; color:var(--muted);
+  }
+  .modal-section{ margin-bottom:18px; }
+  .modal-label{
+    font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--muted); margin-bottom:8px;
+  }
+  .modal-row{
+    display:flex; align-items:center; gap:10px; padding:8px 0;
+    border-bottom:1px solid var(--line); font-size:13px;
+  }
   .modal-row:last-child{ border-bottom:none; }
   .modal-row a{ color:var(--ink); text-decoration:none; }
   .modal-row a:hover{ text-decoration:underline; }
@@ -114,82 +237,102 @@
     background:var(--bg); border:1px solid var(--line); color:var(--ink-2); margin:2px;
     text-decoration:none; transition:background .12s;
   }
-  .proj-chip:hover{ background:#e8e4dd; }
-  .stars{ color:#f59e0b; font-size:16px; letter-spacing:2px; }
+  .proj-chip:hover{ background:var(--accent-light); }
 
-  /* Nieuw contact modal */
+  /* Nieuw contact */
   .new-modal{ width:520px; }
-  .new-modal .field{ display:flex; flex-direction:column; gap:4px; margin-bottom:14px; }
-  .new-modal label{ font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+  .new-modal .field{ display:flex; flex-direction:column; gap:4px; margin-bottom:12px; }
+  .new-modal label{ font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
   .new-modal input, .new-modal textarea, .new-modal select{
-    border:1px solid var(--line); border-radius:10px; padding:9px 14px;
-    font-size:13px; background:#fff; color:var(--ink); outline:none;
+    border:1px solid var(--line); border-radius:8px; padding:8px 12px;
+    font-size:13px; background:var(--bg); color:var(--ink); outline:none;
     font-family:inherit; transition:border-color .15s;
   }
-  .new-modal input:focus, .new-modal textarea:focus, .new-modal select:focus{ border-color:var(--ink); }
+  .new-modal input:focus, .new-modal textarea:focus, .new-modal select:focus{
+    border-color:var(--accent); background:var(--card);
+    box-shadow:0 0 0 3px rgba(78,125,156,.1);
+  }
   .new-modal .tags-input{ display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
   .new-modal .tag-pill{
     padding:4px 10px; border-radius:999px; font-size:11px; font-weight:600;
-    border:1px solid var(--line); cursor:pointer; background:#fff; color:var(--muted); transition:all .12s;
+    border:1px solid var(--line); cursor:pointer; background:var(--card);
+    color:var(--muted); transition:all .12s;
   }
   .new-modal .tag-pill.on{ background:var(--ink); color:#fff; border-color:var(--ink); }
-  .form-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
-  .btn-secondary{ background:none; border:1px solid var(--line); border-radius:999px; padding:10px 20px; font-size:12px; font-weight:600; cursor:pointer; color:var(--muted); }
-  .btn-primary{ background:var(--ink); color:#fff; border:none; border-radius:999px; padding:10px 22px; font-size:12px; font-weight:700; cursor:pointer; letter-spacing:.08em; text-transform:uppercase; }
-
-  /* View toggle */
-  .view-toggle{ display:flex; gap:4px; border:1px solid var(--line); border-radius:999px; padding:3px; background:#fff; }
-  .vtoggle-btn{ padding:5px 12px; border-radius:999px; border:none; cursor:pointer; font-size:12px; font-weight:600; background:none; color:var(--muted); transition:all .12s; }
-  .vtoggle-btn.active{ background:var(--ink); color:#fff; }
-
-  /* List view */
-  .contacts-list{ display:flex; flex-direction:column; gap:0; border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; background:#fff; }
-  .list-row{
-    display:flex; align-items:center; gap:14px; padding:12px 18px;
-    border-bottom:1px solid var(--line); cursor:pointer;
-    transition:background .1s;
+  .form-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:18px; }
+  .btn-secondary{
+    background:none; border:1px solid var(--line); border-radius:999px;
+    padding:9px 18px; font-size:11px; font-weight:600; cursor:pointer; color:var(--muted);
   }
-  .list-row:last-child{ border-bottom:none; }
-  .list-row:hover{ background:#fafafa; }
-  .list-avatar{
-    width:34px; height:34px; border-radius:50%; flex-shrink:0;
-    background:linear-gradient(135deg, #3d6e8a, #2a4f6a);
-    display:flex; align-items:center; justify-content:center;
-    font-size:11px; font-weight:800; color:#fff;
+  .btn-primary{
+    background:var(--ink); color:#fff; border:none; border-radius:999px;
+    padding:9px 20px; font-size:11px; font-weight:700; cursor:pointer;
+    letter-spacing:.1em; text-transform:uppercase;
   }
-  .list-naam{ font-weight:700; font-size:13px; min-width:160px; flex-shrink:0; }
-  .list-bedrijf{ font-size:12px; color:var(--muted); min-width:160px; flex-shrink:0; }
-  .list-rol{ min-width:120px; flex-shrink:0; }
-  .list-rol span{ padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; background:var(--bg); border:1px solid var(--line); color:var(--muted); }
-  .list-email{ font-size:12px; color:var(--muted); flex:1; }
-  .list-tags{ display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; }
 
-  /* Empty state */
+  /* Empty */
   .empty{ text-align:center; padding:60px 20px; color:var(--muted); }
-  .empty h3{ font-size:18px; font-weight:700; margin-bottom:8px; color:var(--ink); }
-  .empty p{ font-size:14px; }
+  .empty h3{ font-size:16px; font-weight:700; margin-bottom:6px; color:var(--ink); }
+
+  /* Scrollbar sidebar */
+  .sidebar-bedrijven::-webkit-scrollbar{ width:4px; }
+  .sidebar-bedrijven::-webkit-scrollbar-track{ background:transparent; }
+  .sidebar-bedrijven::-webkit-scrollbar-thumb{ background:var(--line); border-radius:2px; }
+
+  @media(max-width:800px){
+    .layout{ grid-template-columns:1fr; }
+    .sidebar{ display:none; }
+  }
 </style>
 </head>
 <body>
-<div class="page">
-  <div class="ab-header">
-    <div>
+<div class="layout">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-head">
       <h1>📇 Adressenboek</h1>
-      <div class="ab-count" id="count-label">— contacten</div>
+      <div class="sub" id="count-label">— contacten</div>
     </div>
-    <button class="new-btn" id="open-new-btn">+ Nieuw contact</button>
-  </div>
 
-  <div class="ab-toolbar">
-    <input class="ab-search" id="ab-search" type="search" placeholder="Zoek naam, bedrijf of rol…" />
-    <div class="filter-pills" id="filter-pills"></div>
-    <div class="view-toggle">
-      <button class="vtoggle-btn active" id="view-grid-btn" title="Grid">⊞</button>
-      <button class="vtoggle-btn" id="view-list-btn" title="Lijst">☰</button>
+    <!-- Sectoren -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">Sectoren</div>
+      <div id="sector-list"></div>
     </div>
-  </div>
 
-  <div class="cards-grid" id="cards-grid"></div>
+    <!-- Scheidingslijn -->
+    <div style="height:1px;background:var(--line);margin:8px 12px;flex-shrink:0;"></div>
+
+    <!-- Bedrijven -->
+    <div class="sidebar-section" style="padding-bottom:6px;">
+      <div class="sidebar-label">Bedrijven</div>
+    </div>
+    <div class="sidebar-bedrijven" id="bedrijf-list"></div>
+  </aside>
+
+  <!-- ── Hoofdpaneel ── -->
+  <main class="main">
+    <div class="topbar">
+      <div class="crumbs">
+        <a href="projects_dashboard.html">Dashboard</a>
+        · Adressenboek
+      </div>
+      <button class="new-btn" id="open-new-btn">+ Nieuw contact</button>
+    </div>
+
+    <div class="toolbar">
+      <input class="ab-search" id="ab-search" type="search" placeholder="Zoek naam, bedrijf of rol…" />
+      <div class="view-toggle">
+        <button class="vtoggle-btn active" id="view-grid-btn" title="Grid">⊞</button>
+        <button class="vtoggle-btn" id="view-list-btn" title="Lijst">☰</button>
+      </div>
+    </div>
+
+    <div class="active-filter-bar" id="filter-bar" style="display:none;"></div>
+
+    <div class="cards-grid" id="cards-grid"></div>
+  </main>
 </div>
 
 <!-- Detail modal -->
@@ -200,8 +343,8 @@
 <!-- Nieuw contact modal -->
 <div class="modal-overlay" id="new-overlay">
   <div class="modal new-modal">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
-      <h2 style="flex:1;font-size:18px;font-weight:800;margin:0;">Nieuw visitekaartje</h2>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+      <h2 style="flex:1;font-size:16px;font-weight:800;margin:0;letter-spacing:-.01em;">Nieuw visitekaartje</h2>
       <button class="modal-close" id="close-new-btn">✕</button>
     </div>
     <div class="field"><label>Naam *</label><input id="nc-naam" placeholder="Voor- en achternaam" /></div>
@@ -241,22 +384,51 @@
 </div>
 
 <script>
-const FILTERS = ['architect','adviseur','aannemer','opdrachtgever','overheid','installateur','financieel','civiel'];
-let contacts = [];
-let projects = {};  // contact_id → [project names]
-let activeFilter = '';
-let searchQ = '';
+// ── Sector kleurenpalet (unieke blauwtinten per sector) ──
+const SECTOR_COLORS = {
+  architect:     { bg:'rgba(78,125,156,.12)',  dot:'#4e7d9c',  text:'#2d5a75' },
+  adviseur:      { bg:'rgba(58,110,175,.12)',  dot:'#3a6eaf',  text:'#1e4d8c' },
+  aannemer:      { bg:'rgba(41,128,185,.12)',  dot:'#2980b9',  text:'#1a5f8a' },
+  opdrachtgever: { bg:'rgba(52,152,219,.12)',  dot:'#3498db',  text:'#1a6fa3' },
+  overheid:      { bg:'rgba(26,188,156,.12)',  dot:'#1abc9c',  text:'#0e8a72' },
+  installateur:  { bg:'rgba(22,160,133,.12)',  dot:'#16a085',  text:'#0d6b59' },
+  financieel:    { bg:'rgba(39,174,96,.12)',   dot:'#27ae60',  text:'#1a7a42' },
+  civiel:        { bg:'rgba(46,204,113,.12)',  dot:'#2ecc71',  text:'#1a8a4a' },
+  constructeur:  { bg:'rgba(52,73,94,.12)',    dot:'#34495e',  text:'#1e2d3d' },
+  extern:        { bg:'rgba(100,120,150,.12)', dot:'#647896',  text:'#3d5470' },
+  default:       { bg:'rgba(127,143,160,.12)', dot:'#7f8fa0',  text:'#4a5e70' },
+};
 
-// ── Laad data ────────────────────────────────────────────────
+function getSectorColor(rol, tags) {
+  const haystack = [(rol||''), ...(tags||[])].join(' ').toLowerCase();
+  for (const key of Object.keys(SECTOR_COLORS)) {
+    if (key !== 'default' && haystack.includes(key)) return SECTOR_COLORS[key];
+  }
+  return SECTOR_COLORS.default;
+}
+
+function avatarColor(naam) {
+  // Generate a stable blue-family color from the name
+  const blues = ['#4e7d9c','#3a6eaf','#2980b9','#3498db','#2471a3','#1a5276','#34495e','#2c3e50'];
+  let h = 0;
+  for (let i = 0; i < (naam||'').length; i++) h = (h * 31 + naam.charCodeAt(i)) & 0xffffff;
+  return blues[Math.abs(h) % blues.length];
+}
+
+let contacts = [];
+let projects = {};
+let activeFilter = '';  // sector or bedrijf naam
+let filterType = '';    // 'sector' | 'bedrijf'
+let searchQ = '';
+let currentView = 'grid';
+
+// ── Laad data ──────────────────────────────────────────
 async function loadContacts() {
   try {
-    const { data, error } = await db.from('contacts')
-      .select('*')
-      .order('naam');
+    const { data, error } = await db.from('contacts').select('*').order('naam');
     if (error) throw error;
     contacts = data || [];
 
-    // Laad gekoppelde projecten per contact
     const { data: pc } = await db.from('project_contacts')
       .select('contact_id, projects(projectnaam, projectnummer, id)');
     (pc || []).forEach(row => {
@@ -264,56 +436,121 @@ async function loadContacts() {
       if (row.projects) projects[row.contact_id].push(row.projects);
     });
 
+    renderSidebar();
     renderAll();
   } catch(e) {
     console.error(e);
     document.getElementById('cards-grid').innerHTML =
-      '<div class="empty"><h3>Kon contacten niet laden</h3><p>Controleer de Supabase verbinding.</p></div>';
+      '<div class="empty"><h3>Kon contacten niet laden</h3></div>';
   }
 }
 
-// ── Render ───────────────────────────────────────────────────
-let currentView = 'grid';
+// ── Sidebar renderen ───────────────────────────────────
+function renderSidebar() {
+  // Sectoren: tel contacten per sector
+  const sectorCounts = {};
+  contacts.forEach(c => {
+    const tags = c.tags || [];
+    const rol = (c.rol || '').toLowerCase();
+    const sectors = [...new Set([rol, ...tags].filter(Boolean))];
+    sectors.forEach(s => { sectorCounts[s] = (sectorCounts[s] || 0) + 1; });
+  });
 
-function renderListView(filtered) {
-  const grid = document.getElementById('cards-grid');
-  if (!filtered.length) {
-    grid.className = '';
-    grid.innerHTML = '<div class="empty"><h3>Geen contacten gevonden</h3><p>Pas de zoekopdracht of filters aan.</p></div>';
-    return;
+  const sectorEl = document.getElementById('sector-list');
+  // "Alle" knop
+  const alleBtn = `<button class="sector-btn ${!activeFilter ? 'active' : ''}" onclick="setFilter('','')">
+    <div class="sector-dot" style="background:var(--muted)"></div>
+    <span class="sector-name">Alle</span>
+    <span class="sector-count">${contacts.length}</span>
+  </button>`;
+
+  const sectorBtns = Object.entries(sectorCounts)
+    .sort((a,b) => b[1] - a[1])
+    .map(([s, n]) => {
+      const col = SECTOR_COLORS[s] || SECTOR_COLORS.default;
+      const isActive = activeFilter === s && filterType === 'sector';
+      return `<button class="sector-btn ${isActive ? 'active' : ''}" onclick="setFilter('${s}','sector')">
+        <div class="sector-dot" style="background:${col.dot}"></div>
+        <span class="sector-name" style="color:${col.text}">${s}</span>
+        <span class="sector-count">${n}</span>
+      </button>`;
+    }).join('');
+
+  sectorEl.innerHTML = alleBtn + sectorBtns;
+
+  // Bedrijven: unieke bedrijven alfabetisch
+  const bedrijfMap = {};
+  contacts.forEach(c => {
+    const b = c.bedrijf || '— Onbekend —';
+    if (!bedrijfMap[b]) bedrijfMap[b] = { count: 0, color: avatarColor(b), sector: getSectorColor(c.rol, c.tags) };
+    bedrijfMap[b].count++;
+  });
+
+  const bedrijfEl = document.getElementById('bedrijf-list');
+  bedrijfEl.innerHTML = Object.entries(bedrijfMap)
+    .sort((a,b) => a[0].localeCompare(b[0]))
+    .map(([naam, info]) => {
+      const initials = naam.split(' ').map(w => w[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
+      const isActive = activeFilter === naam && filterType === 'bedrijf';
+      return `<button class="bedrijf-btn ${isActive ? 'active' : ''}" onclick="setFilter('${naam.replace(/'/g,"\\'")}','bedrijf')">
+        <div class="bedrijf-logo" style="background:${info.color}">${initials}</div>
+        <div class="bedrijf-info">
+          <div class="bedrijf-naam">${naam}</div>
+        </div>
+        <span class="bedrijf-n">${info.count}</span>
+      </button>`;
+    }).join('');
+}
+
+function setFilter(val, type) {
+  if (activeFilter === val && filterType === type) {
+    activeFilter = ''; filterType = '';
+  } else {
+    activeFilter = val; filterType = type;
   }
-  grid.className = 'contacts-list';
-  grid.innerHTML = filtered.map(c => {
-    const initials = (c.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
-    const avatarHTML = c.foto_url ? `<img src="${c.foto_url}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : initials;
-    return `
-      <div class="list-row" onclick="openDetail('${c.id}')">
-        <div class="list-avatar">${avatarHTML}</div>
-        <div class="list-naam">${c.naam}</div>
-        <div class="list-bedrijf">${c.bedrijf || '—'}</div>
-        <div class="list-rol">${c.rol ? `<span>${c.rol}</span>` : ''}</div>
-        <div class="list-email">${c.email ? `<a href="mailto:${c.email}" onclick="event.stopPropagation()">${c.email}</a>` : '—'}</div>
-        <div class="list-tags">${(c.tags||[]).slice(0,2).map(t=>`<span class="vtag">${t}</span>`).join('')}</div>
-      </div>`;
-  }).join('');
+  renderSidebar();
+  renderFilterBar();
+  renderAll();
+}
+
+function renderFilterBar() {
+  const bar = document.getElementById('filter-bar');
+  if (!activeFilter) { bar.style.display = 'none'; return; }
+  const col = filterType === 'sector'
+    ? (SECTOR_COLORS[activeFilter] || SECTOR_COLORS.default)
+    : { bg:'var(--accent-light)', text:'var(--accent)' };
+  bar.style.display = 'flex';
+  bar.innerHTML = `<span class="filter-badge" style="background:${col.bg};color:${col.text}">
+    ${filterType === 'sector' ? '●' : '🏢'} ${activeFilter}
+    <button onclick="setFilter('','')">✕</button>
+  </span>
+  <span style="font-size:12px;color:var(--muted)">gefilterd</span>`;
+}
+
+// ── Render contacten ───────────────────────────────────
+function getFiltered() {
+  const q = searchQ.toLowerCase();
+  return contacts.filter(c => {
+    const mQ = !q || c.naam?.toLowerCase().includes(q) || c.bedrijf?.toLowerCase().includes(q) || c.rol?.toLowerCase().includes(q);
+    let mF = true;
+    if (activeFilter && filterType === 'sector') {
+      mF = (c.tags||[]).includes(activeFilter) || c.rol?.toLowerCase().includes(activeFilter.toLowerCase());
+    } else if (activeFilter && filterType === 'bedrijf') {
+      mF = (c.bedrijf || '— Onbekend —') === activeFilter;
+    }
+    return mQ && mF;
+  });
 }
 
 function renderAll() {
-  const q = searchQ.toLowerCase();
-  const filtered = contacts.filter(c => {
-    const mQ = !q || c.naam?.toLowerCase().includes(q) || c.bedrijf?.toLowerCase().includes(q) || c.rol?.toLowerCase().includes(q);
-    const mF = !activeFilter || (c.tags||[]).includes(activeFilter) || c.rol?.toLowerCase().includes(activeFilter.toLowerCase());
-    return mQ && mF;
-  });
-
-  document.getElementById('count-label').textContent = `${filtered.length} contact${filtered.length !== 1 ? 'en' : ''}`;
-
+  const filtered = getFiltered();
   document.getElementById('count-label').textContent = `${filtered.length} contact${filtered.length !== 1 ? 'en' : ''}`;
 
   if (currentView === 'list') { renderListView(filtered); return; }
 
   const grid = document.getElementById('cards-grid');
   grid.className = 'cards-grid';
+
   if (!filtered.length) {
     grid.innerHTML = '<div class="empty"><h3>Geen contacten gevonden</h3><p>Pas de zoekopdracht of filters aan.</p></div>';
     return;
@@ -321,41 +558,68 @@ function renderAll() {
 
   grid.innerHTML = filtered.map(c => {
     const initials = (c.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+    const col = getSectorColor(c.rol, c.tags);
+    const avatarBg = avatarColor(c.naam);
     const projs = projects[c.id] || [];
-    const avatarHTML = c.foto_url
-      ? `<img src="${c.foto_url}" alt="${c.naam}" />`
-      : initials;
+    const avatarHTML = c.foto_url ? `<img src="${c.foto_url}" alt="${c.naam}" />` : initials;
     return `
       <div class="vcard" onclick="openDetail('${c.id}')">
         <div class="vcard-top">
-          <div class="vcard-avatar">${avatarHTML}</div>
+          <div class="vcard-avatar" style="background:${avatarBg}">${avatarHTML}</div>
           <div>
             <div class="vcard-naam">${c.naam}</div>
             <div class="vcard-bedrijf">${c.bedrijf || '—'}</div>
           </div>
         </div>
-        ${c.rol ? `<div><span class="vcard-rol">${c.rol}</span></div>` : ''}
+        ${c.rol ? `<div><span class="vcard-rol" style="background:${col.bg};color:${col.text};border-color:${col.dot}33">${c.rol}</span></div>` : ''}
         <div class="vcard-contact">
           ${c.email ? `<a href="mailto:${c.email}" onclick="event.stopPropagation()">✉ ${c.email}</a>` : ''}
           ${c.telefoon ? `<a href="tel:${c.telefoon}" onclick="event.stopPropagation()">📞 ${c.telefoon}</a>` : ''}
         </div>
-        ${(c.tags||[]).length ? `<div class="vcard-tags">${(c.tags).map(t=>`<span class="vtag">${t}</span>`).join('')}</div>` : ''}
+        ${(c.tags||[]).length ? `<div class="vcard-tags">${c.tags.map(t=>`<span class="vtag">${t}</span>`).join('')}</div>` : ''}
         ${projs.length ? `<div class="vcard-projects">${projs.length} project${projs.length!==1?'en':''}: <strong>${projs.map(p=>p.projectnaam).slice(0,2).join(', ')}${projs.length>2?` +${projs.length-2}`:''}</strong></div>` : ''}
       </div>`;
   }).join('');
 }
 
-// ── Detail modal ─────────────────────────────────────────────
+function renderListView(filtered) {
+  const grid = document.getElementById('cards-grid');
+  if (!filtered.length) {
+    grid.className = '';
+    grid.innerHTML = '<div class="empty"><h3>Geen contacten gevonden</h3></div>';
+    return;
+  }
+  grid.className = 'contacts-list';
+  grid.innerHTML = filtered.map(c => {
+    const initials = (c.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+    const avatarBg = avatarColor(c.naam);
+    const col = getSectorColor(c.rol, c.tags);
+    const avatarHTML = c.foto_url ? `<img src="${c.foto_url}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : initials;
+    return `
+      <div class="list-row" onclick="openDetail('${c.id}')">
+        <div class="list-avatar" style="background:${avatarBg}">${avatarHTML}</div>
+        <div class="list-naam">${c.naam}</div>
+        <div class="list-bedrijf">${c.bedrijf || '—'}</div>
+        <div class="list-rol">${c.rol ? `<span style="background:${col.bg};color:${col.text};border-color:${col.dot}33">${c.rol}</span>` : ''}</div>
+        <div class="list-email">${c.email ? `<a href="mailto:${c.email}" onclick="event.stopPropagation()">${c.email}</a>` : '—'}</div>
+        <div class="list-tags">${(c.tags||[]).slice(0,2).map(t=>`<span class="vtag">${t}</span>`).join('')}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── Detail modal ───────────────────────────────────────
 function openDetail(id) {
   const c = contacts.find(x => x.id === id);
   if (!c) return;
   const projs = projects[c.id] || [];
   const initials = (c.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+  const avatarBg = avatarColor(c.naam);
   const avatarHTML = c.foto_url ? `<img src="${c.foto_url}" alt="" />` : initials;
+  const col = getSectorColor(c.rol, c.tags);
 
   document.getElementById('detail-modal').innerHTML = `
     <div class="modal-head">
-      <div class="modal-avatar">${avatarHTML}</div>
+      <div class="modal-avatar" style="background:${avatarBg}">${avatarHTML}</div>
       <div class="modal-title">
         <div class="modal-naam">${c.naam}</div>
         <div class="modal-sub">${[c.rol, c.bedrijf].filter(Boolean).join(' · ')}</div>
@@ -374,15 +638,16 @@ function openDetail(id) {
     ${(c.tags||[]).length ? `
     <div class="modal-section">
       <div class="modal-label">Tags</div>
-      <div class="vcard-tags" style="margin-top:4px;">${(c.tags).map(t=>`<span class="vtag">${t}</span>`).join('')}</div>
+      <div class="vcard-tags" style="margin-top:6px;">${c.tags.map(t=>{
+        const tc = SECTOR_COLORS[t] || SECTOR_COLORS.default;
+        return `<span class="vtag" style="background:${tc.bg};color:${tc.text};border-color:${tc.dot}33">${t}</span>`;
+      }).join('')}</div>
     </div>` : ''}
 
     ${projs.length ? `
     <div class="modal-section">
       <div class="modal-label">Projecten (${projs.length})</div>
-      <div style="margin-top:6px;">
-        ${projs.map(p=>`<a class="proj-chip" href="project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}">${p.projectnaam}</a>`).join('')}
-      </div>
+      <div style="margin-top:6px;">${projs.map(p=>`<a class="proj-chip" href="project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}">${p.projectnaam}</a>`).join('')}</div>
     </div>` : ''}
 
     ${c.notities ? `
@@ -391,9 +656,7 @@ function openDetail(id) {
       <p style="font-size:13px;color:var(--muted);margin:8px 0 0;">${c.notities}</p>
     </div>` : ''}
 
-    <div style="display:flex;gap:8px;margin-top:8px;">
-      ${c.email ? `<a href="mailto:${c.email}" style="flex:1;text-align:center;background:var(--ink);color:#fff;text-decoration:none;padding:10px;border-radius:999px;font-size:12px;font-weight:700;">✉ Stuur e-mail</a>` : ''}
-    </div>`;
+    ${c.email ? `<a href="mailto:${c.email}" style="display:block;text-align:center;background:var(--ink);color:#fff;text-decoration:none;padding:10px;border-radius:999px;font-size:12px;font-weight:700;margin-top:8px;">✉ Stuur e-mail</a>` : ''}`;
 
   document.getElementById('detail-overlay').classList.add('open');
 }
@@ -402,30 +665,14 @@ function closeDetail() {
   document.getElementById('detail-overlay').classList.remove('open');
 }
 
-// ── Filter pills ──────────────────────────────────────────────
-function renderFilters() {
-  const el = document.getElementById('filter-pills');
-  el.innerHTML = FILTERS.map(f =>
-    `<button class="fpill ${activeFilter===f?'active':''}" data-f="${f}">${f}</button>`
-  ).join('');
-  el.querySelectorAll('.fpill').forEach(btn => {
-    btn.addEventListener('click', () => {
-      activeFilter = activeFilter === btn.dataset.f ? '' : btn.dataset.f;
-      renderFilters();
-      renderAll();
-    });
-  });
-}
-
-// ── Nieuw contact ─────────────────────────────────────────────
+// ── Nieuw contact ──────────────────────────────────────
 let selectedTags = [];
 
 document.getElementById('open-new-btn').addEventListener('click', () => {
   selectedTags = [];
   document.querySelectorAll('#nc-tags .tag-pill').forEach(p => p.classList.remove('on'));
   ['nc-naam','nc-bedrijf','nc-email','nc-telefoon','nc-website','nc-linkedin','nc-notities'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
+    const el = document.getElementById(id); if (el) el.value = '';
   });
   document.getElementById('nc-rol').value = '';
   document.getElementById('new-overlay').classList.add('open');
@@ -435,9 +682,7 @@ document.querySelectorAll('#nc-tags .tag-pill').forEach(p => {
   p.addEventListener('click', () => {
     p.classList.toggle('on');
     const t = p.dataset.tag;
-    selectedTags = p.classList.contains('on')
-      ? [...selectedTags, t]
-      : selectedTags.filter(x => x !== t);
+    selectedTags = p.classList.contains('on') ? [...selectedTags, t] : selectedTags.filter(x => x !== t);
   });
 });
 
@@ -464,6 +709,7 @@ document.getElementById('save-new-btn').addEventListener('click', async () => {
     if (error) throw error;
     contacts.unshift(data);
     document.getElementById('new-overlay').classList.remove('open');
+    renderSidebar();
     renderAll();
   } catch(e) {
     alert('Opslaan mislukt: ' + e.message);
@@ -472,21 +718,13 @@ document.getElementById('save-new-btn').addEventListener('click', async () => {
   }
 });
 
-// Klik buiten modal sluit hem
-document.getElementById('detail-overlay').addEventListener('click', e => {
-  if (e.target === e.currentTarget) closeDetail();
-});
-document.getElementById('new-overlay').addEventListener('click', e => {
-  if (e.target === e.currentTarget) document.getElementById('new-overlay').classList.remove('open');
-});
+// Klik buiten modal
+document.getElementById('detail-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeDetail(); });
+document.getElementById('new-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) document.getElementById('new-overlay').classList.remove('open'); });
 
 // Zoekbalk
-document.getElementById('ab-search').addEventListener('input', e => {
-  searchQ = e.target.value;
-  renderAll();
-});
+document.getElementById('ab-search').addEventListener('input', e => { searchQ = e.target.value; renderAll(); });
 
-// Start
 // View toggle
 document.getElementById('view-grid-btn').addEventListener('click', () => {
   currentView = 'grid';
@@ -501,8 +739,11 @@ document.getElementById('view-list-btn').addEventListener('click', () => {
   renderAll();
 });
 
-renderFilters();
 loadContacts();
 </script>
+<div class="auth-bar" id="auth-bar" style="display:none;"></div>
+<script src="dark-mode.js"></script>
+<script src="transitions.js"></script>
+<script src="auth-bar.js"></script>
 </body>
 </html>
