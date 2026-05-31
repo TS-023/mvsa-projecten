@@ -237,10 +237,21 @@
     .progress-card .stat{ text-align: left; }
   }
 
-  .contact-overlay{ position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.35);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .25s; }
+  .contact-overlay{ position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.15);backdrop-filter:blur(1px);opacity:0;pointer-events:none;transition:opacity .2s; }
   .contact-overlay.open{ opacity:1;pointer-events:all; }
-  .contact-panel{ position:fixed;top:0;right:0;bottom:0;z-index:901;width:420px;max-width:96vw;background:var(--bg);border-left:1px solid var(--line);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:-8px 0 32px rgba(0,0,0,.12); }
-  .contact-panel.open{ transform:translateX(0); }
+  .contact-panel{
+    position:fixed; z-index:901;
+    width:380px; max-width:calc(100vw - 32px);
+    max-height:70vh;
+    background:var(--card); border:1px solid var(--line);
+    border-radius:16px;
+    box-shadow: 0 8px 40px -8px rgba(26,35,50,.24), 0 2px 8px rgba(26,35,50,.08);
+    display:flex; flex-direction:column;
+    opacity:0; pointer-events:none;
+    transform:translateY(8px) scale(.97);
+    transition:opacity .18s ease, transform .18s ease;
+  }
+  .contact-panel.open{ opacity:1; pointer-events:all; transform:translateY(0) scale(1); }
   .cp-head{ padding:20px 20px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-shrink:0; }
   .cp-head h3{ flex:1;font-size:15px;font-weight:700;margin:0; }
   .cp-close{ background:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600;color:var(--muted); }
@@ -479,6 +490,375 @@ function toast(text, kind = 'point', pts){
 /* ---------------------------------------------------------------------------
    App
 --------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------
+   Samenwerkingen — per fase configuratie
+   Pas hieronder de rollen per fase aan als de lijst bekend is.
+   'fallback' wordt gebruikt voor fases zonder eigen lijst.
+--------------------------------------------------------------------------- */
+const SAMENWERKING_ROLLEN = {
+  // ── Acquisitie & Schets Ontwerp ──────────────────────────────
+  AQ: [
+    { id: 'opdrachtgever',          label: 'Opdrachtgever' },
+    { id: 'projectmanagement',      label: 'Projectmanagement' },
+    { id: 'aannemer',               label: 'Aannemer' },
+    { id: 'constructeur',           label: 'Constructeur' },
+    { id: 'installateur',           label: 'Installateur' },
+    { id: 'bouwfysica',             label: 'Bouwfysica Adviseur' },
+    { id: 'brandveiligheid',        label: 'Brandveiligheidsadviseur' },
+    { id: 'anders',                 label: 'Anders' },
+  ],
+  SO: 'AQ', // zelfde als AQ
+  // ── Overige fases: zelfde lijst als fallback totdat je ze invult ──
+  VO: 'AQ',
+  DO: 'AQ',
+  TO: 'AQ',
+  UV: 'AQ',
+  OP: 'AQ',
+};
+
+// Resolve alias-verwijzingen
+function getRollenVoorFase(fase) {
+  if (!fase) return SAMENWERKING_ROLLEN.AQ;
+  const key = Object.keys(SAMENWERKING_ROLLEN).find(k =>
+    fase.toUpperCase().startsWith(k)
+  ) || 'AQ';
+  let val = SAMENWERKING_ROLLEN[key];
+  // Volg aliassen
+  while (typeof val === 'string') val = SAMENWERKING_ROLLEN[val];
+  return val || SAMENWERKING_ROLLEN.AQ;
+}
+
+/* ---------------------------------------------------------------------------
+   ContactZoekPopup — zwevend zoekpaneel per rol
+--------------------------------------------------------------------------- */
+function ContactZoekPopup({ rolId, rolLabel, allContacts, setAllContacts, geselecteerd, onSelect, onClose, anchorRef }) {
+  const [q, setQ] = React.useState('');
+  const [openBedrijf, setOpenBedrijf] = React.useState(null); // bedrijfsnaam
+  const [nieuwForm, setNieuwForm] = React.useState(false);
+  const [nieuw, setNieuw] = React.useState({ naam:'', bedrijf:'', rol: rolLabel, email:'', telefoon:'' });
+  const [pos, setPos] = React.useState({ top: 0, left: 0 });
+  const panelRef = React.useRef(null);
+
+  // Bereken positie naast de anchor knop
+  React.useEffect(() => {
+    if (!anchorRef?.current) return;
+    const rect = anchorRef.current.getBoundingClientRect();
+    const pw = 360, margin = 10;
+    let left = rect.right + margin;
+    if (left + pw > window.innerWidth - margin) left = rect.left - pw - margin;
+    if (left < margin) left = margin;
+    let top = rect.top;
+    const ph = Math.min(window.innerHeight * 0.72, 520);
+    if (top + ph > window.innerHeight - margin) top = window.innerHeight - ph - margin;
+    setPos({ top: Math.max(margin, top), left });
+  }, [anchorRef]);
+
+  // Sluit bij klik buiten
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (panelRef.current && !panelRef.current.contains(e.target) &&
+          anchorRef?.current && !anchorRef.current.contains(e.target)) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Filter contacten op rol + zoekterm
+  const qLow = q.toLowerCase();
+  const rolFilter = rolLabel.toLowerCase().replace('adviseur','').replace('advisor','').trim();
+  const gefilterd = allContacts.filter(c => {
+    const matchRol = !c.rol || c.rol.toLowerCase().includes(rolFilter) ||
+      (c.tags||[]).some(t => t.toLowerCase().includes(rolFilter));
+    const matchQ = !qLow || c.naam?.toLowerCase().includes(qLow) ||
+      c.bedrijf?.toLowerCase().includes(qLow);
+    return matchRol && matchQ;
+  });
+
+  // Groepeer op bedrijf
+  const bedrijven = {};
+  gefilterd.forEach(c => {
+    const b = c.bedrijf || '— Onbekend bedrijf —';
+    if (!bedrijven[b]) bedrijven[b] = [];
+    bedrijven[b].push(c);
+  });
+
+  // Direct op naam zoeken (alle contacten, niet gefilterd op rol)
+  const naamResults = qLow.length > 1
+    ? allContacts.filter(c =>
+        c.naam?.toLowerCase().includes(qLow) &&
+        !gefilterd.find(g => g.id === c.id)
+      ).slice(0, 4)
+    : [];
+
+  const isGeselecteerd = (c) => geselecteerd.some(g => g.id === c.id);
+
+  const togglePersoon = (c) => {
+    if (isGeselecteerd(c)) onSelect(geselecteerd.filter(g => g.id !== c.id));
+    else onSelect([...geselecteerd, c]);
+  };
+
+  const slaOpNieuw = async () => {
+    if (!nieuw.naam.trim()) return;
+    try {
+      const { data, error } = await db.from('contacts').insert([{
+        naam: nieuw.naam.trim(), bedrijf: nieuw.bedrijf.trim(),
+        rol: nieuw.rol, email: nieuw.email, telefoon: nieuw.telefoon,
+        tags: [rolLabel.toLowerCase()],
+      }]).select().single();
+      if (!error && data) {
+        setAllContacts(prev => [...prev, data]);
+        onSelect([...geselecteerd, data]);
+        setNieuwForm(false);
+        setNieuw({ naam:'', bedrijf:'', rol: rolLabel, email:'', telefoon:'' });
+      }
+    } catch(e) {}
+  };
+
+  return (
+    <div ref={panelRef} style={{
+      position:'fixed', top: pos.top, left: pos.left, zIndex:1000,
+      width:'360px', maxHeight:'72vh',
+      background:'var(--card)', border:'1px solid var(--line)', borderRadius:'16px',
+      boxShadow:'0 8px 40px -8px rgba(26,35,50,.24)',
+      display:'flex', flexDirection:'column',
+      animation:'fadeUp .15s ease',
+    }}>
+      <style>{`@keyframes fadeUp{ from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }`}</style>
+
+      {/* Header */}
+      <div style={{padding:'14px 16px 10px', borderBottom:'1px solid var(--line)', flexShrink:0}}>
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'10px'}}>
+          <span style={{fontSize:'12px', fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:'var(--accent)'}}>{rolLabel}</span>
+          <button onClick={onClose} style={{background:'none',border:'1px solid var(--line)',borderRadius:'999px',padding:'4px 10px',fontSize:'11px',cursor:'pointer',color:'var(--muted)'}}>✕</button>
+        </div>
+        <input
+          autoFocus
+          value={q} onChange={e => setQ(e.target.value)}
+          placeholder={`Zoek bedrijf of naam…`}
+          style={{width:'100%', border:'1px solid var(--line)', borderRadius:'999px', padding:'8px 14px', fontSize:'13px', fontFamily:'inherit', background:'var(--bg)', color:'var(--ink)', outline:'none'}}
+        />
+      </div>
+
+      {/* Resultaten */}
+      <div style={{flex:1, overflowY:'auto', padding:'10px 12px'}}>
+
+        {/* Directe naamtreffers (andere rollen) */}
+        {naamResults.length > 0 && (
+          <div style={{marginBottom:'10px'}}>
+            <div style={{fontSize:'10px', fontWeight:700, letterSpacing:'.14em', textTransform:'uppercase', color:'var(--muted)', padding:'0 4px 6px'}}>Op naam gevonden</div>
+            {naamResults.map(c => (
+              <ContactRij key={c.id} contact={c} geselecteerd={isGeselecteerd(c)} onToggle={() => togglePersoon(c)} />
+            ))}
+          </div>
+        )}
+
+        {/* Bedrijfsgroepen */}
+        {Object.keys(bedrijven).length === 0 && !naamResults.length && (
+          <div style={{color:'var(--muted)', fontSize:'13px', textAlign:'center', padding:'24px 0'}}>Geen resultaten</div>
+        )}
+        {Object.entries(bedrijven).map(([bedrijf, personen]) => (
+          <div key={bedrijf} style={{marginBottom:'6px', border:'1px solid var(--line)', borderRadius:'10px', overflow:'hidden'}}>
+            {/* Bedrijfsrij */}
+            <button onClick={() => setOpenBedrijf(openBedrijf === bedrijf ? null : bedrijf)}
+              style={{width:'100%', display:'flex', alignItems:'center', gap:'10px', padding:'10px 12px',
+                background: openBedrijf === bedrijf ? 'rgba(78,125,156,.07)' : 'none',
+                border:'none', cursor:'pointer', fontFamily:'inherit', textAlign:'left'}}>
+              <div style={{width:'32px',height:'32px',borderRadius:'8px',background:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'11px',fontWeight:800,color:'#fff',flexShrink:0}}>
+                {bedrijf.slice(0,2).toUpperCase()}
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700, fontSize:'13px', color:'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{bedrijf}</div>
+                <div style={{fontSize:'11px', color:'var(--muted)'}}>
+                  {personen.length} persoon{personen.length !== 1 ? 'en' : ''}
+                  {personen.filter(p => isGeselecteerd(p)).length > 0 &&
+                    <span style={{color:'var(--good)', marginLeft:'6px', fontWeight:700}}>✓ {personen.filter(p=>isGeselecteerd(p)).length} geselecteerd</span>}
+                </div>
+              </div>
+              <span style={{color:'var(--muted)', fontSize:'12px'}}>{openBedrijf === bedrijf ? '▲' : '▼'}</span>
+            </button>
+            {/* Personen onder bedrijf */}
+            {openBedrijf === bedrijf && (
+              <div style={{borderTop:'1px solid var(--line)'}}>
+                {personen.map(c => (
+                  <ContactRij key={c.id} contact={c} geselecteerd={isGeselecteerd(c)} onToggle={() => togglePersoon(c)} indent />
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Nieuw contact */}
+      <div style={{borderTop:'1px solid var(--line)', padding:'10px 12px', flexShrink:0}}>
+        {!nieuwForm ? (
+          <button onClick={() => setNieuwForm(true)}
+            style={{width:'100%', padding:'9px', borderRadius:'8px', border:'1px dashed var(--line)',
+              background:'none', cursor:'pointer', fontSize:'12px', fontWeight:600, color:'var(--muted)', fontFamily:'inherit'}}>
+            + Nieuw contact aanmaken
+          </button>
+        ) : (
+          <div style={{display:'flex', flexDirection:'column', gap:'7px'}}>
+            <div style={{fontSize:'11px', fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:'var(--muted)'}}>Nieuw contact</div>
+            {['naam','bedrijf','email','telefoon'].map(veld => (
+              <input key={veld} placeholder={veld.charAt(0).toUpperCase()+veld.slice(1)+(veld==='naam'?' *':'')}
+                value={nieuw[veld]} onChange={e => setNieuw(p=>({...p,[veld]:e.target.value}))}
+                style={{border:'1px solid var(--line)',borderRadius:'7px',padding:'7px 10px',fontSize:'12px',fontFamily:'inherit',background:'var(--bg)',color:'var(--ink)',outline:'none'}} />
+            ))}
+            <div style={{display:'flex', gap:'6px', justifyContent:'flex-end', marginTop:'2px'}}>
+              <button onClick={() => setNieuwForm(false)} style={{background:'none',border:'1px solid var(--line)',borderRadius:'999px',padding:'7px 14px',fontSize:'11px',cursor:'pointer',fontFamily:'inherit'}}>Annuleren</button>
+              <button onClick={slaOpNieuw} style={{background:'var(--ink)',color:'#fff',border:'none',borderRadius:'999px',padding:'7px 16px',fontSize:'11px',fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Opslaan</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ContactRij({ contact, geselecteerd, onToggle, indent }) {
+  return (
+    <button onClick={onToggle} style={{
+      width:'100%', display:'flex', alignItems:'center', gap:'10px',
+      padding: indent ? '8px 12px 8px 20px' : '8px 12px',
+      background: geselecteerd ? 'rgba(45,138,94,.07)' : 'none',
+      border:'none', cursor:'pointer', fontFamily:'inherit', textAlign:'left',
+      borderBottom:'1px solid var(--line)',
+    }}>
+      <div style={{
+        width:'28px', height:'28px', borderRadius:'50%',
+        background: geselecteerd ? 'var(--good)' : 'var(--line)',
+        display:'flex', alignItems:'center', justifyContent:'center',
+        fontSize:'10px', fontWeight:800, color: geselecteerd ? '#fff' : 'var(--muted)',
+        flexShrink:0, transition:'all .12s',
+      }}>
+        {geselecteerd ? '✓' : (contact.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase()}
+      </div>
+      <div style={{flex:1, minWidth:0}}>
+        <div style={{fontWeight:600, fontSize:'13px', color:'var(--ink)'}}>{contact.naam}</div>
+        {contact.rol && <div style={{fontSize:'11px', color:'var(--muted)'}}>{contact.rol}</div>}
+      </div>
+    </button>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+   SamenwerkingSection — de kaart met rollen per fase
+--------------------------------------------------------------------------- */
+function SamenwerkingSection({ fase, allContacts, setAllContacts, samenwerkingen, setSamenwerkingen }) {
+  const rollen = getRollenVoorFase(fase);
+  const [openPopup, setOpenPopup] = React.useState(null); // rolId
+  const btnRefs = React.useRef({});
+
+  const getState = (rolId) => samenwerkingen[rolId] || { nvt: false, personen: [] };
+  const setState = (rolId, patch) => setSamenwerkingen(prev => ({
+    ...prev, [rolId]: { ...getState(rolId), ...patch }
+  }));
+
+  const toggleNvt = (rolId) => setState(rolId, { nvt: !getState(rolId).nvt });
+  const setPersonen = (rolId, personen) => setState(rolId, { personen });
+
+  const totaalGekoppeld = Object.values(samenwerkingen).reduce((n, s) => n + (s.personen||[]).length, 0);
+
+  return (
+    <section className="section">
+      <h2>
+        Samenwerkingen
+        <span className="count">{totaalGekoppeld > 0 ? `${totaalGekoppeld} gekoppeld` : fase ? '' : 'Kies eerst een fase'}</span>
+      </h2>
+      {!fase && (
+        <div style={{padding:'20px 22px', color:'var(--muted)', fontSize:'13px'}}>
+          Vul eerst de <strong style={{color:'var(--ink)'}}>Fase / status</strong> in om de juiste samenwerkingsrollen te zien.
+        </div>
+      )}
+      {rollen.map(rol => {
+        const st = getState(rol.id);
+        const isNvt = st.nvt;
+        const personen = st.personen || [];
+        if (!btnRefs.current[rol.id]) btnRefs.current[rol.id] = React.createRef();
+
+        return (
+          <div key={rol.id} className="field" style={{ opacity: isNvt ? 0.45 : 1, transition:'opacity .2s' }}>
+            {/* Label kolom */}
+            <label style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingRight:'12px' }}>
+              <span style={{ textDecoration: isNvt ? 'line-through' : 'none', color: isNvt ? 'var(--muted)' : 'var(--ink-2)' }}>
+                {rol.label}
+              </span>
+              <button
+                onClick={() => toggleNvt(rol.id)}
+                title={isNvt ? 'Markeer als relevant' : 'Markeer als n.v.t.'}
+                style={{
+                  background: isNvt ? 'var(--line)' : 'none',
+                  border:'1px solid var(--line)', borderRadius:'999px',
+                  padding:'2px 8px', fontSize:'10px', fontWeight:700,
+                  cursor:'pointer', color: isNvt ? 'var(--muted)' : 'var(--muted)',
+                  letterSpacing:'.06em', fontFamily:'inherit', flexShrink:0,
+                }}>
+                n.v.t.
+              </button>
+            </label>
+
+            {/* Rechterkolom: geselecteerde personen + zoekknop */}
+            <div style={{ display:'flex', flexDirection:'column', gap:'6px', padding:'10px 16px' }}>
+              {/* Geselecteerde personen */}
+              {personen.map(p => (
+                <div key={p.id} style={{
+                  display:'flex', alignItems:'center', gap:'8px',
+                  padding:'6px 10px', borderRadius:'8px',
+                  background:'rgba(45,138,94,.07)', border:'1px solid rgba(45,138,94,.2)',
+                }}>
+                  <div style={{width:'24px',height:'24px',borderRadius:'50%',background:'var(--good)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'9px',fontWeight:800,color:'#fff',flexShrink:0}}>
+                    {(p.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase()}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:600,fontSize:'12px',color:'var(--ink)'}}>{p.naam}</div>
+                    {p.bedrijf && <div style={{fontSize:'11px',color:'var(--muted)'}}>{p.bedrijf}</div>}
+                  </div>
+                  <button onClick={() => setPersonen(rol.id, personen.filter(x=>x.id!==p.id))}
+                    style={{background:'none',border:'none',cursor:'pointer',color:'var(--muted)',fontSize:'14px',padding:'0 2px',lineHeight:1}}>×</button>
+                </div>
+              ))}
+
+              {/* Zoekknop */}
+              {!isNvt && (
+                <div style={{position:'relative'}}>
+                  <button
+                    ref={btnRefs.current[rol.id]}
+                    onClick={() => setOpenPopup(openPopup === rol.id ? null : rol.id)}
+                    style={{
+                      display:'inline-flex', alignItems:'center', gap:'6px',
+                      background:'none', border:'1px dashed var(--line)', borderRadius:'999px',
+                      padding:'6px 14px', fontSize:'12px', fontWeight:600,
+                      color:'var(--muted)', cursor:'pointer', fontFamily:'inherit',
+                      transition:'border-color .12s, color .12s',
+                    }}
+                    onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.color='var(--accent)';}}
+                    onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--line)';e.currentTarget.style.color='var(--muted)';}}
+                  >
+                    + {personen.length > 0 ? 'Nog iemand toevoegen' : `${rol.label} zoeken`}
+                  </button>
+
+                  {openPopup === rol.id && (
+                    <ContactZoekPopup
+                      rolId={rol.id}
+                      rolLabel={rol.label}
+                      allContacts={allContacts}
+                      setAllContacts={setAllContacts}
+                      geselecteerd={personen}
+                      onSelect={(p) => setPersonen(rol.id, p)}
+                      onClose={() => setOpenPopup(null)}
+                      anchorRef={btnRefs.current[rol.id]}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
 function Field({ field, value, onChange, prevFilled, suggestions, onPostcodeLookup, postcodeLoading }){
   const filled = value != null && value !== '';
   const cls = filled ? 'filled' : '';
@@ -602,13 +982,17 @@ function App(){
         } catch(e) { console.warn('Geocoding overgeslagen:', e); }
       }
       const savedProject = await Projects.upsert({ ...toSnake(saveData), created_by: (await db.auth.getUser()).data?.user?.id || null });
-      if (linkedContacts.length && savedProject?.id) {
+      // Samenwerkingen opslaan
+      if (savedProject?.id) {
         try {
-          await db.from('project_contacts').upsert(
-            linkedContacts.map(ct=>({project_id:savedProject.id,contact_id:ct.id})),
-            {onConflict:'project_id,contact_id'}
-          );
-        } catch(e) { console.warn('Contacten koppelen mislukt:',e); }
+          const contactIds = Object.values(samenwerkingen)
+            .filter(s => !s.nvt)
+            .flatMap(s => s.personen || [])
+            .map(p => ({ project_id: savedProject.id, contact_id: p.id }));
+          if (contactIds.length) {
+            await db.from('project_contacts').upsert(contactIds, { onConflict:'project_id,contact_id' });
+          }
+        } catch(e) { console.warn('Samenwerkingen koppelen mislukt:', e); }
       }
 
       // Punten toekennen: 1 punt per ingevuld veld
@@ -708,69 +1092,13 @@ function App(){
   const [uploadErr, setUploadErr] = React.useState(null);
 
   // Adressenboek
-  const [contactPanelOpen, setContactPanelOpen] = React.useState(false);
   const [allContacts, setAllContacts] = React.useState([]);
-  const [linkedContacts, setLinkedContacts] = React.useState([]);
-  const [contactSearch, setContactSearch] = React.useState('');
-  const [contactFilter, setContactFilter] = React.useState('');
-  const [showNewForm, setShowNewForm] = React.useState(false);
-  const [newContact, setNewContact] = React.useState({ naam:'', bedrijf:'', rol:'', email:'', telefoon:'' });
-  const CONTACT_FILTERS = ['architect','adviseur','aannemer','opdrachtgever','overheid','installateur','financieel'];
-  const SECTOR_COLORS = {
-    architect:    { bg:'#dbeafe', text:'#1e40af', border:'#bfdbfe' },
-    adviseur:     { bg:'#d1fae5', text:'#065f46', border:'#a7f3d0' },
-    aannemer:     { bg:'#fef3c7', text:'#92400e', border:'#fde68a' },
-    opdrachtgever:{ bg:'#ede9fe', text:'#5b21b6', border:'#ddd6fe' },
-    overheid:     { bg:'#fee2e2', text:'#991b1b', border:'#fecaca' },
-    installateur: { bg:'#ffedd5', text:'#9a3412', border:'#fed7aa' },
-    financieel:   { bg:'#fce7f3', text:'#9d174d', border:'#fbcfe8' },
-    constructeur: { bg:'#e0f2fe', text:'#0c4a6e', border:'#bae6fd' },
-    civiel:       { bg:'#f0fdf4', text:'#166534', border:'#bbf7d0' },
-    projectleider:{ bg:'#f5f3ff', text:'#4c1d95', border:'#ede9fe' },
-    uitvoerder:   { bg:'#fdf4ff', text:'#6b21a8', border:'#f5d0fe' },
-    default:      { bg:'#f3f4f6', text:'#374151', border:'#e5e7eb' },
-  };
-  const getSectorColor = (rol) => {
-    if (!rol) return SECTOR_COLORS.default;
-    const key = Object.keys(SECTOR_COLORS).find(k => rol.toLowerCase().includes(k));
-    return SECTOR_COLORS[key] || SECTOR_COLORS.default;
-  };
-  const openContactPanel = async () => {
-    setContactPanelOpen(true);
-    if (allContacts.length) return;
-    try { const { data } = await db.from('contacts').select('id,naam,bedrijf,rol,email,tags').order('naam'); setAllContacts(data||[]); } catch(e) {}
-  };
-  const toggleContact = (contact) => setLinkedContacts(prev =>
-    prev.find(c=>c.id===contact.id) ? prev.filter(c=>c.id!==contact.id) : [...prev,contact]
-  );
-  const [editingContact, setEditingContact] = React.useState(null); // contact being edited
-  const updateLinkedContact = (updated) => {
-    setAllContacts(prev => prev.map(c => c.id === updated.id ? updated : c));
-    setLinkedContacts(prev => prev.map(c => c.id === updated.id ? updated : c));
-    setEditingContact(null);
-  };
-  const saveEditContact = async () => {
-    if (!editingContact) return;
-    try {
-      const { data, error } = await db.from('contacts').update({
-        naam: editingContact.naam, bedrijf: editingContact.bedrijf,
-        rol: editingContact.rol, email: editingContact.email, telefoon: editingContact.telefoon,
-      }).eq('id', editingContact.id).select().single();
-      if (!error && data) updateLinkedContact(data);
-    } catch(e) {}
-  };
-  const saveNewContact = async () => {
-    if (!newContact.naam) return;
-    try {
-      const { data, error } = await db.from('contacts').insert([newContact]).select().single();
-      if (!error && data) { setAllContacts(p=>[...p,data]); setLinkedContacts(p=>[...p,data]); setNewContact({naam:'',bedrijf:'',rol:'',email:'',telefoon:''}); setShowNewForm(false); }
-    } catch(e) {}
-  };
-  const filteredContacts = allContacts.filter(c => {
-    const q = contactSearch.toLowerCase();
-    return (!q || c.naam?.toLowerCase().includes(q) || c.bedrijf?.toLowerCase().includes(q) || c.rol?.toLowerCase().includes(q))
-      && (!contactFilter || (c.tags||[]).includes(contactFilter) || c.rol?.toLowerCase().includes(contactFilter.toLowerCase()));
-  });
+  const [samenwerkingen, setSamenwerkingen] = React.useState({}); // { rolId: { nvt: bool, personen: [{...contact}] } }
+  // Laad alle contacten eenmalig
+  React.useEffect(() => {
+    db.from('contacts').select('id,naam,bedrijf,rol,email,telefoon,tags').order('naam')
+      .then(({ data }) => setAllContacts(data || [])).catch(() => {});
+  }, []);
 
   React.useEffect(() => {
     if (!data.projectnummer) return;
@@ -863,89 +1191,13 @@ function App(){
           </section>
           {afterLocatie && (
       <React.Fragment>
-      <section className="section">
-        <h2 style={{fontSize:'11px',fontWeight:700,letterSpacing:'.22em',textTransform:'uppercase',margin:'0 0 18px',display:'flex',alignItems:'center',gap:'12px'}}>
-          Samenwerkingen
-          <span style={{marginLeft:'auto',fontSize:'10px',color:'#6b7480',fontWeight:600}}>{linkedContacts.length} gekoppeld</span>
-        </h2>
-        <div className="linked-contacts">
-          {linkedContacts.map(ct=>{
-            const sc = getSectorColor(ct.rol);
-            return editingContact?.id === ct.id ? (
-              <div key={ct.id} style={{border:`1px solid ${sc.border}`,borderRadius:'10px',padding:'12px 14px',background:sc.bg,display:'flex',flexDirection:'column',gap:'8px'}}>
-                <input style={{border:'1px solid #ddd',borderRadius:'7px',padding:'6px 10px',fontSize:'12px',fontFamily:'inherit'}} value={editingContact.naam} onChange={e=>setEditingContact(p=>({...p,naam:e.target.value}))} placeholder="Naam" />
-                <input style={{border:'1px solid #ddd',borderRadius:'7px',padding:'6px 10px',fontSize:'12px',fontFamily:'inherit'}} value={editingContact.bedrijf||''} onChange={e=>setEditingContact(p=>({...p,bedrijf:e.target.value}))} placeholder="Bedrijf" />
-                <input style={{border:'1px solid #ddd',borderRadius:'7px',padding:'6px 10px',fontSize:'12px',fontFamily:'inherit'}} value={editingContact.rol||''} onChange={e=>setEditingContact(p=>({...p,rol:e.target.value}))} placeholder="Rol" />
-                <div style={{display:'flex',gap:'6px',justifyContent:'flex-end'}}>
-                  <button onClick={()=>setEditingContact(null)} style={{background:'none',border:'1px solid #ddd',borderRadius:'999px',padding:'5px 12px',fontSize:'11px',cursor:'pointer'}}>Annuleer</button>
-                  <button onClick={saveEditContact} style={{background:'#111418',color:'#fff',border:'none',borderRadius:'999px',padding:'5px 14px',fontSize:'11px',fontWeight:700,cursor:'pointer'}}>Opslaan</button>
-                </div>
-              </div>
-            ) : (
-              <div key={ct.id} style={{border:`1px solid ${sc.border}`,borderRadius:'10px',padding:'10px 14px',background:sc.bg,display:'flex',alignItems:'center',gap:'10px'}}>
-                <div style={{width:'36px',height:'36px',borderRadius:'50%',background:sc.text,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'12px',fontWeight:800,color:'#fff',flexShrink:0}}>
-                  {(ct.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase()}
-                </div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:700,fontSize:'13px',color:sc.text}}>{ct.naam}</div>
-                  <div style={{fontSize:'11px',color:sc.text,opacity:.75,marginTop:'2px',fontWeight:600}}>{ct.bedrijf||'—'}</div>
-                  {ct.rol && <div style={{display:'inline-block',marginTop:'4px',padding:'1px 8px',borderRadius:'999px',fontSize:'9px',fontWeight:700,letterSpacing:'.08em',textTransform:'uppercase',background:'rgba(255,255,255,.6)',color:sc.text,border:`1px solid ${sc.border}`}}>{ct.rol}</div>}
-                </div>
-                <div style={{display:'flex',gap:'4px',flexShrink:0}}>
-                  <button onClick={()=>setEditingContact({...ct})} title="Bewerk" style={{background:'rgba(255,255,255,.7)',border:`1px solid ${sc.border}`,borderRadius:'7px',padding:'5px 8px',cursor:'pointer',fontSize:'12px'}}>✏️</button>
-                  <button onClick={()=>setEditingContact({...ct,bedrijf:''})} title="Ander bedrijf" style={{background:'rgba(255,255,255,.7)',border:`1px solid ${sc.border}`,borderRadius:'7px',padding:'5px 8px',cursor:'pointer',fontSize:'12px'}}>🏢</button>
-                  <button onClick={()=>toggleContact(ct)} title="Verwijder" style={{background:'rgba(255,255,255,.7)',border:`1px solid ${sc.border}`,borderRadius:'7px',padding:'5px 8px',cursor:'pointer',fontSize:'12px',color:'#b43c3c'}}>×</button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <button onClick={openContactPanel} style={{marginTop:linkedContacts.length?'10px':'0',display:'flex',alignItems:'center',gap:'8px',background:'none',border:'1px dashed #c8d0dc',borderRadius:'999px',padding:'9px 18px',cursor:'pointer',fontSize:'12px',fontWeight:700,color:'#6b7480'}}>
-          + Voeg samenwerking toe
-        </button>
-      </section>
-
-      <div className={`contact-overlay ${contactPanelOpen?'open':''}`} onClick={()=>setContactPanelOpen(false)} />
-      <div className={`contact-panel ${contactPanelOpen?'open':''}`}>
-        <div className="cp-head"><h3>📇 Adressenboek</h3><button className="cp-close" onClick={()=>setContactPanelOpen(false)}>✕ Sluiten</button></div>
-        <div style={{padding:'14px 20px 0'}}><input className="cp-search" placeholder="Zoek naam, bedrijf of rol…" value={contactSearch} onChange={e=>setContactSearch(e.target.value)} /></div>
-        <div className="cp-filters">{CONTACT_FILTERS.map(f=>(<button key={f} className={`cp-filter ${contactFilter===f?'active':''}`} onClick={()=>setContactFilter(contactFilter===f?'':f)}>{f}</button>))}</div>
-        <div className="cp-cards">
-          {filteredContacts.map(contact=>{
-            const isSel=linkedContacts.some(c=>c.id===contact.id);
-            const sc=getSectorColor(contact.rol);
-            return(
-              <div key={contact.id} style={{border:`1px solid ${isSel?sc.text:sc.border}`,borderRadius:'12px',padding:'12px 14px',cursor:'pointer',background:isSel?sc.bg:'#fff',display:'flex',alignItems:'center',gap:'12px',transition:'all .12s'}} onClick={()=>toggleContact(contact)}>
-                <div style={{width:'38px',height:'38px',borderRadius:'50%',background:sc.text,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'13px',fontWeight:800,color:'#fff',flexShrink:0}}>
-                  {(contact.naam||'?').split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase()}
-                </div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:700,fontSize:'13px'}}>{contact.naam}</div>
-                  <div style={{fontSize:'11px',fontWeight:600,color:sc.text,marginTop:'2px'}}>{contact.bedrijf||'—'}</div>
-                  {contact.rol&&<div style={{fontSize:'10px',color:'#888',marginTop:'1px'}}>{contact.rol}</div>}
-                </div>
-                {isSel&&<span style={{color:sc.text,fontSize:'18px',fontWeight:700}}>✓</span>}
-              </div>
-            );})}
-          {filteredContacts.length===0&&<div style={{color:'var(--muted)',fontSize:'13px',textAlign:'center',padding:'20px 0'}}>Geen contacten gevonden</div>}
-        </div>
-        {!showNewForm?(
-          <button className="cp-new-btn" onClick={()=>setShowNewForm(true)}>+ Nieuw visitekaartje aanmaken</button>
-        ):(
-          <div className="cp-new-form">
-            <div style={{fontWeight:700,fontSize:'13px',marginBottom:'4px'}}>Nieuw contact</div>
-            <input placeholder="Naam *" value={newContact.naam} onChange={e=>setNewContact(p=>({...p,naam:e.target.value}))} />
-            <input placeholder="Bedrijf" value={newContact.bedrijf} onChange={e=>setNewContact(p=>({...p,bedrijf:e.target.value}))} />
-            <input placeholder="Rol" value={newContact.rol} onChange={e=>setNewContact(p=>({...p,rol:e.target.value}))} />
-            <input placeholder="E-mail" value={newContact.email} onChange={e=>setNewContact(p=>({...p,email:e.target.value}))} />
-            <input placeholder="Telefoon" value={newContact.telefoon} onChange={e=>setNewContact(p=>({...p,telefoon:e.target.value}))} />
-            <div style={{display:'flex',gap:'8px',justifyContent:'flex-end'}}>
-              <button onClick={()=>setShowNewForm(false)} style={{background:'none',border:'1px solid var(--line)',borderRadius:'999px',padding:'8px 16px',cursor:'pointer',fontSize:'12px'}}>Annuleren</button>
-              <button className="cp-add-btn" onClick={saveNewContact}>Opslaan</button>
-            </div>
-          </div>
-        )}
-      </div>
+      <SamenwerkingSection
+        fase={data.fase}
+        allContacts={allContacts}
+        setAllContacts={setAllContacts}
+        samenwerkingen={samenwerkingen}
+        setSamenwerkingen={setSamenwerkingen}
+      />
       </React.Fragment>
           )}
           </React.Fragment>
