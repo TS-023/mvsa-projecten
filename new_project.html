@@ -940,13 +940,14 @@ function App(){
   const editKey = new URLSearchParams(window.location.search).get('edit');
   const isEdit = !!editKey;
   const [data, setData] = React.useState({});
+  const safeData = data || {};
   const [loading, setLoading] = React.useState(!!editKey);
   React.useEffect(() => {
     if (!editKey) return;
     Projects.getByNumber(editKey).then(found => {
-      if (found) setData(fromSnake(found));
+      if (found) setData(fromSnake(found) || {});
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, []);
   const filledMap = React.useRef(
     Object.fromEntries(Object.entries(data).map(([k, v]) => [k, v !== '' && v != null]))
@@ -957,12 +958,12 @@ function App(){
     filledMap.current[id] = (v !== '' && v != null);
   };
 
-  const filledCount = ALL_FIELDS.filter(f => (data[f.id] != null && data[f.id] !== '') || nvtFields[f.id]).length;
-  const requiredOk = REQUIRED_FIELDS.every(f => data[f.id] != null && data[f.id] !== '');
+  const filledCount = ALL_FIELDS.filter(f => f && ((safeData[f.id] != null && safeData[f.id] !== '') || nvtFields[f.id])).length;
+  const requiredOk = REQUIRED_FIELDS.every(f => f && safeData[f.id] != null && safeData[f.id] !== '');
   const pct = (filledCount / TOTAL_FIELDS) * 100;
 
   const sectionFilledCount = (sec) =>
-    sec.fields.filter(f => (data[f.id] != null && data[f.id] !== '') || nvtFields[f.id]).length;
+    (sec?.fields || []).filter(f => f && ((safeData[f.id] != null && safeData[f.id] !== '') || nvtFields[f.id])).length;
 
   const onSave = async () => {
     if (!requiredOk){
@@ -1182,7 +1183,7 @@ function App(){
                     <div style={{ flex:1, position:'relative' }}>
                       <Field
                         field={f}
-                        value={data[f.id]}
+                        value={safeData[f.id]}
                         prevFilled={filledMap.current[f.id]}
                         onChange={setField}
                         suggestions={suggestions[{
