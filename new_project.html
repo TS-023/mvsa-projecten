@@ -9,189 +9,231 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="styles.css" />
 <style>
+  /* ── Zelfde palet als dashboard ── */
   :root{
-    --bg: #f4f1ec;
-    --card: #ffffff;
-    --ink: #111418;
-    --ink-2: #2a2f36;
-    --muted: #8a8d93;
-    --line: #e8e4dd;
-    --shadow: 0 1px 0 rgba(20,30,45,.04), 0 8px 24px -12px rgba(20,30,45,.18);
-    --radius: 16px;
-    --accent: #3d6e8a;
-    --good: #1c8c50;
+    --bg:     #eef0f3;
+    --card:   #ffffff;
+    --ink:    #1a2332;
+    --ink-2:  #2d3a4a;
+    --muted:  #7f8fa0;
+    --line:   #dde3ea;
+    --accent: #4e7d9c;
+    --accent-light: rgba(78,125,156,.08);
+    --good:   #2d8a5e;
+    --danger: #c44040;
+    --shadow: 0 1px 3px rgba(26,35,50,.06), 0 8px 24px -8px rgba(26,35,50,.12);
+    --radius: 14px;
   }
+  [data-theme="dark"]{
+    --bg:    #111315;
+    --card:  #1e2024;
+    --ink:   #e8ecf0;
+    --ink-2: #c8cdd4;
+    --muted: #6b7078;
+    --line:  #2a2d32;
+    --accent:#5a9ab8;
+    --shadow:0 1px 3px rgba(0,0,0,.2), 0 6px 16px -4px rgba(0,0,0,.3);
+  }
+
   *{ box-sizing: border-box; }
-  html, body{ margin:0; padding:0; background: var(--bg); color: var(--ink); font-family: 'Inter', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
-  .page{ max-width: 920px; margin: 0 auto; padding: 32px 32px 120px; }
-
-  /* Floating back button */
-  .back{
-    position: fixed; top: 24px; left: 24px; z-index: 100;
-    display:inline-flex; align-items:center; gap:8px; color: var(--ink); text-decoration:none;
-    font-size: 12px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600;
-    padding: 10px 16px; border-radius: 999px;
-    background: rgba(255,255,255,.85);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border:1px solid rgba(17,20,24,.08);
-    box-shadow: 0 4px 16px -4px rgba(20,30,45,.18);
-    transition: background .15s ease, transform .15s ease;
+  html, body{
+    margin:0; padding:0; background: var(--bg); color: var(--ink);
+    font-family: 'Inter', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;
   }
-  .back:hover{ background: #fff; transform: translateY(-1px); }
+  .page{ max-width: 960px; margin: 0 auto; padding: 32px 32px 120px; }
 
-  /* Header */
-  .header{
-    display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end;
-    margin-bottom: 24px; padding-top: 4px;
+  /* ── Topbar (zelfde als dashboard) ── */
+  .topbar{
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 28px;
   }
-  .header h1{
-    margin: 0; font-size: clamp(36px, 5vw, 56px);
-    font-weight: 800; letter-spacing: -.035em; line-height: 1;
+  .crumbs{
+    font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
   }
-  .header .sub{ font-size: 13px; color: var(--muted); margin-top: 8px; max-width: 520px; line-height: 1.6; }
+  .crumbs a{ color: var(--muted); text-decoration: none; }
+  .crumbs a:hover{ color: var(--ink); }
+  .crumbs strong{ color: var(--ink); font-weight: 600; }
 
-  /* Progress card (sticky) */
+  /* ── Progress card (sticky, card-stijl) ── */
   .progress-card{
-    position: sticky; top: 16px; z-index: 50;
-    background: var(--card); border-radius: 16px; box-shadow: var(--shadow);
-    padding: 16px 20px; margin-bottom: 18px;
+    position: sticky; top: 60px; z-index: 50;
+    background: var(--card); border-radius: var(--radius);
+    box-shadow: var(--shadow); border: 1px solid rgba(255,255,255,.6);
+    padding: 14px 20px; margin-bottom: 14px;
     display: grid; grid-template-columns: 1fr auto auto; gap: 20px; align-items: center;
   }
   .progress-card .meta-line{
-    font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+    font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 6px; font-weight: 600;
   }
   .progress-card .bar{
-    height: 8px; background: rgba(17,20,24,.06); border-radius: 4px; overflow: hidden;
+    height: 6px; background: rgba(26,35,50,.07); border-radius: 3px; overflow: hidden;
   }
   .progress-card .bar > span{
     display: block; height: 100%;
-    background: linear-gradient(90deg, var(--accent), #5a8eaa);
-    border-radius: 4px; transition: width .3s ease;
+    background: linear-gradient(90deg, var(--accent), #7ab0cc);
+    border-radius: 3px; transition: width .35s ease;
   }
   .progress-card .stat{ text-align: right; }
-  .progress-card .stat .num{ font-size: 22px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
-  .progress-card .stat .lbl{ font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
-
-  .save-btn{
-    background: var(--ink); color: #fff; border: 0; padding: 12px 22px; border-radius: 999px;
-    font-family: inherit; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700;
-    cursor: pointer; transition: background .15s ease, transform .15s ease;
+  .progress-card .stat .num{
+    font-size: 24px; font-weight: 700; line-height: 1;
+    font-variant-numeric: tabular-nums; color: var(--ink);
   }
-  .save-btn:hover{ background: var(--accent); transform: translateY(-1px); }
-  .save-btn:disabled{ background: #c4cbd3; cursor: not-allowed; transform: none; }
+  .progress-card .stat .lbl{
+    font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted); margin-top: 3px;
+  }
 
-  /* Section */
+  /* ── Knoppen ── */
+  .save-btn{
+    background: var(--ink); color: #fff; border: 0;
+    padding: 11px 22px; border-radius: 999px;
+    font-family: inherit; font-size: 11px; letter-spacing: .14em;
+    text-transform: uppercase; font-weight: 700;
+    cursor: pointer; transition: opacity .15s ease, transform .15s ease;
+  }
+  .save-btn:hover{ opacity: .85; transform: translateY(-1px); }
+  .save-btn:disabled{ background: var(--line); color: var(--muted); cursor: not-allowed; transform: none; }
+  .secondary-btn{
+    background: transparent; color: var(--ink);
+    border: 1px solid rgba(26,35,50,.15);
+    padding: 11px 20px; border-radius: 999px;
+    font-family: inherit; font-size: 11px; letter-spacing: .14em;
+    text-transform: uppercase; font-weight: 600;
+    cursor: pointer; transition: background .15s ease;
+  }
+  .secondary-btn:hover{ background: rgba(255,255,255,.7); }
+
+  /* ── Sectie-header (zelfde stijl als dashboard section-title) ── */
+  .section-title{
+    font-size: 11px; font-weight: 700; letter-spacing: .22em;
+    text-transform: uppercase; color: var(--ink);
+    margin: 22px 0 10px 2px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title .rule{ flex: 1; height: 1px; background: var(--line); }
+  .section-title .count{
+    font-size: 10px; color: var(--muted); letter-spacing: .12em; font-weight: 600;
+  }
+  .section-title .count.done{ color: var(--good); }
+
+  /* ── Section card ── */
   .section{
-    background: var(--card); border-radius: 16px; box-shadow: var(--shadow);
-    padding: 24px 28px; margin-bottom: 14px;
+    background: var(--card); border-radius: var(--radius);
+    box-shadow: var(--shadow); border: 1px solid rgba(255,255,255,.6);
+    padding: 0; margin-bottom: 12px; overflow: hidden;
   }
   .section h2{
-    margin: 0 0 18px; font-size: 11px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase;
+    margin: 0; padding: 14px 22px;
+    font-size: 11px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase;
     color: var(--accent);
     display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid var(--line);
   }
   .section h2 .count{
     margin-left: auto; font-size: 10px; color: var(--muted); letter-spacing: .14em; font-weight: 600;
   }
   .section h2 .count.done{ color: var(--good); }
 
-  /* Field row */
+  /* ── Veld rij ── */
   .field{
-    display: grid; grid-template-columns: 220px 1fr;
-    gap: 20px; padding: 12px 0; border-bottom: 1px solid var(--line);
-    align-items: center;
+    display: grid; grid-template-columns: 200px 1fr;
+    gap: 0; padding: 0; border-bottom: 1px solid var(--line);
+    align-items: stretch; position: relative;
   }
-  .field:last-child{ border-bottom: 0; padding-bottom: 0; }
-  .field label{
-    font-size: 13px; color: var(--ink-2); font-weight: 500;
+  .field:last-child{ border-bottom: 0; }
+  .field > label{
+    font-size: 12px; color: var(--muted); font-weight: 600;
+    letter-spacing: .04em; padding: 13px 22px;
+    border-right: 1px solid var(--line);
+    display: flex; align-items: center;
+    background: rgba(26,35,50,.015);
   }
-  .field label .req{ color: #b43c3c; margin-left: 2px; }
+  .field > label .req{ color: var(--danger); margin-left: 3px; }
+
+  /* Input wrapper (rechterkolom) */
+  .field > div:not(.suggestions-dropdown){ padding: 9px 16px; display: flex; align-items: center; }
+
   .field input, .field select, .field textarea{
     width: 100%; font-family: inherit; font-size: 13px;
-    background: #fafbfc; border: 1px solid var(--line); border-radius: 8px;
-    padding: 10px 12px; color: var(--ink);
-    transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+    background: transparent; border: 1px solid transparent; border-radius: 8px;
+    padding: 7px 10px; color: var(--ink);
+    transition: background .15s, border-color .15s, box-shadow .15s;
+  }
+  .field input:hover, .field select:hover{
+    background: rgba(26,35,50,.03);
   }
   .field input:focus, .field select:focus, .field textarea:focus{
     outline: none; background: #fff; border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(61,110,138,.12);
+    box-shadow: 0 0 0 3px rgba(78,125,156,.12);
   }
   .field input.filled, .field select.filled, .field textarea.filled{
-    background: #fff; border-color: rgba(28,140,80,.3);
+    color: var(--ink);
   }
-  .field .row-2{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .field .row-3{ display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .field input.filled:not(:focus), .field select.filled:not(:focus){
+    border-color: rgba(45,138,94,.25); background: rgba(45,138,94,.04);
+  }
+  .field .row-2{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+  .field .row-3{ display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; width: 100%; }
 
-  /* Toast */
+  /* ── Toast ── */
   .toast-stack{
-    position: fixed; bottom: 24px; right: 24px; z-index: 200;
-    display: flex; flex-direction: column; gap: 8px;
+    position: fixed; bottom: 24px; right: 24px; z-index: 9000;
+    display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
   }
   .toast{
-    background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 999px;
+    background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 999px;
     font-size: 12px; letter-spacing: .04em; font-weight: 600;
-    box-shadow: 0 12px 28px -8px rgba(0,0,0,.3);
+    box-shadow: 0 8px 24px -6px rgba(0,0,0,.28);
     display: flex; align-items: center; gap: 10px;
-    animation: slideIn .25s ease, slideOut .3s ease 1.6s forwards;
+    animation: slideIn .2s ease, slideOut .3s ease 1.7s forwards;
   }
   .toast.point{ background: var(--good); }
-  .toast.save{ background: var(--accent); }
+  .toast.save { background: var(--accent); }
+  .toast.streak{ background: linear-gradient(135deg, #c8900a, #f5a623); }
+  .toast.badge-new{ background: linear-gradient(135deg, #5b21b6, #9b59b6); }
   .toast .pts{
     background: rgba(255,255,255,.2); padding: 2px 8px; border-radius: 999px;
     font-variant-numeric: tabular-nums; font-weight: 700;
   }
-  @keyframes slideIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
-  @keyframes slideOut { to { opacity:0; transform: translateX(20px); } }
+  @keyframes slideIn{ from{ opacity:0; transform:translateX(16px); } to{ opacity:1; transform:translateX(0); } }
+  @keyframes slideOut{ to{ opacity:0; transform:translateX(16px); } }
 
-  /* Confetti particle */
-  .confetti-particle {
+  /* ── Confetti ── */
+  .confetti-particle{
     position: fixed; top: -10px; z-index: 9999; pointer-events: none;
     border-radius: 3px; animation: confettiFall linear forwards;
   }
-  @keyframes confettiFall {
-    to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
-  }
+  @keyframes confettiFall{ to{ transform: translateY(110vh) rotate(720deg); opacity:0; } }
 
-  /* Streak toast */
-  .toast.streak { background: linear-gradient(135deg, #e07b00, #f5a623); }
-  .toast.badge-new { background: linear-gradient(135deg, #6b3fa0, #9b59b6); }
-
-  /* Autocomplete suggestion dropdown */
-  .field { position: relative; }
-  .suggestions-dropdown {
-    position: absolute; top: 100%; left: 0; right: 0; z-index: 300;
-    background: #fff; border: 1px solid var(--line); border-radius: 10px;
-    box-shadow: 0 8px 24px -4px rgba(0,0,0,.14); margin-top: 4px;
-    overflow: hidden;
+  /* ── Suggesties dropdown ── */
+  .suggestions-dropdown{
+    position: absolute; top: 100%; left: 200px; right: 0; z-index: 400;
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: 0 8px 24px -4px rgba(26,35,50,.16); margin-top: 2px; overflow: hidden;
   }
-  .suggestions-dropdown button {
+  .suggestions-dropdown button{
     display: block; width: 100%; text-align: left;
     padding: 9px 14px; font-family: inherit; font-size: 13px; font-weight: 500;
-    background: none; border: none; cursor: pointer; color: var(--ink);
-    border-bottom: 1px solid var(--line); transition: background .1s;
+    background: none; border: none; border-bottom: 1px solid var(--line);
+    cursor: pointer; color: var(--ink); transition: background .1s;
   }
-  .suggestions-dropdown button:last-child { border-bottom: none; }
-  .suggestions-dropdown button:hover { background: var(--accent-light, #f0f6fa); }
-  .postcode-loading { font-size: 11px; color: var(--muted); padding: 4px 0; }
+  .suggestions-dropdown button:last-child{ border-bottom: none; }
+  .suggestions-dropdown button:hover{ background: var(--accent-light); }
+  .postcode-loading{ font-size: 11px; color: var(--muted); padding: 4px 0; }
 
-
-  /* Save bar at bottom */
+  /* ── Save actions ── */
   .save-actions{
-    display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px;
+    display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;
   }
-  .secondary-btn{
-    background: transparent; color: var(--ink); border: 1px solid rgba(17,20,24,.15);
-    padding: 12px 22px; border-radius: 999px;
-    font-family: inherit; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; font-weight: 600;
-    cursor: pointer; transition: background .15s ease;
-  }
-  .secondary-btn:hover{ background: rgba(255,255,255,.6); }
 
-  @media (max-width: 720px){
-    .field{ grid-template-columns: 1fr; gap: 6px; }
-    .header{ grid-template-columns: 1fr; }
-    .progress-card{ grid-template-columns: 1fr; }
+  /* ── Responsive ── */
+  @media(max-width: 720px){
+    .field{ grid-template-columns: 1fr; }
+    .field > label{ border-right: none; border-bottom: 1px solid var(--line); padding: 10px 16px 8px; }
+    .field > div:not(.suggestions-dropdown){ padding: 8px 16px 10px; }
+    .suggestions-dropdown{ left: 0; }
+    .progress-card{ grid-template-columns: 1fr; gap: 12px; }
     .progress-card .stat{ text-align: left; }
   }
 
@@ -229,7 +271,6 @@
 </style>
 </head>
 <body>
-<a class="back" href="projects_dashboard.html">← Dashboard</a>
 <div class="page" id="root"></div>
 <div class="toast-stack" id="toasts"></div>
 
@@ -759,12 +800,16 @@ function App(){
 
   return (
     <>
-      <header className="header">
-        <div>
-          <h1>{isEdit ? 'Project bewerken' : 'Nieuw project'}</h1>
-          <div className="sub">
-            Vul de projectinformatie in. Per ingevuld veld verdien je <strong>1 punt</strong> voor het leaderboard.
-          </div>
+      <header className="topbar">
+        <div className="crumbs">
+          <a href="projects_dashboard.html">Dashboard</a>
+          {' · '}
+          <a href="projects_list.html">Projecten</a>
+          {' · '}
+          <strong>{isEdit ? 'Bewerken' : 'Nieuw project'}</strong>
+        </div>
+        <div style={{fontSize:'12px', color:'var(--muted)'}}>
+          Per veld <strong style={{color:'var(--ink)'}}>+1 punt</strong> voor het leaderboard
         </div>
       </header>
 
