@@ -64,7 +64,7 @@
         text-decoration: none; padding: 7px 16px;
         border-radius: 999px; font-size: 11px; font-weight: 700;
         letter-spacing: .1em; text-transform: uppercase;
-        background: #2ecc71; color: #fff;
+        background: var(--accent, #4e7d9c); color: #fff;
         transition: opacity .12s; border: none; white-space: nowrap;
       }
       #mvsa-nav .nav-new:hover { opacity: .85; }
