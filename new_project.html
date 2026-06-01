@@ -943,6 +943,8 @@ function App(){
   const [data, setData] = React.useState({});
   const safeData = data || {};
   const [loading, setLoading] = React.useState(!!editKey);
+  const [nvtFields, setNvtFields] = React.useState({});
+  const toggleNvtField = (id) => setNvtFields(prev => ({ ...prev, [id]: !prev[id] }));
   React.useEffect(() => {
     if (!editKey) return;
     Projects.getByNumber(editKey).then(found => {
@@ -1096,8 +1098,6 @@ function App(){
   const [allContacts, setAllContacts] = React.useState([]);
   const [samenwerkingen, setSamenwerkingen] = React.useState({}); // { rolId: { nvt: bool, personen: [{...contact}] } }
   // n.v.t. per veld
-  const [nvtFields, setNvtFields] = React.useState({});
-  const toggleNvtField = (id) => setNvtFields(prev => ({ ...prev, [id]: !prev[id] }));
   React.useEffect(() => {
     db.from('contacts').select('id,naam,bedrijf,rol,email,telefoon,tags').order('naam')
       .then(({ data }) => setAllContacts(data || [])).catch(() => {});
