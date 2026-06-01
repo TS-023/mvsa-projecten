@@ -61,13 +61,13 @@
       }
       #mvsa-nav .nav-spacer { flex: 1; }
       #mvsa-nav .nav-new {
-        text-decoration: none; padding: 7px 14px;
+        text-decoration: none; padding: 7px 16px;
         border-radius: 999px; font-size: 11px; font-weight: 700;
         letter-spacing: .1em; text-transform: uppercase;
-        background: var(--ink, #111418); color: #fff;
-        transition: opacity .12s;
+        background: #2ecc71; color: #fff;
+        transition: opacity .12s; border: none; white-space: nowrap;
       }
-      #mvsa-nav .nav-new:hover { opacity: .8; }
+      #mvsa-nav .nav-new:hover { opacity: .85; }
       #mvsa-nav .nav-auth { display: flex; align-items: center; gap: 6px; }
 
       /* Push page content below nav */
@@ -140,9 +140,9 @@
       const { data: profile } = await db.from('profiles').select('naam,is_admin').eq('id', user.id).maybeSingle();
       if (profile) {
         slot.innerHTML =
-          `<a href="profile.html" style="font-size:12px;font-weight:600;text-decoration:none;padding:6px 12px;border-radius:999px;border:1px solid rgba(17,20,24,.12);color:var(--ink,#111418);">${profile.naam}</a>`
-          + (profile.is_admin ? `<a href="admin.html" style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-decoration:none;padding:6px 10px;border-radius:999px;border:1px solid rgba(17,20,24,.12);color:var(--ink,#111418);">⚙️</a>` : '')
-          + `<button onclick="db.auth.signOut().then(()=>location.reload())" style="background:none;border:1px solid rgba(17,20,24,.12);border-radius:999px;cursor:pointer;font-family:inherit;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--muted,#8a8d93);padding:6px 10px;">Uit</button>`;
+          `<a href="profile.html" style="font-size:12px;font-weight:600;text-decoration:none;padding:5px 12px;border-radius:999px;border:1px solid rgba(17,20,24,.12);color:var(--ink,#111418);">${profile.naam}</a>`
+          + (profile.is_admin ? `<a href="admin.html" title="Beheer" style="font-size:11px;text-decoration:none;padding:5px 8px;border-radius:999px;border:1px solid rgba(17,20,24,.12);color:var(--ink,#111418);">⚙️</a>` : '')
+          + `<button onclick="db.auth.signOut().then(()=>location.reload())" style="background:none;border:1px solid rgba(17,20,24,.12);border-radius:999px;cursor:pointer;font-family:inherit;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--muted,#8a8d93);padding:5px 10px;">Uit</button>`;
       }
     } catch(e) {}
   }
