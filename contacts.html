@@ -405,31 +405,22 @@
     </div>
     <div class="field"><label>Naam *</label><input id="nc-naam" placeholder="Voor- en achternaam" /></div>
     <div class="field"><label>Bedrijf</label><input id="nc-bedrijf" placeholder="Bedrijfsnaam" /></div>
-    <div class="field"><label>Rol</label>
-      <select id="nc-rol">
-        <option value="">Selecteer rol…</option>
-        <option>Architect</option><option>Adviseur</option><option>Aannemer</option>
-        <option>Opdrachtgever</option><option>Gemeente</option><option>Installateur</option>
-        <option>Financieel</option><option>Constructeur</option><option>Civiel ingenieur</option>
-        <option>Overig</option>
-      </select>
+    <div class="field" style="position:relative;">
+      <label>Type bedrijf</label>
+      <input id="nc-rol" autocomplete="off" placeholder="Bijv. Architectenbureau, Aannemersbedrijf…" />
+      <div id="nc-rol-suggestions" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--card);border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:999;max-height:180px;overflow-y:auto;margin-top:2px;"></div>
     </div>
-    <div class="field"><label>Functie</label><input id="nc-functie" placeholder="Bijv. Projectmanager, Directeur, BIM-coördinator…" /></div>
+    <div class="field" style="position:relative;">
+      <label>Functie</label>
+      <input id="nc-functie" autocomplete="off" placeholder="Bijv. Projectmanager, Directeur, BIM-coördinator…" />
+      <div id="nc-functie-suggestions" style="display:none;position:absolute;left:0;right:0;background:var(--card);border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:999;max-height:150px;overflow-y:auto;margin-top:2px;"></div>
+    </div>
     <div class="field"><label>E-mail</label><input id="nc-email" type="email" placeholder="naam@bedrijf.nl" /></div>
     <div class="field"><label>Telefoon</label><input id="nc-telefoon" type="tel" placeholder="+31 6 …" /></div>
     <div class="field"><label>Website</label><input id="nc-website" placeholder="https://…" /></div>
     <div class="field"><label>LinkedIn</label><input id="nc-linkedin" placeholder="https://linkedin.com/in/…" /></div>
     <div class="field"><label>Tags</label>
       <div class="tags-input" id="nc-tags">
-        <span class="tag-pill" data-tag="architect">architect</span>
-        <span class="tag-pill" data-tag="adviseur">adviseur</span>
-        <span class="tag-pill" data-tag="aannemer">aannemer</span>
-        <span class="tag-pill" data-tag="opdrachtgever">opdrachtgever</span>
-        <span class="tag-pill" data-tag="overheid">overheid</span>
-        <span class="tag-pill" data-tag="installateur">installateur</span>
-        <span class="tag-pill" data-tag="financieel">financieel</span>
-        <span class="tag-pill" data-tag="civiel">civiel</span>
-        <span class="tag-pill" data-tag="extern">extern</span>
       </div>
     </div>
     <div class="field"><label>Notities</label><textarea id="nc-notities" rows="3" placeholder="Optionele notitie…"></textarea></div>
@@ -945,23 +936,126 @@ function closeDetail() {
 // ── Nieuw contact ──────────────────────────────────────
 let selectedTags = [];
 
+// Type bedrijf → functies + tags mapping
+const BEDRIJFSTYPE_CONFIG = {
+  'architectenbureau':     { functies: ['Architect','Projectarchitect','BIM-coördinator','Interieurarchitect','Stagiair','Directeur','Projectmanager'], tags: ['architect','extern'] },
+  'aannemersbedrijf':      { functies: ['Uitvoerder','Projectleider','Calculator','Werkvoorbereider','Directeur','Projectmanager','Zzp-er'], tags: ['aannemer','extern'] },
+  'ingenieursbureau':      { functies: ['Constructeur','Adviseur','Projectleider','BIM-engineer','Directeur','Senior engineer'], tags: ['adviseur','constructeur','extern'] },
+  'installatiebedrijf':    { functies: ['Installateur','Projectleider','Calculator','Monteur','Directeur','Werkvoorbereider'], tags: ['installateur','extern'] },
+  'gemeente':              { functies: ['Ambtenaar','Projectleider','Wethouder','Beleidsmedewerker','Vergunningverlener'], tags: ['overheid','gemeente'] },
+  'ontwikkelaar':          { functies: ['Projectontwikkelaar','Directeur','Projectmanager','Commercieel manager'], tags: ['opdrachtgever','extern'] },
+  'woningcorporatie':      { functies: ['Vastgoedmanager','Projectleider','Directeur','Beleidsmedewerker'], tags: ['opdrachtgever','overheid'] },
+  'adviesbureau':          { functies: ['Adviseur','Senior adviseur','Directeur','Projectmanager','Consultant'], tags: ['adviseur','extern'] },
+  'financieel adviseur':   { functies: ['Financieel adviseur','Accountant','Directeur','Controller'], tags: ['financieel','extern'] },
+  'civiel ingenieursbureau':{ functies: ['Civiel ingenieur','Projectleider','Adviseur','Directeur'], tags: ['civiel','adviseur','extern'] },
+};
+
+function normalizeBedrijfstype(val) {
+  if (!val) return null;
+  const v = val.toLowerCase().trim();
+  for (const key of Object.keys(BEDRIJFSTYPE_CONFIG)) {
+    if (v.includes(key) || key.includes(v)) return key;
+  }
+  return null;
+}
+
+function renderTagsForType(type) {
+  const container = document.getElementById('nc-tags');
+  const config = BEDRIJFSTYPE_CONFIG[type];
+  const tagList = config ? config.tags : ['architect','adviseur','aannemer','opdrachtgever','overheid','installateur','financieel','civiel','extern'];
+  // Always show a base set + type-specific ones, deduplicated
+  const baseTags = ['extern','overheid','financieel'];
+  const allTags = [...new Set([...(config ? config.tags : []), ...baseTags, 'architect','adviseur','aannemer','opdrachtgever','installateur','civiel'])];
+  container.innerHTML = allTags.map(t =>
+    `<span class="tag-pill${selectedTags.includes(t) ? ' on' : ''}" data-tag="${t}">${t}</span>`
+  ).join('');
+  container.querySelectorAll('.tag-pill').forEach(p => {
+    p.addEventListener('click', () => {
+      p.classList.toggle('on');
+      const t = p.dataset.tag;
+      selectedTags = p.classList.contains('on') ? [...selectedTags, t] : selectedTags.filter(x => x !== t);
+    });
+  });
+  // Auto-select tags voor dit type
+  if (config) {
+    config.tags.forEach(t => {
+      if (!selectedTags.includes(t)) selectedTags.push(t);
+      const pill = container.querySelector(`[data-tag="${t}"]`);
+      if (pill) pill.classList.add('on');
+    });
+  }
+}
+
+// Autocomplete helper
+function makeAutocomplete(inputId, suggestId, getOptions, onSelect) {
+  const input = document.getElementById(inputId);
+  const box   = document.getElementById(suggestId);
+  if (!input || !box) return;
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    box.innerHTML = '';
+    if (!q) { box.style.display = 'none'; return; }
+    const opts = getOptions().filter(o => o.toLowerCase().includes(q));
+    if (!opts.length) { box.style.display = 'none'; return; }
+    opts.forEach(o => {
+      const item = document.createElement('div');
+      item.textContent = o;
+      item.style.cssText = 'padding:9px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--line);';
+      item.addEventListener('mousedown', e => { e.preventDefault(); input.value = o; box.style.display='none'; onSelect(o); });
+      item.addEventListener('mouseover', () => item.style.background = 'var(--hover)');
+      item.addEventListener('mouseout',  () => item.style.background = '');
+      box.appendChild(item);
+    });
+    box.style.display = 'block';
+  });
+  input.addEventListener('blur', () => setTimeout(() => box.style.display='none', 150));
+}
+
+function getBestaandeBedrijfstypes() {
+  // Haal unieke rollen op uit bestaande contacten + vaste lijst
+  const fromContacts = [...new Set(contacts.map(c => c.rol).filter(Boolean))];
+  const vaste = ['Architectenbureau','Aannemersbedrijf','Ingenieursbureau','Installatiebedrijf','Gemeente','Ontwikkelaar','Woningcorporatie','Adviesbureau','Financieel adviseur','Civiel ingenieursbureau'];
+  return [...new Set([...fromContacts, ...vaste])].sort();
+}
+
+function getFunctiesVoorType(type) {
+  const norm = normalizeBedrijfstype(type);
+  if (norm && BEDRIJFSTYPE_CONFIG[norm]) return BEDRIJFSTYPE_CONFIG[norm].functies;
+  // Fallback: functies van contacten met zelfde rol
+  const rolLower = (type || '').toLowerCase();
+  const fromContacts = [...new Set(
+    contacts.filter(c => (c.rol || '').toLowerCase().includes(rolLower)).map(c => c.functie).filter(Boolean)
+  )];
+  return fromContacts.length ? fromContacts : [...new Set(contacts.map(c => c.functie).filter(Boolean))].slice(0,8);
+}
+
 document.getElementById('open-new-btn').addEventListener('click', () => {
   selectedTags = [];
-  document.querySelectorAll('#nc-tags .tag-pill').forEach(p => p.classList.remove('on'));
-  ['nc-naam','nc-bedrijf','nc-email','nc-telefoon','nc-website','nc-linkedin','nc-notities','nc-functie'].forEach(id => {
+  ['nc-naam','nc-bedrijf','nc-email','nc-telefoon','nc-website','nc-linkedin','nc-notities','nc-functie','nc-rol'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
-  document.getElementById('nc-rol').value = '';
+  renderTagsForType(null);
   document.getElementById('new-overlay').classList.add('open');
+  // Setup autocompletes (after overlay open so elements are visible)
+  makeAutocomplete('nc-rol', 'nc-rol-suggestions', getBestaandeBedrijfstypes, (val) => {
+    const norm = normalizeBedrijfstype(val);
+    selectedTags = [];
+    renderTagsForType(norm);
+  });
+  makeAutocomplete('nc-functie', 'nc-functie-suggestions',
+    () => getFunctiesVoorType(document.getElementById('nc-rol').value),
+    () => {}
+  );
 });
 
-document.querySelectorAll('#nc-tags .tag-pill').forEach(p => {
-  p.addEventListener('click', () => {
-    p.classList.toggle('on');
-    const t = p.dataset.tag;
-    selectedTags = p.classList.contains('on') ? [...selectedTags, t] : selectedTags.filter(x => x !== t);
-  });
-});
+// Trigger tag/functie update wanneer rol-veld verandert (handmatig typen of selectie)
+function onRolChange() {
+  const val = document.getElementById('nc-rol').value;
+  const norm = normalizeBedrijfstype(val);
+  if (norm) { selectedTags = []; renderTagsForType(norm); }
+}
+document.getElementById('nc-rol').addEventListener('change', onRolChange);
+document.getElementById('nc-rol').addEventListener('input', onRolChange);
 
 document.getElementById('close-new-btn').addEventListener('click', () => document.getElementById('new-overlay').classList.remove('open'));
 document.getElementById('cancel-new-btn').addEventListener('click', () => document.getElementById('new-overlay').classList.remove('open'));
