@@ -3,153 +3,195 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Projecten · Lijst</title>
+<title>Projecten · Overzicht</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="styles.css" />
+<script src="nav.js" defer></script>
 <style>
   :root{
-    --bg: #eef0f3;
-    --card: #ffffff;
-    --ink: #1a2332;
-    --ink-2: #2d3a4a;
-    --muted: #7f8fa0;
-    --line: #dde3ea;
-    --accent: #4e7d9c;
-    --shadow: 0 1px 3px rgba(26,35,50,.06), 0 8px 24px -8px rgba(26,35,50,.12);
-    --radius: 14px;
+    --bg:#eef0f3; --card:#ffffff; --ink:#1a2332; --ink-2:#2d3a4a;
+    --muted:#7f8fa0; --line:#dde3ea;
+    --accent:#4e7d9c; --accent-light:rgba(78,125,156,.08);
+    --good:#2d8a5e; --danger:#c44040; --warning:#c8900a;
+    --shadow:0 1px 3px rgba(26,35,50,.06),0 8px 24px -8px rgba(26,35,50,.12);
+    --radius:14px;
   }
-  *{ box-sizing: border-box; }
+  [data-theme="dark"]{
+    --bg:#111315; --card:#1e2024; --ink:#e8ecf0; --ink-2:#c8cdd4;
+    --muted:#6b7078; --line:#2a2d32; --accent:#5a9ab8;
+    --shadow:0 1px 3px rgba(0,0,0,.2),0 6px 16px -4px rgba(0,0,0,.3);
+  }
+  *{ box-sizing:border-box; }
   html,body{ margin:0; padding:0; background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
-  .page{ max-width:1280px; margin:0 auto; padding:32px 32px 80px; }
 
-  /* ── Header ── */
-  .header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:28px; }
-  .header h1{ margin:0; font-size:clamp(28px,4vw,40px); font-weight:800; letter-spacing:-.03em; line-height:1; }
-  .header .sub{ font-size:13px; color:var(--muted); margin-top:5px; }
+  /* ── Tweekolomslay-out ── */
+  .layout{ display:grid; grid-template-columns:240px 1fr; min-height:100vh; }
 
-  /* ── View toggle ── */
-  .view-toggle{ display:flex; gap:4px; background:var(--card); border-radius:999px; padding:4px; box-shadow:var(--shadow); border:1px solid rgba(17,20,24,.06); }
-  .vt-btn{ background:transparent; border:none; padding:7px 14px; border-radius:999px; cursor:pointer; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); transition:all .15s; font-family:inherit; font-weight:600; }
-  .vt-btn.active{ background:var(--ink); color:#fff; }
+  /* ── Sidebar ── */
+  .sidebar{
+    background:var(--card); border-right:1px solid var(--line);
+    display:flex; flex-direction:column;
+    position:sticky; top:52px; height:calc(100vh - 52px); overflow:hidden;
+  }
+  .sidebar-head{
+    padding:20px 18px 14px; border-bottom:1px solid var(--line); flex-shrink:0;
+  }
+  .sidebar-head h1{ margin:0; font-size:15px; font-weight:800; letter-spacing:-.01em; }
+  .sidebar-head .sub{ font-size:11px; color:var(--muted); margin-top:2px; }
+
+  /* Filtergroepen */
+  .sidebar-section{ padding:10px 12px 4px; flex-shrink:0; }
+  .sidebar-label{
+    font-size:10px; font-weight:700; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--muted); padding:0 6px 6px;
+  }
+  .filter-btn{
+    display:flex; align-items:center; gap:10px; width:100%;
+    padding:7px 8px; border-radius:8px; border:none; background:none;
+    cursor:pointer; font-family:inherit; text-align:left;
+    transition:background .12s; color:var(--ink);
+  }
+  .filter-btn:hover{ background:var(--accent-light); }
+  .filter-btn.active{ background:var(--accent-light); }
+  .filter-dot{ width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .filter-name{ font-size:12px; font-weight:600; flex:1; }
+  .filter-count{ font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+
+  /* Stadslijst */
+  .sidebar-scroll{ flex:1; overflow-y:auto; padding:4px 12px 20px; }
+  .sidebar-scroll::-webkit-scrollbar{ width:4px; }
+  .sidebar-scroll::-webkit-scrollbar-thumb{ background:var(--line); border-radius:2px; }
+  .stad-btn{
+    display:flex; align-items:center; gap:10px; width:100%;
+    padding:7px 8px; border-radius:8px; border:none; background:none;
+    cursor:pointer; font-family:inherit; text-align:left;
+    transition:background .12s; color:var(--ink);
+  }
+  .stad-btn:hover{ background:var(--accent-light); }
+  .stad-btn.active{ background:var(--accent-light); font-weight:700; }
+  .stad-logo{
+    width:28px; height:28px; border-radius:6px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:10px; font-weight:800; color:#fff;
+  }
+  .stad-info{ flex:1; min-width:0; }
+  .stad-naam{ font-size:12px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .stad-type{ font-size:10px; color:var(--muted); margin-top:1px; }
+  .stad-n{ font-size:11px; color:var(--muted); flex-shrink:0; }
+
+  /* ── Hoofdpaneel ── */
+  .main{ padding:24px 28px 80px; min-width:0; }
+
+  /* Topbar */
+  .topbar{ display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+  .crumbs{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); flex:1; }
+  .crumbs a{ color:var(--muted); text-decoration:none; }
+  .crumbs a:hover{ color:var(--ink); }
+  .new-btn{
+    text-decoration:none;
+    background: transparent; color: var(--ink); border: 1.5px solid var(--ink); border-radius:999px;
+    padding:8px 16px; font-size:11px; font-weight:700; letter-spacing:.12em;
+    text-transform:uppercase; cursor:pointer; transition:background .12s, color .12s;
+    display:flex; align-items:center; gap:6px;
+  }
+  .new-btn:hover{ background:var(--ink); color:#fff; }
+
+  /* Zoekbalk + toggle */
+  .toolbar{ display:flex; gap:10px; align-items:center; margin-bottom:18px; }
+  .proj-search{
+    flex:1; border:1px solid var(--line); border-radius:999px;
+    padding:9px 18px; font-size:13px; background:var(--card); color:var(--ink);
+    outline:none; transition:border-color .15s; font-family:inherit;
+  }
+  .proj-search:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(78,125,156,.1); }
+  .view-toggle{
+    display:flex; gap:3px; border:1px solid var(--line); border-radius:999px;
+    padding:3px; background:var(--card);
+  }
+  .vtoggle-btn{
+    padding:5px 12px; border-radius:999px; border:none; cursor:pointer;
+    font-size:12px; font-weight:600; background:none; color:var(--muted); transition:all .12s;
+  }
+  .vtoggle-btn.active{ background:var(--ink); color:#fff; }
+
+  /* Actieve filter badge */
+  .active-filter-bar{ display:flex; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .filter-badge{
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--accent-light); border:1px solid rgba(78,125,156,.2);
+    color:var(--accent); border-radius:999px; padding:4px 10px 4px 12px;
+    font-size:11px; font-weight:600;
+  }
+  .filter-badge button{
+    background:none; border:none; cursor:pointer; color:var(--accent);
+    font-size:13px; line-height:1; padding:0; display:flex; align-items:center;
+  }
+  .filter-badge button:hover{ color:var(--ink); }
 
   /* ── Kaartgrid ── */
   .proj-grid{
     display:grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap:16px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap:14px;
   }
-
-  /* ── Project kaart ── */
   .proj-card-wrap{
     border-radius:16px; overflow:hidden; position:relative;
     aspect-ratio:4/3; cursor:pointer;
-    box-shadow: var(--shadow);
-    transition: transform .4s cubic-bezier(.22,1,.36,1), box-shadow .4s;
+    box-shadow:var(--shadow);
+    transition:transform .4s cubic-bezier(.22,1,.36,1), box-shadow .4s;
     text-decoration:none;
+    animation:cardIn .45s cubic-bezier(.22,.68,0,1.2) both;
   }
   .proj-card-wrap:hover{
-    transform: translateY(-5px) scale(1.01);
-    box-shadow: 0 2px 8px rgba(26,35,50,.08), 0 24px 48px -8px rgba(26,35,50,.22);
+    transform:translateY(-5px) scale(1.01);
+    box-shadow:0 2px 8px rgba(26,35,50,.08),0 24px 48px -8px rgba(26,35,50,.22);
   }
   .proj-card-bg{
     position:absolute; inset:0;
-    background: linear-gradient(135deg, #1a2332 0%, #2d3a4a 50%, #111828 100%);
-    transition: transform .6s cubic-bezier(.22,1,.36,1);
+    background:linear-gradient(135deg,#1a2332 0%,#2d3a4a 50%,#111828 100%);
+    transition:transform .6s cubic-bezier(.22,1,.36,1);
   }
   .proj-card-wrap:hover .proj-card-bg{ transform:scale(1.06); }
-  .proj-card-img{
-    position:absolute; inset:0; width:100%; height:100%;
-    object-fit:cover; display:block;
-    transition: transform .6s cubic-bezier(.22,1,.36,1);
-  }
+  .proj-card-img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; transition:transform .6s cubic-bezier(.22,1,.36,1); }
   .proj-card-wrap:hover .proj-card-img{ transform:scale(1.06); }
-  .proj-card-overlay{
-    position:absolute; inset:0;
-    background: linear-gradient(to top, rgba(10,14,22,.92) 0%, rgba(10,14,22,.2) 55%, transparent 100%);
-  }
-  .proj-card-overlay-hover{
-    position:absolute; inset:0;
-    background: rgba(10,14,22,.45);
-    opacity:0; transition:opacity .3s;
-  }
+  .proj-card-overlay{ position:absolute; inset:0; background:linear-gradient(to top,rgba(10,14,22,.92) 0%,rgba(10,14,22,.2) 55%,transparent 100%); }
+  .proj-card-overlay-hover{ position:absolute; inset:0; background:rgba(10,14,22,.45); opacity:0; transition:opacity .3s; }
   .proj-card-wrap:hover .proj-card-overlay-hover{ opacity:1; }
-
-  /* Altijd zichtbare onderbalk */
-  .proj-card-bottom{
-    position:absolute; bottom:0; left:0; right:0;
-    padding:18px 20px;
-    transition: transform .35s cubic-bezier(.22,1,.36,1);
-  }
-  .proj-card-name{
-    font-size:15px; font-weight:800; letter-spacing:.03em; text-transform:uppercase;
-    color:#fff; line-height:1.2; margin-bottom:4px;
-    text-shadow: 0 2px 8px rgba(0,0,0,.4);
-  }
-  .proj-card-sub{
-    font-size:11px; color:rgba(255,255,255,.6); letter-spacing:.05em;
-    display:flex; align-items:center; gap:8px;
-  }
-  .proj-card-fase{
-    font-size:9px; letter-spacing:.12em; font-weight:700; text-transform:uppercase;
-    padding:3px 8px; border-radius:999px;
-    background:rgba(255,255,255,.15); color:#fff;
-    border:1px solid rgba(255,255,255,.2);
-  }
-
-  /* Hover details slide omhoog */
-  .proj-card-details{
-    position:absolute; bottom:0; left:0; right:0;
-    padding:16px 20px;
-    transform: translateY(100%);
-    transition: transform .35s cubic-bezier(.22,1,.36,1);
-    display:flex; flex-direction:column; gap:6px;
-  }
-  .proj-card-wrap:hover .proj-card-bottom{ transform:translateY(-72px); }
+  .proj-card-bottom{ position:absolute; bottom:0; left:0; right:0; padding:16px 18px; transition:transform .35s cubic-bezier(.22,1,.36,1); }
+  .proj-card-name{ font-size:13px; font-weight:800; letter-spacing:.03em; text-transform:uppercase; color:#fff; line-height:1.2; margin-bottom:4px; text-shadow:0 2px 8px rgba(0,0,0,.4); }
+  .proj-card-sub{ font-size:10px; color:rgba(255,255,255,.6); letter-spacing:.05em; display:flex; align-items:center; gap:8px; }
+  .proj-card-fase{ font-size:9px; letter-spacing:.12em; font-weight:700; text-transform:uppercase; padding:3px 8px; border-radius:999px; background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.2); }
+  .proj-card-details{ position:absolute; bottom:0; left:0; right:0; padding:14px 18px; transform:translateY(100%); transition:transform .35s cubic-bezier(.22,1,.36,1); display:flex; flex-direction:column; gap:5px; }
+  .proj-card-wrap:hover .proj-card-bottom{ transform:translateY(-68px); }
   .proj-card-wrap:hover .proj-card-details{ transform:translateY(0); }
-  .proj-card-detail-row{
-    display:flex; justify-content:space-between; align-items:center;
-    font-size:11px; color:rgba(255,255,255,.8);
-  }
+  .proj-card-detail-row{ display:flex; justify-content:space-between; align-items:center; font-size:10px; color:rgba(255,255,255,.8); }
   .proj-card-detail-row .lbl{ color:rgba(255,255,255,.5); letter-spacing:.06em; text-transform:uppercase; }
   .proj-card-detail-row .val{ font-weight:700; color:#fff; }
-  .proj-card-actions{ display:flex; gap:8px; margin-top:6px; }
-  .proj-card-action{
-    flex:1; padding:8px; border-radius:8px; text-align:center; text-decoration:none;
-    font-size:10px; letter-spacing:.12em; text-transform:uppercase; font-weight:700;
-    transition:background .15s; border:none; cursor:pointer; font-family:inherit;
-  }
+  .proj-card-actions{ display:flex; gap:6px; margin-top:5px; }
+  .proj-card-action{ flex:1; padding:7px; border-radius:8px; text-align:center; text-decoration:none; font-size:10px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; transition:background .15s; border:none; cursor:pointer; font-family:inherit; }
   .proj-card-action.primary{ background:rgba(255,255,255,.95); color:#1a2332; }
   .proj-card-action.primary:hover{ background:#fff; }
   .proj-card-action.secondary{ background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.2); }
   .proj-card-action.secondary:hover{ background:rgba(255,255,255,.25); }
   .proj-card-action.danger{ background:rgba(180,60,60,.75); color:#fff; }
   .proj-card-action.danger:hover{ background:rgba(180,60,60,1); }
+  .proj-card-num{ position:absolute; top:11px; left:12px; background:rgba(255,255,255,.12); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,.18); border-radius:999px; font-size:9px; letter-spacing:.12em; text-transform:uppercase; font-weight:700; color:#fff; padding:3px 8px; }
+  .proj-card-wrap::after{ content:''; position:absolute; inset:0; border-radius:16px; background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.15) 0%,transparent 55%); opacity:0; transition:opacity .3s; pointer-events:none; z-index:2; }
+  .proj-card-wrap:hover::after{ opacity:1; }
 
-  /* Nummer badge */
-  .proj-card-num{
-    position:absolute; top:13px; left:14px;
-    background:rgba(255,255,255,.12); backdrop-filter:blur(8px);
-    border:1px solid rgba(255,255,255,.18); border-radius:999px;
-    font-size:9px; letter-spacing:.12em; text-transform:uppercase; font-weight:700;
-    color:#fff; padding:3px 9px;
-  }
-
-  /* ── Lijst weergave ── */
-  .card{ background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+  /* ── Lijstweergave ── */
+  .list-card{ background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
   table{ width:100%; border-collapse:collapse; }
-  thead th{
-    text-align:left; font-size:10px; letter-spacing:.16em; text-transform:uppercase;
-    color:var(--muted); padding:16px 22px; font-weight:600;
-    border-bottom:1px solid var(--line); background:#f4f6f9;
-  }
+  thead th{ text-align:left; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); padding:14px 20px; font-weight:600; border-bottom:1px solid var(--line); background:#f4f6f9; }
+  [data-theme="dark"] thead th{ background:#1a1d21; }
   thead th.right, tbody td.right{ text-align:right; }
-  tbody td{ padding:13px 22px; font-size:13px; border-bottom:1px solid var(--line); }
+  tbody td{ padding:12px 20px; font-size:13px; border-bottom:1px solid var(--line); }
   tbody tr:last-child td{ border-bottom:0; }
-  tbody tr{ transition:background .15s; cursor:pointer; }
-  tbody tr:hover{ background:rgba(78,125,156,.05); }
-  .num-pill{ display:inline-block; font-variant-numeric:tabular-nums; font-weight:600; background:rgba(78,125,156,.1); color:var(--accent); padding:3px 10px; border-radius:999px; font-size:11px; }
-  .fase-pill{ display:inline-block; font-size:9px; letter-spacing:.12em; text-transform:uppercase; font-weight:700; padding:3px 8px; border-radius:999px; background:rgba(78,125,156,.1); color:var(--accent); }
+  tbody tr{ transition:background .15s; cursor:pointer; animation:rowIn .3s cubic-bezier(.22,.68,0,1.2) both; }
+  tbody tr:hover{ background:rgba(78,125,156,.04); }
+  .num-pill{ display:inline-block; font-weight:600; background:rgba(78,125,156,.1); color:var(--accent); padding:3px 10px; border-radius:999px; font-size:11px; }
+  .fase-pill{ display:inline-block; font-size:9px; letter-spacing:.12em; text-transform:uppercase; font-weight:700; padding:3px 8px; border-radius:999px; }
   .nm a{ color:inherit; text-decoration:none; font-weight:700; letter-spacing:.02em; text-transform:uppercase; font-size:12px; }
   .nm a:hover{ color:var(--accent); }
   .actions{ display:flex; gap:6px; justify-content:flex-end; }
@@ -157,155 +199,310 @@
   .btn:hover{ background:rgba(17,20,24,.04); }
   .btn.del{ color:#b43c3c; border-color:rgba(180,60,60,.25); }
   .btn.del:hover{ background:rgba(180,60,60,.08); }
+
+  /* ── Fase kleuren ── */
+  .fase-AQ,  .fase-aq  { background:rgba(200,144,10,.12); color:#c8900a; }
+  .fase-SO,  .fase-so  { background:rgba(78,125,156,.12); color:#4e7d9c; }
+  .fase-VO,  .fase-vo  { background:rgba(78,125,156,.18); color:#3d6e8a; }
+  .fase-DO,  .fase-do  { background:rgba(90,100,200,.12); color:#4a55c8; }
+  .fase-TO,  .fase-to  { background:rgba(130,80,200,.12); color:#7850c8; }
+  .fase-UO,  .fase-uo  { background:rgba(180,80,160,.12); color:#b450a0; }
+  .fase-UV,  .fase-uv  { background:rgba(196,64,64,.1); color:#c44040; }
+  .fase-OP,  .fase-op  { background:rgba(45,138,94,.12); color:#2d8a5e; }
+  .fase-uitvoering { background:rgba(196,64,64,.1); color:#c44040; }
+  .fase-opgeleverd { background:rgba(45,138,94,.12); color:#2d8a5e; }
+
+  /* ── Leeg / laden ── */
   .empty{ padding:60px 28px; text-align:center; color:var(--muted); font-size:13px; }
   .empty a{ color:var(--accent); font-weight:600; }
   .loading{ padding:40px; text-align:center; color:var(--muted); font-size:13px; }
+  .no-results{ padding:40px 20px; text-align:center; color:var(--muted); }
+  .no-results .icon{ font-size:32px; margin-bottom:10px; }
+  .no-results p{ font-size:13px; margin:0; }
 
   /* ── Animaties ── */
-  @keyframes cardIn {
-    from { opacity:0; transform:translateY(18px) scale(.98); }
-    to   { opacity:1; transform:translateY(0) scale(1); }
-  }
-  @keyframes rowIn {
-    from { opacity:0; transform:translateX(-8px); }
-    to   { opacity:1; transform:translateX(0); }
-  }
-  .proj-card-wrap { animation: cardIn .45s cubic-bezier(.22,.68,0,1.2) both; }
-  .proj-card-wrap::after {
-    content:''; position:absolute; inset:0; border-radius:16px;
-    background: radial-gradient(circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,.15) 0%, transparent 55%);
-    opacity:0; transition:opacity .3s; pointer-events:none; z-index:2;
-  }
-  .proj-card-wrap:hover::after{ opacity:1; }
+  @keyframes cardIn{ from{opacity:0;transform:translateY(18px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
+  @keyframes rowIn{ from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:translateX(0)} }
 
-  /* ── Bulk bar ── */
-  .bulk-bar{
-    display:flex; align-items:center; gap:10px; padding:12px 20px;
-    background:var(--ink); border-radius:12px; margin-bottom:14px;
-    font-size:12px; color:#fff; font-family:'Inter',sans-serif;
+  @media(max-width:860px){
+    .layout{ grid-template-columns:1fr; }
+    .sidebar{ display:none; }
   }
-  .bulk-bar .count{ font-weight:700; }
-  .bulk-select{ display:flex; gap:8px; margin-left:auto; align-items:center; }
-  .bulk-select select{ font-family:inherit; font-size:11px; padding:6px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.1); color:#fff; cursor:pointer; outline:none; }
-  .bulk-select select option{ background:#1a2332; }
-  .bulk-apply{ background:var(--accent); color:#fff; border:none; padding:7px 14px; border-radius:8px; font-size:11px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; cursor:pointer; font-family:inherit; transition:background .15s; }
-  .bulk-apply:hover{ background:#3d6e8a; }
-  .bulk-cancel{ background:transparent; color:rgba(255,255,255,.6); border:none; font-size:11px; cursor:pointer; font-family:inherit; padding:4px 8px; }
-  .bulk-cancel:hover{ color:#fff; }
-  .row-check{ width:18px; height:18px; cursor:pointer; accent-color:var(--accent); }
-  .select-all-th{ width:44px; }
 </style>
-<script src="nav.js" defer></script>
 </head>
 <body>
-<div class="page">
-  <header class="header">
-    <div>
-      <h1>Projecten</h1>
-      <div class="sub">Alle projecten — bewerken of verwijderen.</div>
+<div class="layout">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-head">
+      <h1>📋 Projecten</h1>
+      <div class="sub" id="count-label">— projecten</div>
     </div>
-    <div style="display:flex;gap:10px;align-items:center;">
-      <div class="view-toggle">
-        <button class="vt-btn" id="vt-grid" onclick="setView('grid')">⊞ Kaarten</button>
-        <button class="vt-btn active" id="vt-list" onclick="setView('list')">☰ Lijst</button>
+
+    <!-- Fase -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">Fase</div>
+      <div id="fase-list"></div>
+    </div>
+
+    <div style="height:1px;background:var(--line);margin:6px 12px;flex-shrink:0;"></div>
+
+    <!-- Type -->
+    <div class="sidebar-section" style="padding-bottom:6px;">
+      <div class="sidebar-label">Type</div>
+    </div>
+    <div class="sidebar-scroll">
+      <div id="type-list"></div>
+    </div>
+  </aside>
+
+  <!-- ── Hoofdpaneel ── -->
+  <main class="main">
+    <div class="topbar">
+      <div class="crumbs">
+        <a href="projects_dashboard.html">Dashboard</a>
+        · Projecten
       </div>
-      <a href="new_project.html" style="background:var(--ink);color:#fff;text-decoration:none;padding:9px 18px;border-radius:999px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;">+ Nieuw project</a>
+      <a href="new_project.html" class="new-btn" id="new-btn" style="display:none">+ Nieuw project</a>
     </div>
-  </header>
 
-  <div id="bulk-bar" class="bulk-bar" style="display:none;">
-    <span class="count" id="bulk-count"></span>
-    <div class="bulk-select">
-      <span style="opacity:.7">Fase wijzigen naar:</span>
-      <select id="bulk-fase">
-        <option value="">Kies fase…</option>
-        <option value="AQ">AQ — Acquisitie</option>
-        <option value="SO">SO — Schets Ontwerp</option>
-        <option value="VO">VO — Voorlopig Ontwerp</option>
-        <option value="DO">DO — Definitief Ontwerp</option>
-        <option value="TO">TO — Technisch Ontwerp</option>
-        <option value="UO">UO — Uitvoerings Ontwerp</option>
-        <option value="UV">UV — Uitvoering</option>
-        <option value="OP">OP — Opgeleverd</option>
-      </select>
-      <button class="bulk-apply" id="bulk-apply">Toepassen</button>
-      <button class="bulk-cancel" id="bulk-cancel">Annuleer</button>
+    <div class="toolbar">
+      <input class="proj-search" id="proj-search" type="search" placeholder="Zoek projectnaam, stad of opdrachtgever…" />
+      <div class="view-toggle">
+        <button class="vtoggle-btn active" id="view-grid-btn" title="Kaarten" onclick="setView('grid')">⊞</button>
+        <button class="vtoggle-btn" id="view-list-btn" title="Lijst" onclick="setView('list')">☰</button>
+      </div>
     </div>
-  </div>
 
-  <div id="root"><div class="loading">Projecten laden…</div></div>
+    <div class="active-filter-bar" id="filter-bar" style="display:none;"></div>
+
+    <div id="root"><div class="loading">Projecten laden…</div></div>
+  </main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase.js"></script>
 <script>
-let isApproved = false;
+// ── State ──
+let allProjects = [];
+let isApproved  = false;
 let currentView = localStorage.getItem('mvsa.listview') || 'grid';
+let activeFilter = { type: '', value: '' }; // type: 'fase'|'projecttype'|'stad'
+let searchQuery  = '';
 
-function setView(v) {
-  currentView = v;
-  localStorage.setItem('mvsa.listview', v);
-  document.getElementById('vt-grid')?.classList.toggle('active', v === 'grid');
-  document.getElementById('vt-list')?.classList.toggle('active', v === 'list');
+// ── Fase config ──
+const FASE_COLORS = {
+  'AQ': '#c8900a', 'SO': '#4e7d9c', 'VO': '#3d6e8a',
+  'DO': '#4a55c8', 'TO': '#7850c8', 'UO': '#b450a0',
+  'UV': '#c44040', 'OP': '#2d8a5e',
+  'In uitvoering': '#c44040', 'Opgeleverd': '#2d8a5e',
+};
+const TYPE_COLORS = ['#4e7d9c','#2d8a5e','#c8900a','#9b59b6','#e07b00','#3d6e8a','#c44040','#1a7a4a','#5b8fa8'];
+
+// ── Hulpfuncties ──
+function faseCls(fase) {
+  if (!fase) return '';
+  const f = fase.toLowerCase().replace(/\s+/g,'');
+  return `fase-${f}`;
+}
+function typeColor(type, idx) {
+  return TYPE_COLORS[idx % TYPE_COLORS.length];
+}
+function initials(s) {
+  if (!s) return '?';
+  return s.split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase();
+}
+
+// ── Filteren ──
+function getFiltered() {
+  return allProjects.filter(p => {
+    // Zoekfilter
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const haystack = [p.projectnaam, p.stad, p.opdrachtgever, p.projectnummer, p.project_type].filter(Boolean).join(' ').toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    // Sidebarfilter
+    if (activeFilter.value) {
+      if (activeFilter.type === 'fase' && (p.fase||'') !== activeFilter.value) return false;
+      if (activeFilter.type === 'projecttype' && (p.project_type||'') !== activeFilter.value) return false;
+      if (activeFilter.type === 'stad' && (p.stad||'') !== activeFilter.value) return false;
+    }
+    return true;
+  });
+}
+
+// ── Sidebar bouwen ──
+function buildSidebar() {
+  const total = allProjects.length;
+  document.getElementById('count-label').textContent = `${total} project${total !== 1 ? 'en' : ''}`;
+
+  // Fase counts
+  const faseCounts = {};
+  allProjects.forEach(p => {
+    const f = p.fase || 'Onbekend';
+    faseCounts[f] = (faseCounts[f] || 0) + 1;
+  });
+  const faseOrder = ['AQ','SO','VO','DO','TO','UO','UV','In uitvoering','OP','Opgeleverd'];
+  const fasen = [...faseOrder.filter(f => faseCounts[f]), ...Object.keys(faseCounts).filter(f => !faseOrder.includes(f))];
+
+  const faseList = document.getElementById('fase-list');
+  const alleActive = (!activeFilter.value) ? 'active' : '';
+  let faseHtml = `<button class="filter-btn ${alleActive}" onclick="setFilter('','')">
+    <div class="filter-dot" style="background:var(--muted)"></div>
+    <span class="filter-name">Alle</span>
+    <span class="filter-count">${total}</span>
+  </button>`;
+  fasen.forEach(f => {
+    const color = FASE_COLORS[f] || '#7f8fa0';
+    const isAct = activeFilter.type === 'fase' && activeFilter.value === f ? 'active' : '';
+    faseHtml += `<button class="filter-btn ${isAct}" onclick="setFilter('fase','${f}')">
+      <div class="filter-dot" style="background:${color}"></div>
+      <span class="filter-name">${f}</span>
+      <span class="filter-count">${faseCounts[f]}</span>
+    </button>`;
+  });
+  faseList.innerHTML = faseHtml;
+
+  // Type + stad counts
+  const typeCounts = {};
+  allProjects.forEach(p => {
+    if (p.project_type) typeCounts[p.project_type] = (typeCounts[p.project_type] || 0) + 1;
+  });
+  const stadCounts = {};
+  allProjects.forEach(p => {
+    if (p.stad) stadCounts[p.stad] = (stadCounts[p.stad] || 0) + 1;
+  });
+
+  const typeList = document.getElementById('type-list');
+  const types = Object.entries(typeCounts).sort((a,b) => b[1]-a[1]);
+  const steden = Object.entries(stadCounts).sort((a,b) => b[1]-a[1]).slice(0,12);
+
+  let typeHtml = '';
+  // Types als filterknopjes
+  if (types.length) {
+    typeHtml += `<div style="padding:0 6px 6px;font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);">Type</div>`;
+    types.forEach(([type, n], idx) => {
+      const color = TYPE_COLORS[idx % TYPE_COLORS.length];
+      const isAct = activeFilter.type === 'projecttype' && activeFilter.value === type ? 'active' : '';
+      typeHtml += `<button class="filter-btn ${isAct}" onclick="setFilter('projecttype','${type}')">
+        <div class="filter-dot" style="background:${color}"></div>
+        <span class="filter-name">${type}</span>
+        <span class="filter-count">${n}</span>
+      </button>`;
+    });
+    typeHtml += `<div style="height:1px;background:var(--line);margin:8px 0 4px;"></div>`;
+  }
+  // Steden
+  if (steden.length) {
+    typeHtml += `<div style="padding:6px 6px 6px;font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);">Stad</div>`;
+    steden.forEach(([stad, n]) => {
+      const color = TYPE_COLORS[Math.abs(stad.charCodeAt(0) + stad.charCodeAt(1||0)) % TYPE_COLORS.length];
+      const isAct = activeFilter.type === 'stad' && activeFilter.value === stad ? 'active' : '';
+      typeHtml += `<button class="stad-btn ${isAct}" onclick="setFilter('stad','${stad.replace(/'/g,"\\'")}')">
+        <div class="stad-logo" style="background:${color}">${initials(stad)}</div>
+        <div class="stad-info">
+          <div class="stad-naam">${stad}</div>
+        </div>
+        <span class="stad-n">${n}</span>
+      </button>`;
+    });
+  }
+  typeList.innerHTML = typeHtml;
+}
+
+// ── Filter instellen ──
+function setFilter(type, value) {
+  activeFilter = { type, value };
+  buildSidebar();
+  updateFilterBar();
   render();
 }
 
-setTimeout(() => {
-  document.getElementById('vt-grid')?.classList.toggle('active', currentView === 'grid');
-  document.getElementById('vt-list')?.classList.toggle('active', currentView === 'list');
-}, 100);
+function updateFilterBar() {
+  const bar = document.getElementById('filter-bar');
+  if (!activeFilter.value) { bar.style.display='none'; bar.innerHTML=''; return; }
+  bar.style.display='flex';
+  const label = activeFilter.type === 'fase' ? `Fase: ${activeFilter.value}`
+              : activeFilter.type === 'projecttype' ? `Type: ${activeFilter.value}`
+              : `Stad: ${activeFilter.value}`;
+  bar.innerHTML = `<div class="filter-badge">
+    ${label}
+    <button onclick="setFilter('','')">×</button>
+  </div><span style="font-size:12px;color:var(--muted)">${getFiltered().length} resultaat${getFiltered().length !== 1 ? 'en' : ''}</span>`;
+}
 
-async function render() {
+// ── Views ──
+function setView(v) {
+  currentView = v;
+  localStorage.setItem('mvsa.listview', v);
+  document.getElementById('view-grid-btn').classList.toggle('active', v==='grid');
+  document.getElementById('view-list-btn').classList.toggle('active', v==='list');
+  render();
+}
+
+// ── Render ──
+function render() {
   const root = document.getElementById('root');
-  let projects = [];
-  try { projects = await Projects.getAll(); }
-  catch(e) { root.innerHTML = '<div class="card empty">Database niet bereikbaar.</div>'; return; }
-  if (!projects.length) { root.innerHTML = '<div class="card empty">Nog geen projecten. <a href="new_project.html">Voeg je eerste toe →</a></div>'; return; }
+  const projects = getFiltered();
+
+  if (!projects.length) {
+    root.innerHTML = `<div class="no-results"><div class="icon">🔍</div><p>${allProjects.length ? 'Geen projecten gevonden voor dit filter.' : 'Nog geen projecten. <a href="new_project.html">Voeg je eerste toe →</a>'}</p></div>`;
+    return;
+  }
 
   if (currentView === 'list') {
-    root.innerHTML = '<div class="card"><table><thead><tr>' +
-      '<th>Projectnaam</th><th>Nummer</th><th>Stad</th><th>Fase</th><th>Type</th><th class="right">Acties</th>' +
-      '</tr></thead><tbody>' +
-      projects.map((p, i) => `<tr style="animation:rowIn .3s cubic-bezier(.22,.68,0,1.2) ${i*30}ms both">
+    root.innerHTML = `<div class="list-card"><table>
+      <thead><tr>
+        <th>Projectnaam</th><th>Nummer</th><th>Stad</th><th>Fase</th><th>Type</th><th class="right">Acties</th>
+      </tr></thead>
+      <tbody>${projects.map((p, i) => `<tr style="animation-delay:${i*25}ms" onclick="location.href='project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}'">
         <td class="nm"><a href="project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}">${p.projectnaam||'—'}</a></td>
         <td><span class="num-pill">${p.projectnummer||'—'}</span></td>
         <td>${p.stad||'—'}</td>
-        <td>${p.fase ? `<span class="fase-pill">${p.fase}</span>` : '—'}</td>
+        <td>${p.fase ? `<span class="fase-pill ${faseCls(p.fase)}">${p.fase}</span>` : '—'}</td>
         <td style="color:var(--muted);font-size:12px">${p.project_type||'—'}</td>
         <td class="right"><div class="actions">
           <a class="btn" href="project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}">Bekijk</a>
           ${isApproved ? `<a class="btn" href="new_project.html?edit=${encodeURIComponent(p.projectnummer||'')}">Bewerk</a>` : ''}
           ${isApproved ? `<button class="btn del" data-id="${p.id}" data-naam="${p.projectnaam||p.projectnummer}">Verwijder</button>` : ''}
         </div></td>
-      </tr>`).join('') + '</tbody></table></div>';
-  } else {
-    root.innerHTML = '<div class="proj-grid">' +
-      projects.map((p, i) => `
-        <div class="proj-card-wrap" style="animation-delay:${i*50}ms" onclick="location.href='project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}'">
-          <div class="proj-card-bg" id="pcbg-${p.projectnummer||i}"></div>
-          <div class="proj-card-overlay"></div>
-          <div class="proj-card-overlay-hover"></div>
-          ${p.projectnummer ? `<div class="proj-card-num">${p.projectnummer}</div>` : ''}
-          <div class="proj-card-bottom">
-            <div class="proj-card-name">${p.projectnaam||'—'}</div>
-            <div class="proj-card-sub">
-              ${[p.stad, p.land].filter(Boolean).join(' · ')||''}
-              ${p.fase ? `<span class="proj-card-fase">${p.fase}</span>` : ''}
-            </div>
-          </div>
-          <div class="proj-card-details">
-            ${p.project_type ? `<div class="proj-card-detail-row"><span class="lbl">Type</span><span class="val">${p.project_type}</span></div>` : ''}
-            ${p.totaal_bvo ? `<div class="proj-card-detail-row"><span class="lbl">BVO</span><span class="val">${Number(p.totaal_bvo).toLocaleString('nl-NL')} m²</span></div>` : ''}
-            <div class="proj-card-actions">
-              <a class="proj-card-action primary" href="project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}">Bekijk →</a>
-              ${isApproved ? `<a class="proj-card-action secondary" href="new_project.html?edit=${encodeURIComponent(p.projectnummer||'')}">Bewerk</a>` : ''}
-              ${isApproved ? `<button class="proj-card-action danger" data-id="${p.id}" data-naam="${p.projectnaam||p.projectnummer}" onclick="event.stopPropagation();deleteProject(this)">Verwijder</button>` : ''}
-            </div>
-          </div>
-        </div>`).join('') + '</div>';
+      </tr>`).join('')}
+      </tbody></table></div>`;
 
-    // Laad afbeeldingen
-    projects.forEach(async (p, i) => {
+    root.querySelectorAll('.btn.del').forEach(b => {
+      b.addEventListener('click', e => { e.stopPropagation(); deleteProject(b.dataset.id, b.dataset.naam); });
+    });
+  } else {
+    root.innerHTML = `<div class="proj-grid">${projects.map((p, i) => `
+      <div class="proj-card-wrap" style="animation-delay:${i*40}ms" onclick="location.href='project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}'">
+        <div class="proj-card-bg" id="pcbg-${p.projectnummer||i}"></div>
+        <div class="proj-card-overlay"></div>
+        <div class="proj-card-overlay-hover"></div>
+        ${p.projectnummer ? `<div class="proj-card-num">${p.projectnummer}</div>` : ''}
+        <div class="proj-card-bottom">
+          <div class="proj-card-name">${p.projectnaam||'—'}</div>
+          <div class="proj-card-sub">
+            ${[p.stad, p.land !== 'Nederland' ? p.land : null].filter(Boolean).join(' · ')||''}
+            ${p.fase ? `<span class="proj-card-fase">${p.fase}</span>` : ''}
+          </div>
+        </div>
+        <div class="proj-card-details">
+          ${p.project_type ? `<div class="proj-card-detail-row"><span class="lbl">Type</span><span class="val">${p.project_type}</span></div>` : ''}
+          ${p.totaal_bvo ? `<div class="proj-card-detail-row"><span class="lbl">BVO</span><span class="val">${Number(p.totaal_bvo).toLocaleString('nl-NL')} m²</span></div>` : ''}
+          ${p.opdrachtgever ? `<div class="proj-card-detail-row"><span class="lbl">OG</span><span class="val" style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.opdrachtgever}</span></div>` : ''}
+          <div class="proj-card-actions">
+            <a class="proj-card-action primary" href="project_page.html?nr=${encodeURIComponent(p.projectnummer||'')}&p=${encodeURIComponent(p.projectnaam||'')}">Bekijk →</a>
+            ${isApproved ? `<a class="proj-card-action secondary" href="new_project.html?edit=${encodeURIComponent(p.projectnummer||'')}">Bewerk</a>` : ''}
+            ${isApproved ? `<button class="proj-card-action danger" data-id="${p.id}" data-naam="${p.projectnaam||p.projectnummer}" onclick="event.stopPropagation();deleteProjectCard(this)">Verwijder</button>` : ''}
+          </div>
+        </div>
+      </div>`).join('')}
+    </div>`;
+
+    // Afbeeldingen laden
+    projects.forEach(async (p) => {
       if (!p.projectnummer) return;
       try {
         const imgs = await Images.getForProject(p.projectnummer);
@@ -316,27 +513,20 @@ async function render() {
       } catch(e) {}
     });
   }
-
-  // Delete handlers lijst
-  root.querySelectorAll('.btn.del').forEach(b => {
-    b.addEventListener('click', async () => {
-      if (!confirm(`Project "${b.dataset.naam}" verwijderen?`)) return;
-      b.disabled = true; b.textContent = '…';
-      try { await Projects.remove(b.dataset.id); render(); }
-      catch(e) { alert('Verwijderen mislukt: ' + e.message); b.disabled = false; b.textContent = 'Verwijder'; }
-    });
-  });
 }
 
-async function deleteProject(btn) {
-  if (!confirm(`Project "${btn.dataset.naam}" verwijderen?`)) return;
-  btn.disabled = true; btn.textContent = '…';
-  try { await Projects.remove(btn.dataset.id); render(); }
-  catch(e) { alert('Verwijderen mislukt: ' + e.message); render(); }
+// ── Delete ──
+async function deleteProject(id, naam) {
+  if (!confirm(`Project "${naam}" verwijderen?`)) return;
+  try { await Projects.remove(id); allProjects = allProjects.filter(p => p.id !== id); buildSidebar(); render(); }
+  catch(e) { alert('Verwijderen mislukt: ' + e.message); }
+}
+async function deleteProjectCard(btn) {
+  deleteProject(btn.dataset.id, btn.dataset.naam);
 }
 
-// Shimmer op kaarten
-document.addEventListener('mousemove', (e) => {
+// ── Shimmer ──
+document.addEventListener('mousemove', e => {
   const card = e.target.closest('.proj-card-wrap');
   if (!card) return;
   const r = card.getBoundingClientRect();
@@ -344,14 +534,43 @@ document.addEventListener('mousemove', (e) => {
   card.style.setProperty('--my', ((e.clientY-r.top)/r.height*100).toFixed(1)+'%');
 });
 
+// ── Zoeken ──
+document.getElementById('proj-search').addEventListener('input', e => {
+  searchQuery = e.target.value.trim();
+  updateFilterBar();
+  render();
+});
+
+// ── Init ──
 (async function(){
+  // View uit localStorage
+  document.getElementById('view-grid-btn').classList.toggle('active', currentView==='grid');
+  document.getElementById('view-list-btn').classList.toggle('active', currentView==='list');
+
+  // Auth check
   try {
     const { data: { user } } = await db.auth.getUser();
     if (user) {
       const { data: profile } = await db.from('profiles').select('status').eq('id', user.id).maybeSingle();
       isApproved = profile?.status === 'approved';
+      if (isApproved) document.getElementById('new-btn').style.display = 'flex';
     }
   } catch(e) {}
+
+  // Data laden
+  const root = document.getElementById('root');
+  try {
+    allProjects = await Projects.getAll();
+  } catch(e) {
+    root.innerHTML = '<div class="empty">Database niet bereikbaar.</div>';
+    return;
+  }
+  if (!allProjects.length) {
+    root.innerHTML = '<div class="empty">Nog geen projecten. <a href="new_project.html">Voeg je eerste toe →</a></div>';
+    return;
+  }
+
+  buildSidebar();
   render();
 })();
 </script>
